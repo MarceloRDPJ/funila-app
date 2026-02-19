@@ -1,8 +1,6 @@
-const SUPABASE_URL  = "https://qitbyswmidyakadrzatz.supabase.co";
+const SUPABASE_URL = "https://qitbyswmidyakadrzatz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpdGJ5c3dtaWR5YWthZHJ6YXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MDQ3NzAsImV4cCI6MjA4NzA4MDc3MH0.FHUD9EuHNOnxv7UALkHNlLiEZv5Q7yYvT9GIz3QeSl0";
-// If served from the same backend, we can use relative paths.
-// Otherwise, use "https://funila-api.onrender.com";
-const API_URL = "";
+const API_URL = "https://funila-api.onrender.com";
 
 let supabaseClient = null;
 
@@ -21,7 +19,6 @@ function togglePassword() {
     const passwordInput = document.getElementById("password");
     const eyeOpen = document.getElementById("eye-open");
     const eyeClosed = document.getElementById("eye-closed");
-
     if (passwordInput.type === "password") {
         passwordInput.type = "text";
         eyeOpen.style.display = "none";
@@ -33,59 +30,68 @@ function togglePassword() {
     }
 }
 
+async function handleRedirect(session) {
+    try {
+        const token = session.access_token;
+        const res = await fetch(`${API_URL}/auth/me`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.ok) {
+            const profile = await res.json();
+            if (profile.role === "master") {
+                window.location.href = "/frontend/master/index.html";
+            } else {
+                window.location.href = "/frontend/admin/dashboard.html";
+            }
+        } else {
+            // Não conseguiu buscar o role — desloga e mostra erro
+            await getSupabase().auth.signOut();
+            showError("Erro ao verificar permissões. Tente novamente.");
+        }
+    } catch (e) {
+        console.error("Redirect error:", e);
+        showError("Erro de conexão. Tente novamente.");
+    }
+}
+
 async function checkAlreadyLoggedIn() {
     const sb = getSupabase();
+    if (!sb) return;
     const { data: { session } } = await sb.auth.getSession();
-
     if (session) {
-        // Already logged in, redirect
-        console.log("Already logged in, redirecting...");
         await handleRedirect(session);
     }
 }
 
-async function handleRedirect(session) {
-    try {
-        const token = session.access_token;
-        // Fetch user role
-        const res = await fetch(`${API_URL}/auth/me`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
+function showError(msg) {
+    const errorMsg = document.getElementById("error-message");
+    errorMsg.innerText = msg;
+    errorMsg.style.display = "block";
+}
 
-        if (res.ok) {
-            const profile = await res.json();
-            if (profile.role === 'master') {
-                window.location.href = "/master/index.html";
-            } else {
-                window.location.href = "/admin/dashboard.html";
-            }
-        } else {
-            // Error fetching role, maybe logout?
-            console.error("Error fetching role");
-            // Optionally logout if role fetch fails
-            // await getSupabase().auth.signOut();
-        }
-    } catch (e) {
-        console.error("Redirect error:", e);
-    }
+function resetBtn() {
+    const btn = document.querySelector("button[type='submit']");
+    const spinner = btn.querySelector(".spinner");
+    const btnText = btn.querySelector("span");
+    btn.disabled = false;
+    btnText.style.display = "block";
+    spinner.style.display = "none";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     checkAlreadyLoggedIn();
 
     const form = document.getElementById("login-form");
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
     const btn = form.querySelector("button[type='submit']");
-    const errorMsg = document.getElementById("error-message");
     const spinner = btn.querySelector(".spinner");
     const btnText = btn.querySelector("span");
+    const errorMsg = document.getElementById("error-message");
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const email = emailInput.value;
-        const password = passwordInput.value;
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
 
         // Reset UI
         errorMsg.style.display = "none";
@@ -95,23 +101,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const sb = getSupabase();
-            const { data, error } = await sb.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
             if (error) throw error;
 
-            // Login successful
             await handleRedirect(data.session);
 
         } catch (err) {
             console.error(err);
-            errorMsg.innerText = "E-mail ou senha incorretos. Tente novamente.";
-            errorMsg.style.display = "block";
-            btn.disabled = false;
-            btnText.style.display = "block";
-            spinner.style.display = "none";
+            showError("E-mail ou senha incorretos. Tente novamente.");
+            resetBtn();
         }
     });
 });

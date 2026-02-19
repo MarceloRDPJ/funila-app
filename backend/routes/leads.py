@@ -1,11 +1,12 @@
 import urllib.parse
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from database import get_supabase
 from utils.security import encrypt_cpf
 from services.scorer import calculate_score
 from services.email import send_lead_alert
+from dependencies import require_client
 
 router = APIRouter(tags=["Leads"])
 
@@ -36,7 +37,7 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
     cpf = form_data.get("cpf")
     cpf_encrypted = encrypt_cpf(cpf) if cpf else None
 
-    internal_score, external_score = await calculate_score(form_data, [], client_plan)
+    internal_score, external_score, serasa_score_raw = await calculate_score(form_data, [], client_plan)
     final_score = internal_score + external_score
 
     if final_score >= 70:
@@ -47,7 +48,6 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         status = "cold"
 
     name      = form_data.get("full_name", "")
-    phone_raw = form_data.get("phone", "").replace("(","").replace(")","").replace("-","").replace(" ","")
     has_clt   = form_data.get("has_clt", "")
     clt_years = form_data.get("clt_years", "")
     income    = form_data.get("income_range", "")
@@ -69,10 +69,11 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         f"Gostaria de mais informações."
     )
 
-    whatsapp_url = f"https://wa.me/55{phone_raw}?text={urllib.parse.quote(whatsapp_msg)}"
     if client_whats:
         clean_whats = client_whats.replace("(","").replace(")","").replace("-","").replace(" ","")
         whatsapp_url = f"https://wa.me/55{clean_whats}?text={urllib.parse.quote(whatsapp_msg)}"
+    else:
+        whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(whatsapp_msg)}"
 
     lead_insert = {
         "client_id":      payload.client_id,
@@ -82,6 +83,7 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         "cpf_encrypted":  cpf_encrypted,
         "internal_score": internal_score,
         "external_score": external_score,
+        "serasa_score":   serasa_score_raw,
         "status":         status,
         "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
         "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
@@ -104,6 +106,12 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         if responses:
             supabase.table("lead_responses").insert(responses).execute()
 
+        supabase.table("events").insert({
+            "lead_id":    lead_id,
+            "event_type": "form_submit",
+            "metadata":   {"score": final_score, "status": status}
+        }).execute()
+
         if status == "hot":
             background_tasks.add_task(
                 send_lead_alert, client_email, name,
@@ -120,3 +128,18 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
     except Exception as e:
         print(f"Erro ao salvar lead: {e}")
         raise HTTPException(status_code=500, detail="Não foi possível salvar o lead")
+
+
+@router.get("/leads")
+def list_leads(
+    status: Optional[str] = None,
+    user_profile: dict = Depends(require_client)
+):
+    client_id = user_profile["client_id"]
+    supabase = get_supabase()
+
+    query = supabase.table("leads").select("*").eq("client_id", client_id).order("created_at", desc=True)
+    if status:
+        query = query.eq("status", status)
+
+    return query.execute().data

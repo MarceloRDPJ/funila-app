@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Funila - Formulário</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">FUNILA <span>.</span></div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="dashboard.html">📊 Dashboard</a></li>
+            <li class="nav-item"><a href="leads.html">👥 Leads</a></li>
+            <li class="nav-item"><a href="links.html">🔗 Links</a></li>
+            <li class="nav-item"><a href="forms.html" class="active">📝 Formulário</a></li>
+        </ul>
+        <div class="user-info">
+            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Configuração do Formulário</h1>
+            <button class="btn btn-primary" onclick="saveConfig()">Salvar Alterações</button>
+        </div>
+
+        <div class="card">
+            <p class="card-label" style="margin-bottom: 20px;">Selecione os campos que aparecerão na sua Squeeze Page.</p>
+            <div id="fields-container">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const session = await Auth.checkAuth();
+            if(session) loadFormConfig();
+        });
+
+        let currentConfig = [];
+
+        async function loadFormConfig() {
+            const session = await Auth.checkAuth();
+            const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            currentConfig = await res.json();
+            renderConfig();
+        }
+
+        function renderConfig() {
+            const container = document.getElementById("fields-container");
+            container.innerHTML = "";
+
+            currentConfig.forEach((field, index) => {
+                const row = document.createElement("div");
+                row.style.display = "flex";
+                row.style.alignItems = "center";
+                row.style.padding = "12px";
+                row.style.borderBottom = "1px solid var(--border)";
+                row.style.gap = "16px";
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = field.active;
+                checkbox.style.width = "20px";
+                checkbox.style.height = "20px";
+                checkbox.onchange = (e) => { field.active = e.target.checked; };
+
+                const labelInput = document.createElement("input");
+                labelInput.type = "text";
+                labelInput.value = field.label_custom || field.label_default;
+                labelInput.placeholder = "Rótulo do campo";
+                labelInput.oninput = (e) => { field.label_custom = e.target.value; };
+
+                const requiredCheck = document.createElement("input");
+                requiredCheck.type = "checkbox";
+                requiredCheck.checked = field.required;
+                requiredCheck.style.width = "16px";
+                requiredCheck.onchange = (e) => { field.required = e.target.checked; };
+
+                const info = document.createElement("span");
+                info.style.flex = "1";
+                info.innerHTML = `<strong>${field.label_default}</strong> <span style="font-size:12px;color:var(--text-secondary)">(${field.type})</span>`;
+
+                row.appendChild(checkbox);
+                row.appendChild(info);
+
+                const labelDiv = document.createElement("div");
+                labelDiv.style.display = "flex";
+                labelDiv.style.flexDirection = "column";
+                labelDiv.style.gap = "4px";
+                const l1 = document.createElement("label"); l1.innerText = "Texto Exibido"; l1.style.fontSize="12px";
+                labelDiv.appendChild(l1);
+                labelDiv.appendChild(labelInput);
+                row.appendChild(labelDiv);
+
+                const reqDiv = document.createElement("div");
+                reqDiv.style.display = "flex";
+                reqDiv.style.alignItems = "center";
+                reqDiv.style.gap = "8px";
+                const l2 = document.createElement("label"); l2.innerText = "Obrigatório?"; l2.style.fontSize="12px";
+                reqDiv.appendChild(requiredCheck);
+                reqDiv.appendChild(l2);
+                row.appendChild(reqDiv);
+
+                container.appendChild(row);
+            });
+        }
+
+        async function saveConfig() {
+            const session = await Auth.checkAuth();
+            const btn = document.querySelector(".btn-primary");
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
+            // Prepare payload
+            // Map currentConfig to format expected by backend
+            const payload = currentConfig.map((field, idx) => ({
+                field_id: field.field_id,
+                label_custom: field.label_custom,
+                required: field.required,
+                active: field.active,
+                order: idx // Simple order based on list position
+            }));
+
+            try {
+                const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${session.access_token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert("Configuração salva!");
+                } else {
+                    alert("Erro ao salvar.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erro de conexão.");
+            } finally {
+                btn.innerText = "Salvar Alterações";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

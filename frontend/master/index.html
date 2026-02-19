@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Funila - Master Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../admin/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">FUNILA <span>MASTER</span></div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="index.html" class="active">👥 Clientes</a></li>
+            <!-- Add other master links if needed -->
+        </ul>
+        <div class="user-info">
+            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Gestão de Clientes</h1>
+            <button class="btn btn-primary" onclick="openModal()">+ Novo Cliente</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Plano</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="clients-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+        <div class="card" style="width: 500px;">
+            <h2 style="margin-bottom: 20px;">Novo Cliente</h2>
+            <form id="client-form">
+                <div class="form-group">
+                    <label>Nome da Empresa/Corretor</label>
+                    <input type="text" id="client-name" required>
+                </div>
+                <div class="form-group">
+                    <label>E-mail (Login)</label>
+                    <input type="email" id="client-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Plano</label>
+                    <select id="client-plan" required>
+                        <option value="solo">Solo</option>
+                        <option value="pro">Pro</option>
+                        <option value="agency">Agency</option>
+                    </select>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../admin/js/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Check auth and role
+            const session = await Auth.checkAuth();
+            if (session) {
+                // Verify role
+                try {
+                    const res = await fetch(`${Auth.API_URL}/auth/me`, {
+                        headers: { "Authorization": `Bearer ${session.access_token}` }
+                    });
+                    const profile = await res.json();
+                    if (profile.role !== 'master') {
+                        window.location.href = "../admin/dashboard.html";
+                        return;
+                    }
+                    loadClients();
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            document.getElementById("client-form").addEventListener("submit", createClient);
+        });
+
+        function openModal() { document.getElementById("modal").style.display = "flex"; }
+        function closeModal() { document.getElementById("modal").style.display = "none"; }
+
+        async function loadClients() {
+            const session = await Auth.checkAuth();
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+
+            const tbody = document.getElementById("clients-table-body");
+            tbody.innerHTML = "";
+
+            data.forEach(client => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${client.name}</td>
+                    <td>${client.email}</td>
+                    <td><span class="status-badge status-warm">${client.plan.toUpperCase()}</span></td>
+                    <td>${client.active ? 'Ativo' : 'Inativo'}</td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 4px 8px;">Editar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function createClient(e) {
+            e.preventDefault();
+            const session = await Auth.checkAuth();
+
+            const payload = {
+                name: document.getElementById("client-name").value,
+                email: document.getElementById("client-email").value,
+                plan: document.getElementById("client-plan").value
+            };
+
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${session.access_token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Cliente criado! Agora convide o usuário no Supabase Auth.");
+                closeModal();
+                loadClients();
+            } else {
+                const err = await res.json();
+                alert("Erro: " + err.detail);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Funila - Links</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">FUNILA <span>.</span></div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="dashboard.html">📊 Dashboard</a></li>
+            <li class="nav-item"><a href="leads.html">👥 Leads</a></li>
+            <li class="nav-item"><a href="links.html" class="active">🔗 Links</a></li>
+            <li class="nav-item"><a href="forms.html">📝 Formulário</a></li>
+        </ul>
+        <div class="user-info">
+            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Links de Campanha</h1>
+            <button class="btn btn-primary" onclick="openModal()">+ Novo Link</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>URL Encurtada</th>
+                        <th>Destino</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="links-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+        <div class="card" style="width: 500px;">
+            <h2 style="margin-bottom: 20px;">Novo Link</h2>
+            <form id="link-form">
+                <div class="form-group">
+                    <label>Nome da Campanha</label>
+                    <input type="text" id="link-name" required>
+                </div>
+                <div class="form-group">
+                    <label>URL de Destino (Squeeze Page)</label>
+                    <input type="url" id="link-dest" required placeholder="https://app.funila.com.br/frontend/form/index.html">
+                </div>
+                <div class="form-group">
+                    <label>UTM Source</label>
+                    <input type="text" id="link-utm">
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const session = await Auth.checkAuth();
+            if(session) loadLinks();
+
+            document.getElementById("link-form").addEventListener("submit", createLink);
+        });
+
+        function openModal() { document.getElementById("modal").style.display = "flex"; }
+        function closeModal() { document.getElementById("modal").style.display = "none"; }
+
+        async function loadLinks() {
+            const session = await Auth.checkAuth();
+            const res = await fetch(`${Auth.API_URL}/links`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+
+            const tbody = document.getElementById("links-table-body");
+            tbody.innerHTML = "";
+
+            data.forEach(link => {
+                const tr = document.createElement("tr");
+                const shortUrl = `${Auth.API_URL}/t/${link.slug}`;
+                tr.innerHTML = `
+                    <td>${link.name}</td>
+                    <td><a href="${shortUrl}" target="_blank" style="color:var(--accent);">${link.slug}</a></td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${link.destination}</td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 4px 8px;" onclick="navigator.clipboard.writeText('${shortUrl}')">Copiar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function createLink(e) {
+            e.preventDefault();
+            const session = await Auth.checkAuth();
+
+            const payload = {
+                name: document.getElementById("link-name").value,
+                destination: document.getElementById("link-dest").value,
+                utm_source: document.getElementById("link-utm").value
+            };
+
+            const res = await fetch(`${Auth.API_URL}/links`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${session.access_token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                closeModal();
+                loadLinks();
+            } else {
+                alert("Erro ao criar link");
+            }
+        }
+    </script>
+</body>
+</html>

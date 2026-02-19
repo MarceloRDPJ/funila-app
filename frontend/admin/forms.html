@@ -2,156 +2,175 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Funila - Formulário</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funila — Formulário</title>
+    <link rel="icon" href="/frontend/assets/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <aside class="sidebar">
-        <div class="brand">FUNILA <span>.</span></div>
-        <ul class="nav-links">
-            <li class="nav-item"><a href="dashboard.html">📊 Dashboard</a></li>
-            <li class="nav-item"><a href="leads.html">👥 Leads</a></li>
-            <li class="nav-item"><a href="links.html">🔗 Links</a></li>
-            <li class="nav-item"><a href="forms.html" class="active">📝 Formulário</a></li>
-        </ul>
-        <div class="user-info">
-            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
-        </div>
-    </aside>
 
-    <main class="main-content">
-        <div class="page-header">
-            <h1 class="page-title">Configuração do Formulário</h1>
-            <button class="btn btn-primary" onclick="saveConfig()">Salvar Alterações</button>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="brand">FUNILA <span>PRO</span></div>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="dashboard.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Dashboard
+        </a></li>
+        <li class="nav-item"><a href="leads.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Leads
+        </a></li>
+        <li class="nav-item"><a href="links.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Links
+        </a></li>
+        <li class="nav-item"><a href="forms.html" class="active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            Formulário
+        </a></li>
+    </ul>
+    <div class="user-info">
+        <button class="logout-btn" onclick="Auth.logout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+        </button>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="page-title">Configurar Formulário</h1>
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()" id="save-btn">Salvar alterações</button>
+    </div>
+
+    <div class="page-body">
+        <div class="card" style="margin-bottom:16px;padding:16px 20px;background:rgba(59,110,248,.06);border-color:rgba(59,110,248,.2)">
+            <p style="font-size:.85rem;color:var(--text-secondary);line-height:1.6">
+                Selecione quais campos aparecem na sua Squeeze Page e personalize os textos exibidos para o lead.
+                Campos marcados como <strong style="color:var(--text-primary)">obrigatórios</strong> bloqueiam o envio se não preenchidos.
+            </p>
         </div>
 
-        <div class="card">
-            <p class="card-label" style="margin-bottom: 20px;">Selecione os campos que aparecerão na sua Squeeze Page.</p>
-            <div id="fields-container">
-                <!-- Loaded dynamically -->
-            </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:48px">Ativo</th>
+                        <th>Campo</th>
+                        <th>Texto exibido</th>
+                        <th style="width:100px">Obrigatório</th>
+                    </tr>
+                </thead>
+                <tbody id="fields-body"></tbody>
+            </table>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script src="js/auth.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const session = await Auth.checkAuth();
-            if(session) loadFormConfig();
+<script src="js/auth.js"></script>
+<script>
+    let configData = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const session = await Auth.checkAuth();
+        if (session) loadConfig();
+    });
+
+    async function loadConfig() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
+            headers: { "Authorization": `Bearer ${session.access_token}` }
         });
+        if (!res.ok) { console.error("Erro ao carregar config"); return; }
+        configData = await res.json();
+        renderConfig();
+    }
 
-        let currentConfig = [];
+    function renderConfig() {
+        const tbody = document.getElementById("fields-body");
+        tbody.innerHTML = configData.map((field, i) => `
+            <tr>
+                <td style="text-align:center">
+                    <input type="checkbox" ${field.active ? "checked" : ""}
+                        onchange="configData[${i}].active = this.checked"
+                        style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+                </td>
+                <td>
+                    <div style="font-weight:500;font-size:.875rem">${field.label_default}</div>
+                    <div class="text-muted font-mono">${field.field_key}</div>
+                </td>
+                <td>
+                    <input type="text"
+                        value="${field.label_custom || field.label_default}"
+                        oninput="configData[${i}].label_custom = this.value"
+                        style="background:var(--bg-primary);border:1px solid var(--border-strong);border-radius:6px;color:var(--text-primary);font-family:var(--font);font-size:.85rem;padding:7px 10px;outline:none;width:100%;max-width:260px;transition:border-color .15s"
+                        onfocus="this.style.borderColor='var(--accent)'"
+                        onblur="this.style.borderColor='var(--border-strong)'">
+                </td>
+                <td style="text-align:center">
+                    <input type="checkbox" ${field.required ? "checked" : ""}
+                        onchange="configData[${i}].required = this.checked"
+                        style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+                </td>
+            </tr>`).join("");
+    }
 
-        async function loadFormConfig() {
-            const session = await Auth.checkAuth();
+    async function saveConfig() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const btn = document.getElementById("save-btn");
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+
+        const payload = configData.map((field, idx) => ({
+            field_id:     field.field_id,
+            label_custom: field.label_custom,
+            required:     field.required,
+            active:       field.active,
+            order:        idx
+        }));
+
+        try {
             const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
-                headers: { "Authorization": `Bearer ${session.access_token}` }
+                method: "POST",
+                headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
-            currentConfig = await res.json();
-            renderConfig();
-        }
-
-        function renderConfig() {
-            const container = document.getElementById("fields-container");
-            container.innerHTML = "";
-
-            currentConfig.forEach((field, index) => {
-                const row = document.createElement("div");
-                row.style.display = "flex";
-                row.style.alignItems = "center";
-                row.style.padding = "12px";
-                row.style.borderBottom = "1px solid var(--border)";
-                row.style.gap = "16px";
-
-                const checkbox = document.createElement("input");
-                checkbox.type = "checkbox";
-                checkbox.checked = field.active;
-                checkbox.style.width = "20px";
-                checkbox.style.height = "20px";
-                checkbox.onchange = (e) => { field.active = e.target.checked; };
-
-                const labelInput = document.createElement("input");
-                labelInput.type = "text";
-                labelInput.value = field.label_custom || field.label_default;
-                labelInput.placeholder = "Rótulo do campo";
-                labelInput.oninput = (e) => { field.label_custom = e.target.value; };
-
-                const requiredCheck = document.createElement("input");
-                requiredCheck.type = "checkbox";
-                requiredCheck.checked = field.required;
-                requiredCheck.style.width = "16px";
-                requiredCheck.onchange = (e) => { field.required = e.target.checked; };
-
-                const info = document.createElement("span");
-                info.style.flex = "1";
-                info.innerHTML = `<strong>${field.label_default}</strong> <span style="font-size:12px;color:var(--text-secondary)">(${field.type})</span>`;
-
-                row.appendChild(checkbox);
-                row.appendChild(info);
-
-                const labelDiv = document.createElement("div");
-                labelDiv.style.display = "flex";
-                labelDiv.style.flexDirection = "column";
-                labelDiv.style.gap = "4px";
-                const l1 = document.createElement("label"); l1.innerText = "Texto Exibido"; l1.style.fontSize="12px";
-                labelDiv.appendChild(l1);
-                labelDiv.appendChild(labelInput);
-                row.appendChild(labelDiv);
-
-                const reqDiv = document.createElement("div");
-                reqDiv.style.display = "flex";
-                reqDiv.style.alignItems = "center";
-                reqDiv.style.gap = "8px";
-                const l2 = document.createElement("label"); l2.innerText = "Obrigatório?"; l2.style.fontSize="12px";
-                reqDiv.appendChild(requiredCheck);
-                reqDiv.appendChild(l2);
-                row.appendChild(reqDiv);
-
-                container.appendChild(row);
-            });
-        }
-
-        async function saveConfig() {
-            const session = await Auth.checkAuth();
-            const btn = document.querySelector(".btn-primary");
-            btn.innerText = "Salvando...";
-            btn.disabled = true;
-
-            // Prepare payload
-            // Map currentConfig to format expected by backend
-            const payload = currentConfig.map((field, idx) => ({
-                field_id: field.field_id,
-                label_custom: field.label_custom,
-                required: field.required,
-                active: field.active,
-                order: idx // Simple order based on list position
-            }));
-
-            try {
-                const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${session.access_token}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    alert("Configuração salva!");
-                } else {
-                    alert("Erro ao salvar.");
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Erro de conexão.");
-            } finally {
-                btn.innerText = "Salvar Alterações";
-                btn.disabled = false;
+            if (res.ok) {
+                btn.textContent = "Salvo!";
+                setTimeout(() => { btn.textContent = "Salvar alterações"; }, 1800);
+            } else {
+                alert("Erro ao salvar configuração.");
             }
+        } catch (e) {
+            console.error(e);
+            alert("Erro de conexão.");
+        } finally {
+            btn.disabled = false;
+            if (btn.textContent === "Salvando...") btn.textContent = "Salvar alterações";
         }
-    </script>
+    }
+
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+</script>
 </body>
 </html>

@@ -27,6 +27,7 @@ async function checkAuth() {
         const isPublic = path === "/" || path === "/index.html" || path.includes("/admin/index.html") || path.endsWith("/admin/");
 
         if (!isPublic) {
+            // Store current path to redirect back after login? (Optional)
             window.location.href = "/";
         }
         return null;

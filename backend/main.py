@@ -75,3 +75,6 @@ app.mount("/form", StaticFiles(directory="../frontend/form", html=True), name="f
 
 # Mount login page at root (must be last to avoid overriding other routes)
 app.mount("/", StaticFiles(directory="../frontend/login", html=True), name="login")
+
+# Mount assets (e.g. /assets/favicon.png)
+app.mount("/assets", StaticFiles(directory="../frontend/assets"), name="assets")

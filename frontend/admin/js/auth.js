@@ -1,15 +1,13 @@
-// Supabase Configuration
-// REPLACE THESE WITH YOUR ACTUAL SUPABASE KEYS
-const SUPABASE_URL = "https://your-project.supabase.co";
-const SUPABASE_ANON_KEY = "your-anon-key";
-const API_URL = "http://localhost:8000"; // API Backend URL
+const SUPABASE_URL  = "https://qitbyswmidyakadrzatz.supabase.co";  // ← substitua
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpdGJ5c3dtaWR5YWthZHJ6YXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MDQ3NzAsImV4cCI6MjA4NzA4MDc3MH0.FHUD9EuHNOnxv7UALkHNlLiEZv5Q7yYvT9GIz3QeSl0";            // ← substitua
+const API_URL = "https://funila-api.onrender.com";
 
 let supabaseClient = null;
 
 function getSupabase() {
     if (!supabaseClient) {
-        if (typeof supabase === 'undefined') {
-            console.error("Supabase JS not loaded");
+        if (typeof supabase === "undefined") {
+            console.error("Supabase JS não carregado");
             return null;
         }
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -19,34 +17,25 @@ function getSupabase() {
 
 async function checkAuth() {
     const sb = getSupabase();
+    if (!sb) return null;
     const { data: { session } } = await sb.auth.getSession();
-
     if (!session) {
-        // Redirect to login if not already there
-        if (!window.location.pathname.includes("login.html")) {
+        if (!window.location.pathname.includes("index.html")) {
             window.location.href = "index.html";
         }
         return null;
     }
-
-    // If on login page and authenticated, go to dashboard
-    if (window.location.pathname.includes("index.html") || window.location.pathname.endsWith("/admin/")) {
+    if (window.location.pathname.includes("index.html") ||
+        window.location.pathname.endsWith("/admin/")) {
         window.location.href = "dashboard.html";
     }
-
     return session;
 }
 
 async function login(email, password) {
     const sb = getSupabase();
-    const { data, error } = await sb.auth.signInWithPassword({
-        email: email,
-        password: password,
-    });
-
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
-
-    // Fetch Role to determine redirect
     const token = data.session.access_token;
     try {
         const res = await fetch(`${API_URL}/auth/me`, {
@@ -57,9 +46,8 @@ async function login(email, password) {
             return { ...data, role: profile.role };
         }
     } catch (e) {
-        console.error("Failed to fetch role", e);
+        console.error("Erro ao buscar role:", e);
     }
-
     return data;
 }
 
@@ -69,11 +57,18 @@ async function logout() {
     window.location.href = "index.html";
 }
 
-// Attach to window for easy access
-window.Auth = {
-    checkAuth,
-    login,
-    logout,
-    getSupabase,
-    API_URL
-};
+async function getToken() {
+    const sb = getSupabase();
+    const { data: { session } } = await sb.auth.getSession();
+    return session?.access_token || null;
+}
+
+async function authHeaders() {
+    const token = await getToken();
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+    };
+}
+
+window.Auth = { checkAuth, login, logout, getSupabase, getToken, authHeaders, API_URL };

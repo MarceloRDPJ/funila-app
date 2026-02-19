@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 # IMPORTS RELATIVOS (funcionam quando Root Directory = backend)
@@ -58,3 +59,19 @@ app.include_router(dashboard.router)
 app.include_router(links.router)
 app.include_router(master.router)
 app.include_router(auth.router)
+
+# =============================
+# STATIC FILES (FRONTEND)
+# =============================
+
+# Mount admin panel (e.g. /admin/dashboard.html)
+app.mount("/admin", StaticFiles(directory="../frontend/admin", html=True), name="admin")
+
+# Mount master panel
+app.mount("/master", StaticFiles(directory="../frontend/master", html=True), name="master")
+
+# Mount public forms frontend
+app.mount("/form", StaticFiles(directory="../frontend/form", html=True), name="form")
+
+# Mount login page at root (must be last to avoid overriding other routes)
+app.mount("/", StaticFiles(directory="../frontend/login", html=True), name="login")

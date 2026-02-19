@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Funila</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Lado Esquerdo - Branding -->
+        <div class="brand-side">
+            <div class="brand-content">
+                <div class="logo">FUNILA<span class="dot">.</span></div>
+                <h1>Inteligência Comercial<br>para o seu negócio.</h1>
+                <p>Gerencie leads, formulários e campanhas em um só lugar.</p>
+                <div class="glass-card">
+                    <div class="stat-item">
+                        <span class="stat-value">+45%</span>
+                        <span class="stat-label">Conversão</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <span class="stat-value">2.4x</span>
+                        <span class="stat-label">ROI Médio</span>
+                    </div>
+                </div>
+            </div>
+            <div class="background-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+            </div>
+        </div>
+
+        <!-- Lado Direito - Login Form -->
+        <div class="form-side">
+            <div class="form-wrapper">
+                <div class="mobile-logo">FUNILA<span class="dot">.</span></div>
+                <h2>Bem-vindo de volta!</h2>
+                <p class="subtitle">Acesse sua conta para continuar.</p>
+
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" placeholder="seu@email.com" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">Senha</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" placeholder="••••••••" required>
+                            <button type="button" class="toggle-password" onclick="togglePassword()">
+                                <!-- Eye Icon (Open) -->
+                                <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                <!-- Eye Icon (Closed) -->
+                                <svg id="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <label class="checkbox-container">
+                            <input type="checkbox" checked>
+                            <span class="checkmark"></span>
+                            Lembrar de mim
+                        </label>
+                        <a href="#" class="forgot-password">Esqueceu a senha?</a>
+                    </div>
+
+                    <button type="submit" class="btn-login">
+                        <span>Entrar na Plataforma</span>
+                        <div class="spinner" style="display:none;"></div>
+                    </button>
+
+                    <div id="error-message" class="error-message" style="display:none;"></div>
+                </form>
+
+                <div class="footer-links">
+                    Não tem uma conta? <a href="#">Fale com o suporte</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

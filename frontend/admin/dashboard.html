@@ -2,62 +2,108 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Funila - Dashboard</title>
-    <link rel="icon" href="/assets/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funila — Dashboard</title>
+    <link rel="icon" href="/frontend/assets/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
-    <aside class="sidebar">
-        <div class="brand">FUNILA <span>.</span></div>
-        <ul class="nav-links">
-            <li class="nav-item"><a href="dashboard.html" class="active">📊 Dashboard</a></li>
-            <li class="nav-item"><a href="leads.html">👥 Leads</a></li>
-            <li class="nav-item"><a href="links.html">🔗 Links</a></li>
-            <li class="nav-item"><a href="forms.html">📝 Formulário</a></li>
-        </ul>
-        <div class="user-info">
-            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
-        </div>
-    </aside>
 
-    <main class="main-content">
-        <div class="page-header">
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="brand">FUNILA <span>PRO</span></div>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="dashboard.html" class="active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Dashboard
+        </a></li>
+        <li class="nav-item"><a href="leads.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Leads
+        </a></li>
+        <li class="nav-item"><a href="links.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Links
+        </a></li>
+        <li class="nav-item"><a href="forms.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            Formulário
+        </a></li>
+    </ul>
+    <div class="user-info">
+        <button class="logout-btn" onclick="Auth.logout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+        </button>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
             <h1 class="page-title">Dashboard</h1>
-            <select id="period-filter" onchange="loadDashboard()">
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+            <select id="period-filter" onchange="loadDashboard()" style="background:var(--bg-tertiary);border:1px solid var(--border-strong);border-radius:6px;color:var(--text-primary);font-family:var(--font);font-size:.85rem;padding:7px 12px;outline:none;cursor:pointer">
                 <option value="today">Hoje</option>
-                <option value="week">Esta Semana</option>
-                <option value="month">Este Mês</option>
+                <option value="week" selected>7 dias</option>
+                <option value="month">30 dias</option>
             </select>
         </div>
+    </div>
 
+    <div class="page-body">
         <div class="card-grid">
             <div class="card">
                 <div class="card-label">Total de Cliques</div>
-                <div class="card-value" id="val-clicks">-</div>
+                <div class="card-value" id="val-clicks">—</div>
             </div>
             <div class="card">
                 <div class="card-label">Leads Gerados</div>
-                <div class="card-value" id="val-leads">-</div>
+                <div class="card-value" id="val-leads">—</div>
             </div>
             <div class="card">
-                <div class="card-label">Leads Quentes 🔥</div>
-                <div class="card-value" id="val-hot">-</div>
+                <div class="card-label">Leads Quentes</div>
+                <div class="card-value" id="val-hot" style="color:var(--hot)">—</div>
             </div>
             <div class="card">
                 <div class="card-label">Taxa de Conversão</div>
-                <div class="card-value" id="val-conv">-%</div>
+                <div class="card-value" id="val-conv">—%</div>
             </div>
         </div>
 
-        <div class="card" style="height: 400px;">
-            <canvas id="leadsChart"></canvas>
+        <div class="card" style="margin-bottom:24px;padding:20px 24px 24px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+                <span style="font-size:.85rem;font-weight:600;color:var(--text-primary)">Leads por dia</span>
+                <span class="text-muted" id="chart-subtitle"></span>
+            </div>
+            <div style="height:220px;position:relative">
+                <canvas id="leadsChart"></canvas>
+                <div id="chart-empty" style="display:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem">Sem dados no período</div>
+            </div>
         </div>
-    </main>
 
-    <script src="js/auth.js"></script>
-    <script src="js/dashboard.js"></script>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="card">
+                <div class="card-label" style="margin-bottom:16px">Distribuição por status</div>
+                <div id="breakdown-list" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
+            <div class="card">
+                <div class="card-label" style="margin-bottom:16px">Resumo</div>
+                <div id="summary-list" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
 </body>
 </html>

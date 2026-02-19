@@ -3,6 +3,12 @@ from database import get_supabase
 from dependencies import require_master
 from pydantic import BaseModel
 from typing import Optional
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 router = APIRouter(prefix="/admin/master", tags=["Master Admin"])
 
@@ -40,8 +46,8 @@ def create_client(client: ClientCreate, user_profile: dict = Depends(require_mas
         })
         user = auth_res.user if hasattr(auth_res, "user") else auth_res
     except Exception as e:
-        print(f"Erro ao criar usuário Auth: {e}")
-        raise HTTPException(status_code=400, detail=f"Erro ao criar login: {str(e)}")
+        logger.error(f"Erro ao criar usuário Auth: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail="Erro ao criar login. Verifique se o e-mail é válido ou já está em uso.")
 
     # 2. Cria o registro do cliente
     try:
@@ -49,29 +55,39 @@ def create_client(client: ClientCreate, user_profile: dict = Depends(require_mas
         client_res = supabase.table("clients").insert(client_data).execute()
         new_client = client_res.data[0]
     except Exception as e:
-        print(f"Erro ao criar cliente: {e}")
+        logger.error(f"Erro ao criar registro do cliente: {e}", exc_info=True)
+        # Tenta remover o usuário Auth criado para evitar inconsistência
         try:
             supabase.auth.admin.delete_user(user.id)
-        except:
-            pass
-        raise HTTPException(status_code=500, detail=f"Erro ao criar registro do cliente: {str(e)}")
+        except Exception as delete_err:
+            logger.error(f"Falha ao reverter criação de usuário Auth: {delete_err}")
+
+        raise HTTPException(status_code=500, detail="Erro interno ao criar registro do cliente. Por favor, tente novamente.")
 
     # 3. Vincula o usuário Auth ao cliente na tabela public.users
     try:
-        supabase.table("users").insert({
+        # Usando upsert para evitar conflito com trigger on_auth_user_created
+        supabase.table("users").upsert({
             "id":        user.id,
             "email":     client.email,
             "role":      "client",
             "client_id": new_client["id"]
         }).execute()
     except Exception as e:
-        print(f"Erro ao vincular usuário: {e}")
-        supabase.table("clients").delete().eq("id", new_client["id"]).execute()
+        logger.error(f"Erro ao vincular permissões (users): {e}", exc_info=True)
+
+        # Rollback: remove cliente e usuário auth
+        try:
+            supabase.table("clients").delete().eq("id", new_client["id"]).execute()
+        except Exception as del_client_err:
+            logger.error(f"Falha ao reverter criação de cliente: {del_client_err}")
+
         try:
             supabase.auth.admin.delete_user(user.id)
-        except:
-            pass
-        raise HTTPException(status_code=500, detail=f"Erro ao vincular permissões: {str(e)}")
+        except Exception as del_auth_err:
+            logger.error(f"Falha ao reverter criação de usuário Auth: {del_auth_err}")
+
+        raise HTTPException(status_code=500, detail="Erro ao configurar permissões do usuário. A operação foi cancelada.")
 
     return new_client
 
@@ -81,4 +97,8 @@ def update_client(client_id: str, update: ClientUpdate, user_profile: dict = Dep
     data = {k: v for k, v in update.dict().items() if v is not None}
     if not data:
         return {"status": "sem alterações"}
-    return supabase.table("clients").update(data).eq("id", client_id).execute().data
+    try:
+        return supabase.table("clients").update(data).eq("id", client_id).execute().data
+    except Exception as e:
+        logger.error(f"Erro ao atualizar cliente {client_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Erro ao atualizar cliente.")

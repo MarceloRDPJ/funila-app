@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funila Admin - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="login-body">
+    <div class="login-card">
+        <div class="login-logo">FUNILA</div>
+        <p style="text-align: center; color: var(--text-secondary); margin-bottom: 30px;">Sistema de Inteligência Comercial</p>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" id="email" required placeholder="seu@email.com">
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary full-width" style="margin-top: 10px;">Entrar</button>
+        </form>
+        <div id="error-msg" style="color: var(--danger); text-align: center; margin-top: 15px; font-size: 14px; display: none;"></div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Check if already logged in
+            Auth.checkAuth();
+
+            const form = document.getElementById("login-form");
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const email = document.getElementById("email").value;
+                const password = document.getElementById("password").value;
+                const btn = form.querySelector("button");
+                const errorDiv = document.getElementById("error-msg");
+
+                btn.disabled = true;
+                btn.innerText = "Entrando...";
+                errorDiv.style.display = "none";
+
+                try {
+                    const data = await Auth.login(email, password);
+                    if (data.role === 'master') {
+                        window.location.href = "../master/index.html";
+                    } else {
+                        window.location.href = "dashboard.html";
+                    }
+                } catch (err) {
+                    console.error(err);
+                    errorDiv.innerText = "E-mail ou senha incorretos.";
+                    errorDiv.style.display = "block";
+                    btn.disabled = false;
+                    btn.innerText = "Entrar";
+                }
+            });
+        });
+    </script>
+</body>
+</html>

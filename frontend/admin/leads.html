@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Funila - Leads</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">FUNILA <span>.</span></div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="dashboard.html">📊 Dashboard</a></li>
+            <li class="nav-item"><a href="leads.html" class="active">👥 Leads</a></li>
+            <li class="nav-item"><a href="links.html">🔗 Links</a></li>
+            <li class="nav-item"><a href="forms.html">📝 Formulário</a></li>
+        </ul>
+        <div class="user-info">
+            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Leads</h1>
+            <div>
+                <button class="btn btn-outline" onclick="loadLeads()">🔄 Atualizar</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="leads-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const session = await Auth.checkAuth();
+            if(session) loadLeads();
+        });
+
+        async function loadLeads() {
+            const sb = Auth.getSupabase();
+            const { data, error } = await sb
+                .from('leads')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const tbody = document.getElementById("leads-table-body");
+            tbody.innerHTML = "";
+
+            data.forEach(lead => {
+                const tr = document.createElement("tr");
+
+                let statusClass = "status-cold";
+                let statusLabel = "Frio";
+                if (lead.status === "hot") { statusClass = "status-hot"; statusLabel = "Quente 🔥"; }
+                if (lead.status === "warm") { statusClass = "status-warm"; statusLabel = "Morno"; }
+                if (lead.status === "converted") { statusClass = "status-hot"; statusLabel = "Convertido ✅"; }
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 500;">${lead.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${lead.phone}</div>
+                    </td>
+                    <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+                    <td>${lead.final_score || 0}</td>
+                    <td>${new Date(lead.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <a href="https://wa.me/55${lead.phone}" target="_blank" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">WhatsApp</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+:root {
+    --bg-primary: #0F1115;
+    --bg-secondary: #161A22;
+    --card-bg: #1C212B;
+    --text-primary: #F8FAFC;
+    --text-secondary: #9CA3AF;
+    --text-disabled: #6B7280;
+    --accent: #2563EB;
+    --accent-hover: #1D4ED8;
+    --border: #2A3242;
+    --success: #22C55E;
+    --whatsapp: #25D366;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    align-items: center; /* Center vertically on desktop */
+}
+
+.app-container {
+    width: 100%;
+    max-width: 480px;
+    background-color: var(--bg-primary);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 768px) {
+    .app-container {
+        min-height: auto;
+        background-color: var(--card-bg);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        padding: 40px;
+        margin: 20px;
+    }
+}
+
+/* Progress Bar */
+.progress-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+.progress-steps {
+    display: flex;
+    gap: 12px;
+}
+.step {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--border);
+    transition: background-color 0.3s ease;
+}
+.step.active { background-color: var(--accent); }
+
+/* Header */
+.header { text-align: center; margin-bottom: 32px; }
+.client-name { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.headline { font-size: 14px; color: var(--text-secondary); }
+
+/* Forms */
+.form-step { display: none; flex-direction: column; gap: 20px; animation: fadeIn 0.4s ease; }
+.form-step.active { display: flex; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+label { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+input, select {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    font-size: 16px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+input::placeholder { color: var(--text-disabled); }
+
+/* Radio Buttons as Cards */
+.radio-group { display: flex; flex-direction: column; gap: 10px; }
+.radio-option {
+    display: flex;
+    align-items: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.radio-option:hover { border-color: var(--text-secondary); }
+.radio-option input { width: auto; margin-right: 12px; }
+.radio-option.selected { border-color: var(--accent); background-color: rgba(37, 99, 235, 0.1); }
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+.btn-primary:hover { background-color: var(--accent-hover); }
+.btn-primary:disabled { background-color: var(--border); cursor: not-allowed; opacity: 0.7; }
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    text-align: center;
+    width: 100%;
+}
+.btn-text:hover { color: var(--text-primary); }
+
+.btn-whatsapp {
+    background-color: var(--whatsapp);
+    color: white;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+/* Utils */
+.security-text { text-align: center; font-size: 12px; color: var(--text-disabled); margin-top: 10px; }
+.checkbox-group { flex-direction: row; align-items: flex-start; }
+.checkbox-group input { width: 20px; height: 20px; margin-top: 2px; }
+.checkbox-group label { font-size: 12px; line-height: 1.4; margin-left: 8px; }
+.footer-links { text-align: center; margin-top: 20px; }
+.footer-links a { font-size: 12px; color: var(--text-disabled); text-decoration: none; }
+
+/* Success Screen */
+.success-screen { text-align: center; align-items: center; padding-top: 40px; }
+.success-icon { font-size: 64px; margin-bottom: 20px; }
+.success-screen h2 { font-size: 28px; margin-bottom: 8px; }
+.subtext { font-size: 14px; color: var(--text-secondary); margin-top: 12px; }

@@ -2,33 +2,68 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Funila - Leads</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funila — Leads</title>
+    <link rel="icon" href="/frontend/assets/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <aside class="sidebar">
-        <div class="brand">FUNILA <span>.</span></div>
-        <ul class="nav-links">
-            <li class="nav-item"><a href="dashboard.html">📊 Dashboard</a></li>
-            <li class="nav-item"><a href="leads.html" class="active">👥 Leads</a></li>
-            <li class="nav-item"><a href="links.html">🔗 Links</a></li>
-            <li class="nav-item"><a href="forms.html">📝 Formulário</a></li>
-        </ul>
-        <div class="user-info">
-            <button class="logout-btn" onclick="Auth.logout()">🚪 Sair</button>
-        </div>
-    </aside>
 
-    <main class="main-content">
-        <div class="page-header">
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="brand">FUNILA <span>PRO</span></div>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="dashboard.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Dashboard
+        </a></li>
+        <li class="nav-item"><a href="leads.html" class="active">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Leads
+        </a></li>
+        <li class="nav-item"><a href="links.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Links
+        </a></li>
+        <li class="nav-item"><a href="forms.html">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            Formulário
+        </a></li>
+    </ul>
+    <div class="user-info">
+        <button class="logout-btn" onclick="Auth.logout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+        </button>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
             <h1 class="page-title">Leads</h1>
-            <div>
-                <button class="btn btn-outline" onclick="loadLeads()">🔄 Atualizar</button>
-            </div>
         </div>
+        <button class="btn btn-outline" onclick="loadLeads()">Atualizar</button>
+    </div>
 
+    <div class="filter-bar">
+        <select id="filter-status" onchange="loadLeads()">
+            <option value="">Todos os status</option>
+            <option value="hot">Quente</option>
+            <option value="warm">Morno</option>
+            <option value="cold">Frio</option>
+            <option value="converted">Convertido</option>
+        </select>
+        <input type="search" id="filter-search" placeholder="Buscar por nome ou telefone..." oninput="debounceSearch()">
+    </div>
+
+    <div class="page-body" style="padding-top:0">
         <div class="table-container">
             <table>
                 <thead>
@@ -36,63 +71,112 @@
                         <th>Nome</th>
                         <th>Status</th>
                         <th>Score</th>
+                        <th>Origem</th>
                         <th>Data</th>
-                        <th>Ações</th>
+                        <th>Ação</th>
                     </tr>
                 </thead>
-                <tbody id="leads-table-body">
-                    <!-- Loaded dynamically -->
-                </tbody>
+                <tbody id="leads-body"></tbody>
             </table>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script src="js/auth.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const session = await Auth.checkAuth();
-            if(session) loadLeads();
-        });
+<script src="js/auth.js"></script>
+<script>
+    let allLeads = [];
+    let searchTimer = null;
 
-        async function loadLeads() {
-            const sb = Auth.getSupabase();
-            const { data, error } = await sb
-                .from('leads')
-                .select('*')
-                .order('created_at', { ascending: false });
+    document.addEventListener("DOMContentLoaded", async () => {
+        const session = await Auth.checkAuth();
+        if (session) loadLeads();
+    });
 
-            if (error) {
-                console.error(error);
-                return;
-            }
+    function debounceSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => renderLeads(), 300);
+    }
 
-            const tbody = document.getElementById("leads-table-body");
-            tbody.innerHTML = "";
+    async function loadLeads() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
 
-            data.forEach(lead => {
-                const tr = document.createElement("tr");
+        const statusFilter = document.getElementById("filter-status").value;
+        const url = statusFilter
+            ? `${Auth.API_URL}/leads?status=${statusFilter}`
+            : `${Auth.API_URL}/leads`;
 
-                let statusClass = "status-cold";
-                let statusLabel = "Frio";
-                if (lead.status === "hot") { statusClass = "status-hot"; statusLabel = "Quente 🔥"; }
-                if (lead.status === "warm") { statusClass = "status-warm"; statusLabel = "Morno"; }
-                if (lead.status === "converted") { statusClass = "status-hot"; statusLabel = "Convertido ✅"; }
-
-                tr.innerHTML = `
-                    <td>
-                        <div style="font-weight: 500;">${lead.name}</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">${lead.phone}</div>
-                    </td>
-                    <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-                    <td>${lead.final_score || 0}</td>
-                    <td>${new Date(lead.created_at).toLocaleDateString()}</td>
-                    <td>
-                        <a href="https://wa.me/55${lead.phone}" target="_blank" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">WhatsApp</a>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+        try {
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
             });
+            if (!res.ok) throw new Error("Erro ao buscar leads");
+            allLeads = await res.json();
+            renderLeads();
+        } catch (err) {
+            console.error(err);
+            document.getElementById("leads-body").innerHTML =
+                `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Erro ao carregar leads.</td></tr>`;
         }
-    </script>
+    }
+
+    function renderLeads() {
+        const search = document.getElementById("filter-search").value.toLowerCase().trim();
+        const tbody  = document.getElementById("leads-body");
+
+        let leads = allLeads;
+        if (search) {
+            leads = leads.filter(l =>
+                (l.name || "").toLowerCase().includes(search) ||
+                (l.phone || "").includes(search)
+            );
+        }
+
+        if (!leads.length) {
+            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>Nenhum lead encontrado.</p></div></td></tr>`;
+            return;
+        }
+
+        const statusMap = {
+            hot:       { label: "Quente",    cls: "status-hot" },
+            warm:      { label: "Morno",     cls: "status-warm" },
+            cold:      { label: "Frio",      cls: "status-cold" },
+            converted: { label: "Convertido",cls: "status-converted" }
+        };
+
+        tbody.innerHTML = leads.map(lead => {
+            const s     = statusMap[lead.status] || { label: lead.status, cls: "status-cold" };
+            const phone = (lead.phone || "").replace(/\D/g, "");
+            const date  = new Date(lead.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit" });
+            const score = (lead.internal_score || 0) + (lead.external_score || 0);
+            return `
+                <tr>
+                    <td data-label="Nome">
+                        <div style="font-weight:500">${lead.name || "—"}</div>
+                        <div class="text-muted">${lead.phone || ""}</div>
+                    </td>
+                    <td data-label="Status"><span class="status-badge ${s.cls}">${s.label}</span></td>
+                    <td data-label="Score" style="font-family:var(--font-mono);font-size:.85rem">${score}</td>
+                    <td data-label="Origem"><span class="text-muted truncate">${lead.utm_source || "—"}</span></td>
+                    <td data-label="Data"><span class="text-muted">${date}</span></td>
+                    <td data-label="Ação">
+                        <a href="https://wa.me/55${phone}" target="_blank" rel="noopener"
+                           class="btn btn-outline" style="padding:5px 12px;font-size:.8rem">
+                           WhatsApp
+                        </a>
+                    </td>
+                </tr>`;
+        }).join("");
+    }
+
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+</script>
 </body>
 </html>

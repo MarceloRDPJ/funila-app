@@ -1,8 +1,12 @@
 from services.external import validate_cpf, get_serasa_score
 
-async def calculate_score(lead_data: dict, form_config: list, plan: str) -> tuple[int, int]:
+async def calculate_score(lead_data: dict, form_config: list, plan: str) -> tuple[int, int, int | None]:
+    """
+    Retorna (internal_score, external_score, serasa_score_raw)
+    """
     internal_score = 0
     external_score = 0
+    serasa_score_raw = None
 
     clt_years = lead_data.get("clt_years", "")
     if clt_years == "Mais de 3 anos":
@@ -11,8 +15,7 @@ async def calculate_score(lead_data: dict, form_config: list, plan: str) -> tupl
         internal_score += 15
 
     income = lead_data.get("income_range", "")
-    if income in ("R$3.000 - R$5.000", "Acima de R$5.000",
-                  "R$3.000 – R$5.000", "Acima de R$ 5.000"):
+    if income in ("R$3.000 - R$5.000", "Acima de R$5.000", "R$3.000 – R$5.000", "Acima de R$ 5.000"):
         internal_score += 25
 
     if lead_data.get("tried_financing") in ("Não", "Nao", "não"):
@@ -31,10 +34,10 @@ async def calculate_score(lead_data: dict, form_config: list, plan: str) -> tupl
             if plan in ("pro", "agency"):
                 serasa = await get_serasa_score(cpf)
                 if serasa is not None:
+                    serasa_score_raw = serasa
                     if serasa >= 700:
                         external_score += 50
                     elif serasa >= 500:
                         external_score += 20
-                    lead_data["_serasa_score_raw"] = serasa
 
-    return internal_score, external_score
+    return internal_score, external_score, serasa_score_raw

@@ -10,30 +10,28 @@ ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 if not ENCRYPTION_KEY:
     raise RuntimeError(
         "ENCRYPTION_KEY não configurada. "
-        "Gere uma com: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\" "
-        "e adicione como variável de ambiente no Render."
+        "Gere com: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
     )
 
 cipher_suite = Fernet(ENCRYPTION_KEY.encode())
 
-def encrypt_cpf(cpf: str) -> str:
+def encrypt_cpf(cpf: str) -> str | None:
     if not cpf:
         return None
-    clean_cpf = "".join(filter(str.isdigit, cpf))
-    if not clean_cpf:
+    clean = "".join(filter(str.isdigit, cpf))
+    if not clean:
         return None
-    return cipher_suite.encrypt(clean_cpf.encode()).decode()
+    return cipher_suite.encrypt(clean.encode()).decode()
 
-def decrypt_cpf(encrypted_cpf: str) -> str:
+def decrypt_cpf(encrypted_cpf: str) -> str | None:
     if not encrypted_cpf:
         return None
     try:
         return cipher_suite.decrypt(encrypted_cpf.encode()).decode()
-    except Exception as e:
-        print(f"Erro ao descriptografar CPF: {e}")
+    except Exception:
         return None
 
-def hash_ip(ip_address: str) -> str:
-    if not ip_address:
+def hash_ip(ip: str) -> str | None:
+    if not ip:
         return None
-    return hashlib.sha256(ip_address.encode()).hexdigest()
+    return hashlib.sha256(ip.encode()).hexdigest()

@@ -1,69 +1,44 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from supabase import Client
-import os
-from dotenv import load_dotenv
 from database import get_supabase
-
-load_dotenv()
 
 security = HTTPBearer()
 supabase = get_supabase()
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """
-    Validates the JWT token with Supabase Auth.
-    Returns the user object if valid.
-    """
     token = credentials.credentials
     try:
         user = supabase.auth.get_user(token)
-        if not user:
-             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        if not user or not user.user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
         return user.user
     except Exception as e:
         print(f"Auth Error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas")
 
-def get_current_user_role(user = Depends(get_current_user)):
-    """
-    Fetches the user role from the public.users table.
-    """
+def get_current_user_role(user=Depends(get_current_user)):
     try:
-        # Assuming public.users table exists and has a 'role' column
         response = supabase.table("users").select("role, client_id").eq("id", user.id).single().execute()
         if not response.data:
-             # Fallback or error if user not in public.users
-             raise HTTPException(status_code=403, detail="User profile not found")
-
+            raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado")
         return {
             "id": user.id,
             "email": user.email,
-            "role": response.data['role'],
-            "client_id": response.data.get('client_id')
+            "role": response.data["role"],
+            "client_id": response.data.get("client_id")
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Role Fetch Error: {e}")
-        raise HTTPException(status_code=403, detail="Could not verify user role")
+        raise HTTPException(status_code=403, detail="Não foi possível verificar permissões")
 
-def require_master(user_profile = Depends(get_current_user_role)):
+def require_master(user_profile=Depends(get_current_user_role)):
     if user_profile["role"] != "master":
-        raise HTTPException(status_code=403, detail="Master access required")
+        raise HTTPException(status_code=403, detail="Acesso restrito ao master")
     return user_profile
 
-def require_client(user_profile = Depends(get_current_user_role)):
-    # Clients can access client routes. Master can too (usually).
-    # If strictly client, check role == 'client'.
-    # For now, allow master to impersonate or access client routes if needed,
-    # but typically client routes rely on client_id.
+def require_client(user_profile=Depends(get_current_user_role)):
     if user_profile["role"] not in ["client", "master"]:
-        raise HTTPException(status_code=403, detail="Client access required")
+        raise HTTPException(status_code=403, detail="Acesso não autorizado")
     return user_profile

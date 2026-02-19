@@ -1,10 +1,8 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
-# IMPORTS RELATIVOS (funcionam quando Root Directory = backend)
 from routes import tracker
 from routes import forms as public_forms
 from routes.admin import forms as admin_forms
@@ -14,19 +12,11 @@ from routes import links
 from routes.admin import master
 from routes import auth
 
-# Carrega variáveis de ambiente
 load_dotenv()
 
-app = FastAPI(
-    title="Funila API",
-    version="1.0.0"
-)
+app = FastAPI(title="Funila API", version="1.0.0")
 
-# =============================
-# CORS CONFIGURATION
-# =============================
-
-origins = os.getenv("CORS_ORIGINS", "*").split(",")
+origins = os.getenv("CORS_ORIGINS", "https://app.funila.com.br").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,20 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =============================
-# HEALTH CHECK
-# =============================
-
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "environment": os.getenv("ENVIRONMENT", "production")
-    }
-
-# =============================
-# REGISTER ROUTES
-# =============================
+    return {"status": "ok", "environment": os.getenv("ENVIRONMENT", "production")}
 
 app.include_router(tracker.router)
 app.include_router(public_forms.router)
@@ -59,22 +38,3 @@ app.include_router(dashboard.router)
 app.include_router(links.router)
 app.include_router(master.router)
 app.include_router(auth.router)
-
-# =============================
-# STATIC FILES (FRONTEND)
-# =============================
-
-# Mount admin panel (e.g. /admin/dashboard.html)
-app.mount("/admin", StaticFiles(directory="../frontend/admin", html=True), name="admin")
-
-# Mount master panel
-app.mount("/master", StaticFiles(directory="../frontend/master", html=True), name="master")
-
-# Mount public forms frontend
-app.mount("/form", StaticFiles(directory="../frontend/form", html=True), name="form")
-
-# Mount login page at root (must be last to avoid overriding other routes)
-app.mount("/", StaticFiles(directory="../frontend/login", html=True), name="login")
-
-# Mount assets (e.g. /assets/favicon.png)
-app.mount("/assets", StaticFiles(directory="../frontend/assets"), name="assets")

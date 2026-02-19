@@ -58,6 +58,10 @@
                     <input type="email" id="client-email" required>
                 </div>
                 <div class="form-group">
+                    <label>Senha Provisória</label>
+                    <input type="text" id="client-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="form-group">
                     <label>Plano</label>
                     <select id="client-plan" required>
                         <option value="solo">Solo</option>
@@ -133,7 +137,8 @@
             const payload = {
                 name: document.getElementById("client-name").value,
                 email: document.getElementById("client-email").value,
-                plan: document.getElementById("client-plan").value
+                plan: document.getElementById("client-plan").value,
+                password: document.getElementById("client-password").value
             };
 
             const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {

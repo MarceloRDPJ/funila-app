@@ -10,19 +10,33 @@ async function loadDashboard() {
     if (!session) return;
 
     const period = document.getElementById("period-filter").value;
+    const token = session.access_token;
 
-    try {
-        const res = await fetch(`${Auth.API_URL}/metrics?period=${period}`, {
-            headers: { "Authorization": `Bearer ${session.access_token}` }
-        });
-        if (!res.ok) throw new Error("Erro ao buscar métricas");
-        const data = await res.json();
+    // Carrega Métricas Gerais
+    fetch(`${Auth.API_URL}/metrics?period=${period}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    })
+    .then(r => {
+        if (!r.ok) throw new Error("Erro metrics");
+        return r.json();
+    })
+    .then(data => {
         renderMetrics(data);
         renderChart(data.chart_data);
         renderBreakdown(data.breakdown);
-    } catch (err) {
-        console.error(err);
-    }
+    })
+    .catch(console.error);
+
+    // Carrega Funil
+    fetch(`${Auth.API_URL}/funnel?period=${period}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    })
+    .then(r => {
+        if (!r.ok) throw new Error("Erro funnel");
+        return r.json();
+    })
+    .then(renderFunnel)
+    .catch(console.error);
 }
 
 function renderMetrics(data) {
@@ -31,6 +45,18 @@ function renderMetrics(data) {
     document.getElementById("val-leads").textContent  = m.leads.toLocaleString("pt-BR");
     document.getElementById("val-hot").textContent    = m.hot_leads.toLocaleString("pt-BR");
     document.getElementById("val-conv").textContent   = m.conversion_rate + "%";
+}
+
+function renderFunnel(data) {
+    document.getElementById("f-step1").textContent = data.counts.step_1.toLocaleString("pt-BR");
+    document.getElementById("f-step2").textContent = data.counts.step_2.toLocaleString("pt-BR");
+    document.getElementById("f-step3").textContent = data.counts.step_3.toLocaleString("pt-BR");
+    document.getElementById("f-conv").textContent  = data.counts.converted.toLocaleString("pt-BR");
+
+    document.getElementById("f-rate1").textContent = "Total de acessos";
+    document.getElementById("f-rate2").textContent = data.rates.step_1_to_2 + "% de avanço";
+    document.getElementById("f-rate3").textContent = data.rates.step_2_to_3 + "% de avanço";
+    document.getElementById("f-rate4").textContent = data.rates.step_3_to_conv + "% conversão";
 }
 
 function renderChart(chartData) {

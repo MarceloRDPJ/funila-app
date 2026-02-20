@@ -381,9 +381,14 @@
             <div class="drawer-section">
                 <div class="drawer-section-title">Atribuição de Origem</div>
                 <div class="creative-origin">
-                    <div class="creative-origin-thumb"><div class="thumb-placeholder thumb-1">ADS</div></div>
+                    <div class="creative-origin-thumb">
+                        ${l.creative_thumbnail
+                            ? `<img src="${l.creative_thumbnail}" style="width:100%;height:100%;object-fit:cover">`
+                            : `<div class="thumb-placeholder thumb-1">ADS</div>`
+                        }
+                    </div>
                     <div class="creative-origin-info">
-                        <div class="creative-origin-name">${l.utm_source || "Direto"}</div>
+                        <div class="creative-origin-name">${l.creative_name || l.utm_source || "Direto"}</div>
                         <div class="creative-origin-camp">${l.utm_campaign || "Sem campanha"}</div>
                     </div>
                 </div>

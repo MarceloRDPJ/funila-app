@@ -167,6 +167,12 @@
         <strong>Dashboard</strong>
       </div>
 
+      <!-- Impersonation Banner (Injected if active) -->
+      <div id="impersonation-banner" style="display:none;margin-left:20px;background:var(--warm-bg);color:var(--warm);padding:4px 10px;border-radius:4px;font-size:0.7rem;font-weight:600;align-items:center;gap:8px">
+          ⚠ MODO IMPERSONAÇÃO
+          <button style="background:none;border:1px solid currentColor;color:currentColor;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:0.65rem" onclick="exitImpersonation()">Sair</button>
+      </div>
+
       <!-- Search -->
       <div class="topbar-search">
         <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -392,6 +398,23 @@
       item.classList.remove('active');
     });
     element.classList.add('active');
+  }
+
+  // Check Impersonation
+  if(sessionStorage.getItem('custom_access_token')) {
+      document.getElementById('impersonation-banner').style.display = 'flex';
+  }
+
+  function exitImpersonation() {
+      sessionStorage.removeItem('custom_access_token');
+      // Restore master if saved? Or just logout/redirect
+      const master = sessionStorage.getItem('master_token_backup');
+      if(master) {
+          // Ideally restore session, but we can just redirect to master page
+          // Auth.checkAuth will check supabase session which is still master (if not cleared)
+          // or we just cleared custom token so it falls back to supabase session.
+      }
+      window.location.href = 'master.html';
   }
 </script>
 </body>

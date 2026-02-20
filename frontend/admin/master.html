@@ -199,14 +199,24 @@
         <!-- Global Metrics -->
         <div class="master-grid anim-2">
             <div class="master-card">
-                <div class="card-label">Clientes Totais</div>
-                <div class="card-value" id="metric-clients">0</div>
-                <div class="text-muted" style="margin-top:8px;font-size:0.8rem;color:var(--text-40)">Ativos no sistema</div>
+                <div class="card-label">MRR (Mensal)</div>
+                <div class="card-value" id="val-mrr">R$ 0</div>
+                <div class="text-muted" style="margin-top:8px;font-size:0.8rem;color:var(--text-40)">Receita Recorrente</div>
             </div>
             <div class="master-card">
-                <div class="card-label">Status do Sistema</div>
-                <div class="card-value" style="font-size:1.4rem;color:var(--hot)">OPERACIONAL</div>
-                <div class="text-muted" style="margin-top:8px;font-size:0.8rem;color:var(--text-40)">API v1.0.0</div>
+                <div class="card-label">ARR (Anual)</div>
+                <div class="card-value" id="val-arr">R$ 0</div>
+                <div class="text-muted" style="margin-top:8px;font-size:0.8rem;color:var(--text-40)">Projeção Anual</div>
+            </div>
+            <div class="master-card">
+                <div class="card-label">Churn Rate</div>
+                <div class="card-value" id="val-churn" style="color:var(--dead)">0%</div>
+                <div class="text-muted" style="margin-top:8px;font-size:0.8rem;color:var(--text-40)">Mensal</div>
+            </div>
+            <div class="master-card">
+                <div class="card-label">Clientes Ativos</div>
+                <div class="card-value" id="metric-clients">0</div>
+                <div class="text-muted" style="margin-top:8px;font-size:0.8rem;color:var(--text-40)">Base Pagante</div>
             </div>
         </div>
 
@@ -285,6 +295,16 @@
     async function loadClients() {
         const session = await Auth.checkAuth();
         try {
+            // Load Metrics
+            const mRes = await fetch(`${Auth.API_URL}/admin/master/metrics`, { headers: { "Authorization": `Bearer ${session.access_token}` } });
+            if(mRes.ok) {
+                const m = await mRes.json();
+                document.getElementById("val-mrr").innerText = m.mrr.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+                document.getElementById("val-arr").innerText = m.arr.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+                document.getElementById("val-churn").innerText = m.churn_rate + '%';
+                document.getElementById("metric-clients").innerText = m.total_clients;
+            }
+
             const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
                 headers: { "Authorization": `Bearer ${session.access_token}` }
             });
@@ -296,7 +316,6 @@
             if (!res.ok) throw new Error("Erro ao carregar clientes");
 
             clientsData = await res.json();
-            document.getElementById("metric-clients").innerText = clientsData.length;
             renderClients(clientsData);
         } catch (e) {
             console.error(e);
@@ -326,6 +345,9 @@
                     </div>
                 </div>
                 <div class="client-actions">
+                    <button class="btn btn-ghost" style="padding:6px 10px" onclick="impersonateClient('${c.id}')" title="Logar como Cliente">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                    </button>
                     <button class="btn btn-ghost" style="padding:6px 10px" onclick="editClient('${c.id}')" title="Editar">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
@@ -342,6 +364,55 @@
             c.email.toLowerCase().includes(term)
         );
         renderClients(filtered);
+    }
+
+    async function impersonateClient(clientId) {
+        if(!confirm("Atenção: Você entrará como este cliente. Continuar?")) return;
+
+        const session = await Auth.checkAuth();
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/impersonate/${clientId}`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+
+            if(!res.ok) throw new Error("Falha ao iniciar impersonation");
+
+            const data = await res.json();
+
+            // Set new token (replace session)
+            // But we need to keep master session?
+            // "Substituir sessão atual" requirement.
+            // We should store master token somewhere if we want "Back to Master" easily?
+            // "Fluxo limpo: Substitui sessão atual"
+
+            // To allow "Voltar para Master", we need to store the ORIGINAL token in sessionStorage?
+            // Or just logout and login again as Master?
+            // UX: "Voltar para Master" button implies we kept it.
+            // Let's store master token in 'master_token_backup'.
+
+            sessionStorage.setItem('master_token_backup', session.access_token);
+
+            // We need to update Supabase Session?
+            // Auth.js uses supabase.auth.getSession().
+            // We can't inject our custom token into supabase-js client easily as session.
+            // But our API calls use `Auth.getToken()`.
+            // Let's override `getToken` or `supabase.auth.setSession`?
+            // Custom token is not a Supabase Auth token, so `setSession` might reject it (invalid signature for GoTrue).
+
+            // If backend signed it with Encryption Key, GoTrue won't accept it.
+            // So `supabase.auth.getUser()` on frontend will fail.
+            // BUT our frontend `Auth.checkAuth` checks session.
+
+            // Workaround: Store custom token in sessionStorage 'custom_access_token'.
+            // Modify `Auth.getToken` to prefer 'custom_access_token'.
+
+            sessionStorage.setItem('custom_access_token', data.token);
+            window.location.href = data.redirect;
+
+        } catch(e) {
+            alert(e.message);
+        }
     }
 
     async function handleCreateClient(e) {

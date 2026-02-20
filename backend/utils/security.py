@@ -35,3 +35,14 @@ def hash_ip(ip: str) -> str | None:
     if not ip:
         return None
     return hashlib.sha256(ip.encode()).hexdigest()
+
+def encrypt_aes256(data: str) -> str | None:
+    if not data: return None
+    return cipher_suite.encrypt(data.encode()).decode()
+
+def decrypt_aes256(encrypted_data: str) -> str | None:
+    if not encrypted_data: return None
+    try:
+        return cipher_suite.decrypt(encrypted_data.encode()).decode()
+    except Exception:
+        return None

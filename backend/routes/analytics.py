@@ -105,3 +105,74 @@ def get_abandonment_metrics(user_profile: dict = Depends(require_client)):
             "step_2_drop_rate": 0,
             "step_3_drop_rate": 0
         }
+
+@router.get("/analytics/full")
+def get_full_analytics(period: str = 'month', user_profile: dict = Depends(require_client)):
+    client_id = user_profile["client_id"]
+    supabase = get_supabase()
+
+    # 1. Funnel Data (Reuse /metrics/abandonment logic or fetch detailed)
+    # We want absolute numbers for the funnel chart
+    # Fetch funnel_events or aggregate creative_metrics?
+    # funnel_events is more granular.
+
+    # For simplicity, we use creative_metrics aggregation
+    res = supabase.table("creative_metrics").select("*").eq("client_id", client_id).execute()
+    metrics = res.data or []
+
+    funnel_data = {
+        "clicks": sum(m.get("total_clicks", 0) for m in metrics),
+        "step_1": sum(m.get("step_1", 0) for m in metrics),
+        "step_2": sum(m.get("step_2", 0) for m in metrics),
+        "step_3": sum(m.get("step_3", 0) for m in metrics),
+        "completed": sum(m.get("completed", 0) for m in metrics),
+        "converted": sum(m.get("converted", 0) for m in metrics)
+    }
+
+    # 2. Creative Performance
+    # Same as /metrics/retention
+    creative_performance = []
+    for m in metrics:
+        clicks = m.get("total_clicks", 0)
+        cpl = 0 # Need spend from 'creatives' table. Join?
+        # creative_metrics uses utm_content. creatives table uses external_id.
+        # Ideally we join. For now, basic metrics.
+        creative_performance.append({
+            "name": m.get("utm_content"),
+            "clicks": clicks,
+            "leads": m.get("completed", 0),
+            "conversion": round(m.get("completed", 0) / clicks * 100, 2) if clicks > 0 else 0
+        })
+
+    # 3. Abandonment by Device
+    # We need to query 'clicks' table or 'leads' with device_type.
+    # Let's use 'leads' for abandonment (status='abandoned')
+    leads_res = supabase.table("leads").select("device_type, status").eq("client_id", client_id).execute()
+    leads = leads_res.data or []
+
+    abandoned_mobile = sum(1 for l in leads if l.get('status') == 'abandoned' and l.get('device_type') == 'mobile')
+    abandoned_desktop = sum(1 for l in leads if l.get('status') == 'abandoned' and l.get('device_type') == 'desktop')
+
+    abandonment_by_device = {
+        "mobile": abandoned_mobile,
+        "desktop": abandoned_desktop
+    }
+
+    # 4. Platform Comparison (Meta vs Google)
+    # Based on ad_accounts platform linked to campaigns linked to creatives...
+    # Or just utm_source?
+    # Simple UTM source aggregation from leads
+    meta_leads = sum(1 for l in leads if 'facebook' in (l.get('utm_source') or '').lower() or 'instagram' in (l.get('utm_source') or '').lower())
+    google_leads = sum(1 for l in leads if 'google' in (l.get('utm_source') or '').lower())
+
+    platform_comparison = {
+        "meta": meta_leads,
+        "google": google_leads
+    }
+
+    return {
+        "funnel_data": funnel_data,
+        "creative_performance": creative_performance,
+        "abandonment_by_device": abandonment_by_device,
+        "platform_comparison": platform_comparison
+    }

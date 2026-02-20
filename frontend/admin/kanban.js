@@ -54,6 +54,11 @@ function renderKanbanBoard(leads) {
     leads.forEach(lead => {
         let status = lead.status;
 
+        // Mapeamento de Abandono (Sprint 1.7)
+        if (status === 'cold' && !lead.consent_given && lead.name) {
+            status = 'abandoned';
+        }
+
         // Lógica de Mapeamento
         if (!KANBAN_COLUMNS.includes(status)) {
             if (status === 'started') status = 'abandoned';
@@ -121,7 +126,12 @@ function createKanbanCard(lead) {
     card.className = "kanban-card";
     card.dataset.id = lead.id;
 
-    const score = (lead.internal_score || 0) + (lead.external_score || 0);
+    const internalScore = lead.internal_score || 0;
+    const serasaScore = lead.serasa_score || null;
+    const scoreLabel = serasaScore
+        ? `${internalScore} | Serasa: ${serasaScore}`
+        : String(internalScore);
+
     const date = timeAgo(lead.created_at);
     const phoneClean = lead.phone ? lead.phone.replace(/\D/g, "") : "";
     const waLink = phoneClean ? `https://wa.me/55${phoneClean}` : "#";
@@ -129,35 +139,33 @@ function createKanbanCard(lead) {
 
     // Determina a classe do score
     let scoreClass = 'score-cold';
-    if(score >= 70) scoreClass = 'score-hot';
-    else if(score >= 40) scoreClass = 'score-warm';
+    if(internalScore >= 70) scoreClass = 'score-hot';
+    else if(internalScore >= 40) scoreClass = 'score-warm';
 
-    const stepLabel = lead.step_reached ? `Etapa ${lead.step_reached}` : "";
-
-    // Ícone de Status
-    let icon = "activity";
-    if(lead.status === 'hot') icon = "flame";
-    if(lead.status === 'abandoned') icon = "alert-circle";
-    if(lead.status === 'converted') icon = "check-circle";
+    const stepLabel = lead.step_reached ? `Etapa ${lead.step_reached}/3` : "";
+    const deviceIcon = lead.device_type === 'mobile' ? '📱' : '💻';
+    const deviceLabel = lead.device_type || '';
 
     card.innerHTML = `
         <div class="kanban-card-header">
             <span class="kanban-card-title" title="${name}">${name}</span>
+            <span class="score-badge ${scoreClass}">${scoreLabel}</span>
         </div>
         <div class="kanban-card-body">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-                <span class="kanban-card-score ${scoreClass}">
-                    <i data-lucide="${icon}" style="width:10px;display:inline-block"></i> ${score}
-                </span>
-                <span style="font-size:0.62rem;color:var(--text-40)">${stepLabel}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                 <span style="font-size:0.65rem;color:var(--text-40)">
+                    ${deviceIcon} ${deviceLabel}
+                 </span>
+                 <span style="font-size:0.65rem;color:var(--text-40)">${stepLabel}</span>
             </div>
+            ${lead.utm_content ? `<div style="font-size:0.65rem;color:var(--text-40);background:var(--layer-2);padding:2px 4px;border-radius:4px;display:inline-block">📢 ${lead.utm_content}</div>` : ''}
         </div>
         <div class="kanban-card-footer">
-            <span class="kanban-date">📱 ${date}</span>
+            <span class="kanban-date">${date}</span>
             <div style="display:flex;gap:4px">
-                <button class="lead-action-btn" onclick="window.open('${waLink}', '_blank'); event.stopPropagation();">
+                <a href="${waLink}" target="_blank" class="lead-action-btn" onclick="event.stopPropagation();" title="WhatsApp">
                     <i data-lucide="message-circle" style="width:12px"></i>
-                </button>
+                </a>
                 <button class="lead-action-btn" onclick="openLeadDetails('${lead.id}'); event.stopPropagation();">
                     <i data-lucide="eye" style="width:12px"></i>
                 </button>

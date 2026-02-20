@@ -3,18 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Funila — Criativos</title>
+<title>Funila — Analytics</title>
 <link rel="icon" href="/frontend/assets/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/lucide@latest"></script>
-<style>
-    /* Custom styles for creatives table */
-    .creative-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-ghost); }
-    .creative-cell  { display: flex; align-items: center; gap: 12px; }
-    .creative-name  { font-weight: 600; font-size: 0.85rem; color: var(--text-100); }
-    .creative-headline { font-size: 0.75rem; color: var(--text-40); }
-</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -71,11 +65,11 @@
       </a>
 
       <div class="nav-label">Inteligência</div>
-      <a href="creatives.html" class="nav-item active">
+      <a href="creatives.html" class="nav-item">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/></svg>
         Criativos
       </a>
-      <a href="analytics.html" class="nav-item">
+      <a href="analytics.html" class="nav-item active">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Analytics
       </a>
@@ -113,12 +107,9 @@
       <div class="breadcrumb">
         <span>Funila</span>
         <span class="breadcrumb-sep">/</span>
-        <strong>Criativos</strong>
+        <strong>Analytics</strong>
       </div>
-      <div class="topbar-search">
-        <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <input placeholder="Buscar criativo...">
-      </div>
+      <div class="topbar-search"></div>
       <div class="topbar-actions">
         <div class="user-avatar">JC</div>
       </div>
@@ -128,41 +119,45 @@
     <div class="content">
         <div class="page-header anim-1">
             <div class="page-title-block">
-                <div class="page-title">Performance de Criativos</div>
-                <div class="page-subtitle">Análise de ROI e qualidade dos leads por anúncio</div>
-            </div>
-            <div class="page-actions">
-                <button class="btn btn-ghost" onclick="loadCreatives()">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7a6 6 0 1012 0A6 6 0 001 7z" stroke="currentColor" stroke-width="1.3"/><path d="M7 4v3l2 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                    Atualizar
-                </button>
+                <div class="page-title">Analytics Avançado</div>
+                <div class="page-subtitle">Inteligência de dados para escalar suas campanhas</div>
             </div>
         </div>
 
-        <div class="creatives-card anim-2">
-            <div class="creatives-header">
-                <h3 style="font-size:1rem;font-weight:600;color:var(--text-100)">Anúncios Ativos (Meta Ads)</h3>
+        <div class="grid-2 anim-2">
+            <!-- Funnel Chart -->
+            <div class="chart-card">
+                <div class="card-title-row">
+                    <div class="card-title">Funil de Conversão Global</div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="funnelChart"></canvas>
+                </div>
             </div>
-            <div style="overflow-x:auto">
-                <table class="creatives-table">
-                    <thead>
-                        <tr>
-                            <th>Criativo</th>
-                            <th>Campanha</th>
-                            <th>Gasto</th>
-                            <th>Cliques</th>
-                            <th>Leads</th>
-                            <th>CPL</th>
-                            <th>Score Médio</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="creatives-body">
-                        <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-40)">Carregando...</td></tr>
-                    </tbody>
-                </table>
+
+            <!-- Abandono -->
+            <div class="breakdown-card">
+                <div class="card-title-row">
+                    <div class="card-title">Abandono por Dispositivo</div>
+                </div>
+                <div class="breakdown-list" id="abandon-list">
+                    <!-- Populated by JS -->
+                </div>
             </div>
         </div>
+
+        <div class="grid-2 anim-3" style="margin-top:24px">
+             <!-- Platform Comparison -->
+             <div class="breakdown-card">
+                <div class="card-title-row">
+                    <div class="card-title">Meta Ads vs Google Ads</div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="platformChart"></canvas>
+                </div>
+            </div>
+        </div>
+
     </div>
   </div>
 </div>
@@ -172,70 +167,99 @@
     document.addEventListener("DOMContentLoaded", async () => {
         if (typeof lucide !== 'undefined') lucide.createIcons();
         const session = await Auth.checkAuth();
-        if (session) loadCreatives();
+        if (session) loadAnalytics();
     });
 
-    async function loadCreatives() {
+    async function loadAnalytics() {
         const session = await Auth.checkAuth();
-        if (!session) return;
-
         try {
-            const res = await fetch(`${Auth.API_URL}/creatives`, {
+            const res = await fetch(`${Auth.API_URL}/analytics/full`, {
                 headers: { "Authorization": `Bearer ${session.access_token}` }
             });
             const data = await res.json();
-            renderCreatives(data.creatives || []);
+            renderCharts(data);
         } catch (e) {
             console.error(e);
-            document.getElementById("creatives-body").innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--dead)">Erro ao carregar criativos.</td></tr>`;
         }
     }
 
-    function renderCreatives(creatives) {
-        const tbody = document.getElementById("creatives-body");
-        if (!creatives.length) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-40)">Nenhum criativo sincronizado. <a href="integrations.html" style="color:var(--blue)">Conecte o Meta Ads</a>.</td></tr>`;
-            return;
-        }
+    function renderCharts(data) {
+        // Funnel
+        const ctxFunnel = document.getElementById("funnelChart").getContext("2d");
+        new Chart(ctxFunnel, {
+            type: 'bar',
+            data: {
+                labels: ['Cliques', 'Etapa 1', 'Etapa 2', 'Etapa 3', 'Convertido'],
+                datasets: [{
+                    label: 'Leads',
+                    data: [
+                        data.funnel_data.clicks,
+                        data.funnel_data.step_1,
+                        data.funnel_data.step_2,
+                        data.funnel_data.step_3,
+                        data.funnel_data.converted
+                    ],
+                    backgroundColor: ['#3D7BFF', '#6366F1', '#F5A623', '#EF4444', '#A78BFA'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#2A3242' }, ticks: { color: '#9CA3AF' } },
+                    y: { grid: { display: false }, ticks: { color: '#F3F4F6' } }
+                }
+            }
+        });
 
-        tbody.innerHTML = creatives.map(c => {
-            const cpl = c.leads_generated > 0
-                ? `R$ ${(c.spend_cents / 100 / c.leads_generated).toFixed(2)}`
-                : '—';
+        // Abandonment List
+        const ab = data.abandonment_by_device;
+        const totalAb = ab.mobile + ab.desktop || 1;
+        const list = document.getElementById("abandon-list");
+        list.innerHTML = `
+            <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="color:var(--text-70)">Mobile</span>
+                    <span style="color:var(--dead)">${ab.mobile}</span>
+                </div>
+                <div style="background:var(--layer-3);height:6px;border-radius:99px">
+                    <div style="width:${ab.mobile/totalAb*100}%;height:100%;background:var(--dead);border-radius:99px"></div>
+                </div>
+            </div>
+            <div style="margin-top:16px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="color:var(--text-70)">Desktop</span>
+                    <span style="color:var(--dead)">${ab.desktop}</span>
+                </div>
+                <div style="background:var(--layer-3);height:6px;border-radius:99px">
+                    <div style="width:${ab.desktop/totalAb*100}%;height:100%;background:var(--dead);border-radius:99px"></div>
+                </div>
+            </div>
+        `;
 
-            let statusLabel = `<span class="status-pill pill-info">Aprendizado</span>`;
-            if(c.leads_generated > 5) statusLabel = `<span class="status-pill pill-top">🟢 Top Performance</span>`;
-            else if(c.clicks > 50 && c.leads_generated === 0) statusLabel = `<span class="status-pill pill-bad">🔴 Pausar (Gasto sem Lead)</span>`;
-            else if(c.clicks > 20) statusLabel = `<span class="status-pill pill-ok">🟡 Regular</span>`;
-
-            const thumb = c.thumbnail_url || ""; // If empty, handle via onerror
-
-            return `
-            <tr>
-                <td>
-                    <div class="creative-cell">
-                        ${thumb ?
-                            `<img src="${thumb}" class="creative-thumb" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''
-                        }
-                        <div class="creative-thumb thumb-1" style="display:${thumb ? 'none' : 'flex'};align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.7rem">AD</div>
-
-                        <div class="creative-info">
-                            <div class="creative-name">${c.name || "Anúncio sem nome"}</div>
-                            <div class="creative-headline">${c.headline || ""}</div>
-                        </div>
-                    </div>
-                </td>
-                <td>${c.campaign_name || '—'}</td>
-                <td>R$ ${(c.spend_cents/100).toFixed(2)}</td>
-                <td>${c.clicks}</td>
-                <td>${c.leads_generated}</td>
-                <td><strong>${cpl}</strong></td>
-                <td>${c.avg_score || '—'}</td>
-                <td>${statusLabel}</td>
-            </tr>`;
-        }).join("");
-
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        // Platform Chart
+        const ctxPlat = document.getElementById("platformChart").getContext("2d");
+        new Chart(ctxPlat, {
+            type: 'doughnut',
+            data: {
+                labels: ['Meta Ads', 'Google Ads'],
+                datasets: [{
+                    data: [data.platform_comparison.meta, data.platform_comparison.google],
+                    backgroundColor: ['#1877F2', '#4285F4'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#9CA3AF' } }
+                }
+            }
+        });
     }
 </script>
 </body>

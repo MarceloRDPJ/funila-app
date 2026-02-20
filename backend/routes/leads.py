@@ -13,8 +13,19 @@ from services.email import send_lead_alert
 from dependencies import require_client
 from services.enrichment import enrich_lead_data
 from services.webhooks import trigger_webhooks
+from services.meta_capi import send_conversion_event
+from ua_parser import user_agent_parser
 
 router = APIRouter(tags=["Leads"])
+
+def _parse_device(ua_string: str) -> str:
+    """Retorna 'mobile' ou 'desktop'"""
+    if not ua_string: return "desktop"
+    parsed = user_agent_parser.Parse(ua_string)
+    family = parsed["device"]["family"]
+    if family in ("iPhone", "Android", "iPad"):
+        return "mobile"
+    return "desktop"
 
 class LeadSubmit(BaseModel):
     client_id: str
@@ -54,7 +65,7 @@ def _increment_creative_metric(client_id, utm_content, step, is_click=False, is_
         print(f"Error updating creative metrics: {e}")
 
 @router.post("/leads/partial")
-async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: BackgroundTasks):
+async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: BackgroundTasks, request: Request):
     """
     Salva o lead parcialmente (upsert).
     Garante que o lead não seja perdido caso abandone o formulário e permite telemetria em tempo real.
@@ -63,16 +74,21 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
 
     utm_content = payload.utm_data.get("utm_content") if payload.utm_data else None
 
+    # Captura dispositivo
+    ua_str = request.headers.get("user-agent", "")
+    device_type = _parse_device(ua_str)
+
     # Prepara dados para inserção/atualização
     lead_data = {
         "client_id":      payload.client_id,
         "link_id":        payload.link_id,
-        "status":         "started",
+        "status":         "abandoned",  # Mapeado como abandono até completar
         "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
         "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
         "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,
         "utm_content":    utm_content,
-        "consent_given":  False
+        "consent_given":  False,
+        "device_type":    device_type
     }
 
     if payload.name:
@@ -96,6 +112,8 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
         except:
             step_val = 0
         lead_data["step_reached"] = step_val
+    else:
+        lead_data["step_reached"] = 1
 
     try:
         lead_id = payload.lead_id
@@ -104,8 +122,8 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
         if lead_id:
             supabase.table("leads").update(lead_data).eq("id", lead_id).execute()
         else:
-            if not (payload.name and payload.phone):
-                raise HTTPException(status_code=400, detail="Nome e Telefone necessários para criar lead")
+            if not (payload.name or payload.phone):
+                raise HTTPException(status_code=400, detail="Nome ou Telefone necessários para criar lead")
 
             lead_res = supabase.table("leads").insert(lead_data).execute()
             lead_id  = lead_res.data[0]["id"]
@@ -149,6 +167,10 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
     supabase = get_supabase()
 
     utm_content = payload.utm_data.get("utm_content") if payload.utm_data else None
+
+    # Captura dispositivo
+    ua_str = request.headers.get("user-agent", "")
+    device_type = _parse_device(ua_str)
 
     client_res = supabase.table("clients").select("plan, email, whatsapp").eq("id", payload.client_id).single().execute()
     if not client_res.data:
@@ -216,7 +238,8 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,
         "utm_content":    utm_content,
         "consent_given":  True,
-        "step_reached":   99 # Completed
+        "step_reached":   99, # Completed
+        "device_type":    device_type
     }
 
     try:
@@ -308,6 +331,9 @@ async def update_lead_status(
             if utm_content:
                 background_tasks.add_task(_increment_creative_metric, client_id, utm_content, 99, False, True)
 
+            # Send CAPI Event
+            background_tasks.add_task(send_conversion_event, lead, client_id)
+
         background_tasks.add_task(trigger_webhooks, "status_change", lead, client_id)
 
         return {"status": "success", "lead": lead}
@@ -370,12 +396,16 @@ def get_lead_details(
     client_id = user_profile["client_id"]
     supabase = get_supabase()
 
-    # Select all columns to ensure new enrichment fields are returned
-    lead_res = supabase.table("leads").select("*").eq("id", lead_id).eq("client_id", client_id).single().execute()
+    # Select lead with creative details
+    lead_res = supabase.table("leads").select("*, creatives(name, thumbnail_url)").eq("id", lead_id).eq("client_id", client_id).single().execute()
     if not lead_res.data:
         raise HTTPException(status_code=404, detail="Lead não encontrado")
 
     lead = lead_res.data
+    # Flatten creative info
+    if lead.get('creatives'):
+        lead['creative_name'] = lead['creatives'].get('name')
+        lead['creative_thumbnail'] = lead['creatives'].get('thumbnail_url')
 
     # Robust handling for associated tables
     try:

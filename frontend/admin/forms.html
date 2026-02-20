@@ -289,8 +289,9 @@
             </div>
         </div>
 
-        <div id="fields-container" class="fields-grid anim-3">
-            <div class="empty-state" style="grid-column: 1 / -1; text-align:center; padding: 40px; color:var(--text-40)">
+        <!-- Drag & Drop Container -->
+        <div id="fields-container" class="fields-grid anim-3" style="display:flex;flex-direction:column;gap:12px;max-width:600px">
+            <div class="empty-state" style="text-align:center; padding: 40px; color:var(--text-40)">
                 <p>Carregando configurações...</p>
             </div>
         </div>
@@ -334,19 +335,20 @@
     function renderConfig() {
         const container = document.getElementById("fields-container");
         if(configData.length === 0) {
-             container.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; text-align:center; padding: 40px; color:var(--text-40)"><p>Nenhum campo configurável encontrado.</p></div>`;
+             container.innerHTML = `<div class="empty-state" style="text-align:center; padding: 40px; color:var(--text-40)"><p>Nenhum campo configurável encontrado.</p></div>`;
              return;
         }
 
+        // Sort by order
+        configData.sort((a,b) => (a.order || 0) - (b.order || 0));
+
         container.innerHTML = configData.map((field, i) => `
-            <div class="field-card">
-                <div class="field-header">
-                    <span class="field-key-badge">${field.field_key}</span>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="color:var(--text-40);cursor:pointer">
-                        <circle cx="8" cy="8" r="1" fill="currentColor"/>
-                        <circle cx="2" cy="8" r="1" fill="currentColor"/>
-                        <circle cx="14" cy="8" r="1" fill="currentColor"/>
-                    </svg>
+            <div class="field-card" data-id="${field.field_id}">
+                <div class="field-header" style="cursor:grab">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-40)" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        <span class="field-key-badge">${field.field_key}</span>
+                    </div>
                 </div>
 
                 <div class="field-input-wrapper">
@@ -354,16 +356,16 @@
                     <input type="text"
                         class="field-label-input"
                         value="${field.label_custom || field.label_default}"
-                        oninput="configData[${i}].label_custom = this.value"
+                        oninput="updateFieldLabel('${field.field_id}', this.value)"
                         placeholder="Ex: Seu melhor e-mail">
                 </div>
 
                 <div class="field-actions">
                     <div class="switch-container">
-                        <span class="switch-label">Exibir Campo</span>
+                        <span class="switch-label">Exibir</span>
                         <label>
                             <input type="checkbox" class="toggle-input" ${field.active ? "checked" : ""}
-                                onchange="configData[${i}].active = this.checked">
+                                onchange="updateFieldState('${field.field_id}', 'active', this.checked)">
                             <div class="toggle-switch"></div>
                         </label>
                     </div>
@@ -372,14 +374,45 @@
                         <span class="switch-label">Obrigatório</span>
                         <label>
                             <input type="checkbox" class="toggle-input" ${field.required ? "checked" : ""}
-                                onchange="configData[${i}].required = this.checked">
+                                onchange="updateFieldState('${field.field_id}', 'required', this.checked)">
                             <div class="toggle-switch"></div>
                         </label>
                     </div>
                 </div>
             </div>
         `).join("");
+
+        // Init Sortable
+        new Sortable(container, {
+            animation: 150,
+            handle: '.field-header',
+            ghostClass: 'kanban-ghost',
+            onEnd: function (evt) {
+                // Update order in configData based on DOM
+                const newOrder = [];
+                container.querySelectorAll('.field-card').forEach((el, idx) => {
+                    const id = el.dataset.id;
+                    const item = configData.find(f => f.field_id === id);
+                    if(item) {
+                        item.order = idx;
+                        newOrder.push(item);
+                    }
+                });
+                configData = newOrder; // Reassign sorted
+            }
+        });
+
         if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function updateFieldLabel(id, val) {
+        const item = configData.find(f => f.field_id === id);
+        if(item) item.label_custom = val;
+    }
+
+    function updateFieldState(id, key, val) {
+        const item = configData.find(f => f.field_id === id);
+        if(item) item[key] = val;
     }
 
     async function saveConfig() {

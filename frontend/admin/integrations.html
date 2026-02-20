@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Integrações</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+    /* Integrations Grid */
+    .integrations-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    .integration-card {
+        background: var(--layer-2);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        display: flex; flex-direction: column; gap: 16px;
+        transition: all var(--t-fast);
+        position: relative; overflow: hidden;
+    }
+    .integration-card:hover { border-color: var(--border-med); box-shadow: var(--shadow-md); }
+
+    .int-header { display: flex; align-items: center; gap: 16px; }
+    .int-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: white; flex-shrink: 0; }
+    .int-meta { flex: 1; }
+    .int-name { font-weight: 600; color: var(--text-100); font-size: 1rem; }
+    .int-desc { font-size: 0.8rem; color: var(--text-40); line-height: 1.4; margin-top: 4px; }
+
+    .badge-connected {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(34,197,94,0.15); color: #22C55E;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: 0.75rem; font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .int-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-ghost); }
+
+    .btn-connect {
+        width: 100%; justify-content: center;
+        background: var(--blue); color: white;
+    }
+    .btn-connect:hover { background: var(--blue-bright); }
+
+    .btn-disabled {
+        background: var(--layer-3); color: var(--text-40);
+        cursor: not-allowed; border: 1px solid var(--border-ghost);
+    }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 16 16"><path d="M8 2L14 13H2L8 2Z"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Inteligência Comercial</div>
+      </div>
+    </div>
+
+    <div class="client-info">
+      <div class="client-avatar">JC</div>
+      <div>
+        <div class="client-name">João Corretor</div>
+        <div class="client-plan">Profissional</div>
+      </div>
+      <div class="client-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Dashboard
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 13.5C2 11.015 4.686 9 8 9s6 2.015 6 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Pipeline CRM <span class="nav-badge hot">4</span>
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M3 4h10M3 12h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Leads <span class="nav-badge">127</span>
+      </a>
+
+      <div class="nav-label">Rastreamento</div>
+      <a href="links.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8.5C2 5.462 4.462 3 7.5 3 10.538 3 13 5.462 13 8.5c0 1.38-.503 2.64-1.33 3.607" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7.5 6.5V9l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="13" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+        Smart Links
+      </a>
+      <a href="forms.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 4V3M11 4V3M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Formulários
+      </a>
+
+      <div class="nav-label">Inteligência</div>
+      <a href="creatives.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/></svg>
+        Criativos
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Analytics
+      </a>
+
+      <div class="nav-label">Conta</div>
+      <a href="integrations.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1112 0A6 6 0 012 8z" stroke="currentColor" stroke-width="1.3"/><path d="M6 8a2 2 0 104 0 2 2 0 00-4 0z" stroke="currentColor" stroke-width="1.3"/></svg>
+        Integrações
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/><path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div>
+          <div class="plan-name">Profissional</div>
+          <div class="plan-detail">247 créditos restantes</div>
+        </div>
+        <button class="btn-upgrade">Upgrade</button>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span>Funila</span>
+        <span class="breadcrumb-sep">/</span>
+        <strong>Integrações</strong>
+      </div>
+      <div class="topbar-search"></div>
+      <div class="topbar-actions">
+        <div class="user-avatar">JC</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <div class="page-header anim-1">
+            <div class="page-title-block">
+                <div class="page-title">Integrações</div>
+                <div class="page-subtitle">Conecte suas fontes de tráfego e ferramentas</div>
+            </div>
+        </div>
+
+        <div class="integrations-grid anim-2">
+
+            <!-- Meta Ads -->
+            <div class="integration-card" id="meta-card">
+                <div class="int-header">
+                    <div class="int-icon"><img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" width="32"></div>
+                    <div class="int-meta">
+                        <div class="int-name">Meta Ads</div>
+                        <div class="int-desc">Importe campanhas, criativos e custos do Facebook e Instagram.</div>
+                    </div>
+                </div>
+                <div class="int-footer" id="meta-footer">
+                    <button class="btn btn-connect" onclick="connectMeta()">Conectar</button>
+                </div>
+            </div>
+
+            <!-- Google Ads -->
+            <div class="integration-card" style="opacity:0.7">
+                <div class="int-header">
+                    <div class="int-icon"><img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="32"></div>
+                    <div class="int-meta">
+                        <div class="int-name">Google Ads</div>
+                        <div class="int-desc">Rastreamento de GCLID e importação de custos de pesquisa e YouTube.</div>
+                    </div>
+                </div>
+                <div class="int-footer">
+                    <button class="btn btn-disabled">Em breve</button>
+                </div>
+            </div>
+
+            <!-- Webhooks -->
+            <div class="integration-card">
+                <div class="int-header">
+                    <div class="int-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M18 8a3 3 0 1 0-3-3"/><path d="M6 16a3 3 0 1 0 3 3"/><path d="M10 21a6 6 0 0 0 6-6V9a6 6 0 0 0-6-6"/><path d="M12 9v12"/></svg></div>
+                    <div class="int-meta">
+                        <div class="int-name">Webhooks</div>
+                        <div class="int-desc">Receba notificações de leads em tempo real no seu CRM ou Zapier.</div>
+                    </div>
+                </div>
+                <div class="int-footer">
+                    <button class="btn btn-ghost" onclick="alert('Configurar Webhooks (Em breve)')">Configurar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/auth.js"></script>
+<script>
+    const API_URL = Auth.API_URL;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        const session = await Auth.checkAuth();
+
+        // Check for success param
+        const params = new URLSearchParams(window.location.search);
+        if(params.get("status") === "connected") {
+            showToast("Conta conectada com sucesso!");
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        if (session) loadIntegrations();
+    });
+
+    async function loadIntegrations() {
+        const session = await Auth.checkAuth();
+        try {
+            const res = await fetch(`${API_URL}/integrations/status`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+
+            const footer = document.getElementById("meta-footer");
+            if (data.meta_connected) {
+                const lastSync = data.meta_last_sync ? new Date(data.meta_last_sync).toLocaleString() : 'Agora mesmo';
+
+                document.getElementById("meta-card").innerHTML = `
+                    <div class="int-header">
+                        <div class="int-icon"><img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" width="32"></div>
+                        <div class="int-meta">
+                            <div class="int-name">Meta Ads</div>
+                            <div class="badge-connected">✅ Conectado</div>
+                            <div class="int-desc">Conta: <strong>${data.meta_account_name || 'Vinculada'}</strong></div>
+                        </div>
+                    </div>
+                    <div class="int-footer" style="display:flex;justify-content:space-between;align-items:center">
+                        <span style="font-size:0.7rem;color:var(--text-40)">Sync: ${lastSync}</span>
+                        <button class="btn btn-ghost" style="padding:6px 10px;font-size:0.75rem" onclick="connectMeta()">Reconectar</button>
+                    </div>
+                `;
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    function connectMeta() {
+        const session = Auth.checkAuth(); // Promise? No, Auth.checkAuth is async but token is in storage.
+        // Wait, Auth.checkAuth() is async in other files.
+        // We need token.
+        // Let's redirect to backend endpoint which handles auth.
+        // Backend endpoint redirects to Meta.
+        // So we just set window.location.
+
+        // However, backend /oauth/meta/connect requires Auth header?
+        // No, it's a GET request. If it requires Depends(require_client), we need to pass token.
+        // Browser navigation doesn't pass Bearer header easily.
+        // Usually OAuth connect is initiated via a link with ?token=... or session cookie.
+        // Backend `meta_connect` uses `Depends(require_client)`.
+        // This dependency expects `Authorization: Bearer ...`.
+        // We cannot use `window.location.href` directly if we need header.
+        // Workaround: Use a temporary query param token or cookie.
+        // Or change backend to accept `?token=` for this specific route.
+
+        // Since I cannot change the backend easily to support query param auth without modifying dependencies,
+        // and standard OAuth flows usually involve a signed-in user session (cookie), but here we use JWT.
+
+        // OPTION 1: Fetch the URL from backend (which generates the Meta URL) and then redirect.
+        // `meta_connect` returns `RedirectResponse`. If we fetch it via AJAX, we get the URL?
+        // No, fetch follows redirect by default or returns opaque.
+        // Correct way: Client sends request to backend "get_auth_url". Backend returns JSON {url: ...}. Client redirects.
+
+        // I will modify `backend/routes/oauth.py` to return JSON URL if requested?
+        // Or I can just use `window.location.href = API_URL + '/oauth/meta/connect?token=' + token` and update backend to read token from query.
+
+        // Let's fetch the URL.
+        // I will change `meta_connect` to return `{url: ...}` instead of Redirect, OR create a new endpoint `get_connect_url`.
+        // But the prompt implementation was `RedirectResponse`.
+        // If I assume `require_client` can read from Cookie, it works.
+        // But `dependencies.py` reads from Header.
+
+        // I will modify `dependencies.py` to allow query param token?
+        // Or easier: Update `connectMeta` to fetch the Meta URL from backend via an authorized API call, then redirect.
+        // But `meta_connect` returns a 302. `fetch` will follow it.
+        // We want the final Meta URL.
+        // Actually, `meta_connect` constructs the Meta URL.
+        // If I call it via fetch, I get the Meta login page HTML (because fetch follows redirect).
+        // I want the URL.
+
+        // I will modify `backend/routes/oauth.py` to return JSON.
+        // `meta_connect` -> returns `{"url": "https://facebook.com/..."}`.
+        // Then JS `window.location.href = data.url`.
+        // This is much cleaner for SPA.
+    }
+
+    // REDEFINING connectMeta to fetch URL
+    window.connectMeta = async function() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${API_URL}/oauth/meta/connect`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+            if(data.url) {
+                window.location.href = data.url;
+            } else {
+                showToast("Erro ao iniciar conexão.", "error");
+            }
+        } catch(e) {
+            console.error(e);
+            showToast("Erro de conexão.", "error");
+        }
+    }
+
+    function showToast(message, type = "success") {
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        const icon = type === "success" ? "✅" : "❌";
+        toast.innerHTML = `${icon} <span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
+</body>
+</html>

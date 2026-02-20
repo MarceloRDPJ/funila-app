@@ -1,4 +1,4 @@
-const API_URL = "https://funila-api.onrender.com";
+const API_URL = "https://funila-app.onrender.com";
 
 function getQueryParams() {
     return new URLSearchParams(window.location.search);
@@ -35,8 +35,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (res.ok) {
                 const config = await res.json();
                 if (config.client_name) {
+                    const titleEl = document.getElementById("client-title");
+                    if (titleEl) {
+                        // Se o elemento existir, personalizamos. Se for default, mantém o texto padrão.
+                        // Mas o user pediu landing padrão, talvez não queira mudar o título principal "Sua análise..."
+                        // Vou manter a lógica original: document.title muda, e se houver elemento específico pode mudar.
+                    }
                     document.title = `${config.client_name} - Oportunidade Exclusiva`;
-                    // Podemos personalizar mais coisas aqui se necessário
                 }
             }
         } catch (e) {

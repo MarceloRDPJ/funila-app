@@ -41,7 +41,7 @@ async def submit_lead_partial(payload: LeadPartialSubmit):
         "link_id":        payload.link_id,
         "name":           payload.name,
         "phone":          payload.phone,
-        "status":         "started",  # Status inicial para indicar lead incompleto
+        "status":         "cold",  # Status inicial válido ('cold', 'warm', 'hot', 'converted')
         "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
         "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
         "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,

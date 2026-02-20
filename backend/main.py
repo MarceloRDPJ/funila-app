@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -30,14 +30,13 @@ scheduler = AsyncIOScheduler()
 async def sync_all_accounts():
     try:
         supabase = get_supabase()
-        # Fetch distinct client_ids that have ad_accounts
-        # Supabase doesn't support distinct() in simple client?
-        # Just fetch all and set() in python
-        res = supabase.table('ad_accounts').select('client_id').execute()
-        if res.data:
-            client_ids = set(acc['client_id'] for acc in res.data)
-            for cid in client_ids:
-                await sync_meta_account(cid)
+        if supabase:
+            # Fetch distinct client_ids that have ad_accounts
+            res = supabase.table('ad_accounts').select('client_id').execute()
+            if res.data:
+                client_ids = set(acc['client_id'] for acc in res.data)
+                for cid in client_ids:
+                    await sync_meta_account(cid)
     except Exception as e:
         print(f"Scheduler Sync Error: {e}")
 
@@ -47,7 +46,6 @@ async def startup_event():
     scheduler.start()
 
 # CORS Configuration
-# Restrict to authorized domains to prevent CSRF/XSS attacks on authenticated endpoints
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://funila-app.onrender.com,http://localhost:3000").split(",")
 
 app.add_middleware(
@@ -62,21 +60,41 @@ app.add_middleware(
 def health():
     return {"status": "ok", "environment": os.getenv("ENVIRONMENT", "production")}
 
-# Mount frontend static files
-# We serve the frontend directory at /frontend
-frontend_dir = os.path.join(os.path.dirname(__file__), "../frontend")
+# Mount frontend directories for direct access
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
+
 if os.path.exists(frontend_dir):
+    # Mount specific sections to handle relative paths correctly
+    # Check if directories exist before mounting to avoid errors
+    master_dir = os.path.join(frontend_dir, "master")
+    if os.path.exists(master_dir):
+        app.mount("/master", StaticFiles(directory=master_dir, html=True), name="master")
+
+    admin_dir = os.path.join(frontend_dir, "admin")
+    if os.path.exists(admin_dir):
+        app.mount("/admin", StaticFiles(directory=admin_dir, html=True), name="admin")
+
+    login_dir = os.path.join(frontend_dir, "login")
+    if os.path.exists(login_dir):
+        app.mount("/login", StaticFiles(directory=login_dir, html=True), name="login")
+
+    # Mount the entire frontend directory at /frontend for legacy/shared assets access
     app.mount("/frontend", StaticFiles(directory=frontend_dir), name="frontend")
 else:
     print(f"WARNING: Frontend directory not found at {frontend_dir}")
 
-# Serve the root index.html
+# Serve the root index.html (landing page or main entry)
 @app.get("/")
 async def read_root():
-    index_path = os.path.join(os.path.dirname(__file__), "../index.html")
+    index_path = os.path.join(frontend_dir, "../index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Backend API is running. Frontend not found."}
+    # If root index.html doesn't exist, try frontend/index.html or redirect to login
+    frontend_index = os.path.join(frontend_dir, "index.html")
+    if os.path.exists(frontend_index):
+         return FileResponse(frontend_index)
+    return RedirectResponse(url="/login")
+
 
 app.include_router(tracker.router)
 app.include_router(public_forms.router)

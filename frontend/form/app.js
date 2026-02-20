@@ -178,6 +178,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function renderForm(config) {
+    // White-Label Application
+    if (config.brand_primary_color) {
+        document.documentElement.style.setProperty('--accent', config.brand_primary_color);
+    }
+
+    // Logo replacement (assuming there is an img with id 'form-logo' in index.html, or we inject it)
+    // The current index.html layout needs to be checked or we robustly look for it.
+    const logoEl = document.getElementById("form-logo");
+    if (logoEl && config.brand_logo_url) {
+        logoEl.src = config.brand_logo_url;
+    }
+
     const header = document.querySelector(".header");
     header.innerHTML = `
         <h1>Finalize sua Qualificação</h1>

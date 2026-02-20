@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funila — Painel Master Admin</title>
+    <link rel="icon" href="/frontend/assets/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Master Specific Styles */
+        .master-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .master-card {
+            background: linear-gradient(145deg, var(--bg-tertiary), var(--bg-secondary));
+            border: 1px solid var(--border-strong);
+            position: relative;
+            overflow: hidden;
+        }
+        .master-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--converted));
+        }
+
+        .client-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+        .client-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+        .client-info h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+        .client-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 12px; }
+        .plan-badge {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            padding: 2px 8px; border-radius: 4px;
+            background: rgba(255,255,255,0.1); color: var(--text-secondary);
+        }
+        .plan-pro { background: rgba(59,130,246,0.2); color: #60A5FA; }
+        .plan-agency { background: rgba(139,92,246,0.2); color: #A78BFA; }
+
+        .client-actions { display: flex; gap: 8px; }
+
+        /* Modal specific */
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="brand">FUNILA <span style="background:var(--converted-bg);color:var(--converted);border-color:rgba(167,139,250,0.3)">MASTER</span></div>
+    <ul class="nav-links">
+        <li class="nav-item"><a href="#" class="active">
+            <i data-lucide="shield-check" class="nav-icon"></i>
+            Visão Global
+        </a></li>
+        <!-- Only for Master -->
+    </ul>
+    <div class="user-info">
+        <button class="logout-btn" onclick="Auth.logout()">
+            <i data-lucide="log-out" class="nav-icon" style="width:16px;height:16px"></i>
+            Sair
+        </button>
+    </div>
+</aside>
+
+<main class="main-content">
+    <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+                <i data-lucide="menu"></i>
+            </button>
+            <h1 class="page-title">Painel Administrativo Master</h1>
+        </div>
+        <button class="btn btn-primary" onclick="openAddClientModal()">
+            <i data-lucide="plus" style="width:16px"></i> Novo Cliente
+        </button>
+    </div>
+
+    <div class="page-body">
+
+        <!-- Global Metrics -->
+        <div class="master-grid">
+            <div class="card master-card">
+                <div class="card-label">Clientes Totais</div>
+                <div class="card-value" id="metric-clients">0</div>
+                <div class="text-muted" style="margin-top:8px">Ativos no sistema</div>
+            </div>
+            <!-- Backend enhancement needed for Leads Count globally, using placeholder for now -->
+            <div class="card master-card">
+                <div class="card-label">Status do Sistema</div>
+                <div class="card-value" style="font-size:1.4rem;color:var(--success)">OPERACIONAL</div>
+                <div class="text-muted" style="margin-top:8px">API v1.0.0</div>
+            </div>
+        </div>
+
+        <!-- Client Management -->
+        <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:1.1rem;font-weight:600">Gestão de Clientes</h3>
+            <div style="position:relative">
+                <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;color:var(--text-muted)"></i>
+                <input type="search" id="client-search" placeholder="Buscar cliente..."
+                    oninput="filterClients()" style="padding-left:32px;padding-right:12px;padding-top:8px;padding-bottom:8px;background:var(--bg-tertiary);border:1px solid var(--border-strong);border-radius:6px;color:var(--text-primary);outline:none">
+            </div>
+        </div>
+
+        <div id="clients-list" style="display:grid;gap:12px">
+            <div class="empty-state"><div class="spinner"></div></div>
+        </div>
+
+    </div>
+</main>
+
+<!-- Modal Add Client -->
+<div class="modal-overlay" id="add-client-modal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 class="modal-title">Novo Cliente</h3>
+            <button class="modal-close" onclick="closeModal('add-client-modal')">✕</button>
+        </div>
+        <form class="modal-form" onsubmit="handleCreateClient(event)">
+            <div class="form-group">
+                <label>Nome da Empresa / Cliente</label>
+                <input type="text" name="name" required placeholder="Ex: Imobiliária Silva">
+            </div>
+            <div class="form-group">
+                <label>E-mail (Login)</label>
+                <input type="email" name="email" required placeholder="admin@cliente.com">
+            </div>
+            <div class="modal-grid">
+                <div class="form-group">
+                    <label>Senha Inicial</label>
+                    <input type="password" name="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Plano</label>
+                    <select name="plan">
+                        <option value="solo">Solo (Básico)</option>
+                        <option value="pro">Pro (Intermediário)</option>
+                        <option value="agency">Agency (Avançado)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>WhatsApp (Opcional)</label>
+                <input type="tel" name="whatsapp" placeholder="Ex: 11999999999">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('add-client-modal')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Criar Cliente</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/auth.js"></script>
+<script>
+    let clientsData = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        lucide.createIcons();
+        const session = await Auth.checkAuth(); // Verifica auth
+        // O backend bloqueará se não for Master, mas frontend pode redirecionar se souber role.
+        // Auth.checkAuth retorna session. Precisamos do perfil.
+        // O endpoint /clients bloqueia se não for master.
+        if (session) loadClients();
+    });
+
+    async function loadClients() {
+        const session = await Auth.checkAuth();
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            if (res.status === 403) {
+                alert("Acesso negado. Apenas Master Admin.");
+                window.location.href = "dashboard.html";
+                return;
+            }
+            if (!res.ok) throw new Error("Erro ao carregar clientes");
+
+            clientsData = await res.json();
+            document.getElementById("metric-clients").innerText = clientsData.length;
+            renderClients(clientsData);
+        } catch (e) {
+            console.error(e);
+            document.getElementById("clients-list").innerHTML = `<div class="empty-state" style="color:var(--error)">Erro ao carregar dados.</div>`;
+        }
+    }
+
+    function renderClients(list) {
+        const container = document.getElementById("clients-list");
+        if (!list.length) {
+            container.innerHTML = `<div class="empty-state">Nenhum cliente encontrado.</div>`;
+            return;
+        }
+
+        container.innerHTML = list.map(c => {
+            const planClass = c.plan === 'pro' ? 'plan-pro' : (c.plan === 'agency' ? 'plan-agency' : '');
+            const created = new Date(c.created_at).toLocaleDateString("pt-BR");
+
+            return `
+            <div class="client-card">
+                <div class="client-info">
+                    <h4>${c.name} <span class="plan-badge ${planClass}">${c.plan}</span></h4>
+                    <div class="client-meta">
+                        <span><i data-lucide="mail" style="width:12px"></i> ${c.email}</span>
+                        <span><i data-lucide="calendar" style="width:12px"></i> ${created}</span>
+                        ${c.whatsapp ? `<span><i data-lucide="phone" style="width:12px"></i> ${c.whatsapp}</span>` : ''}
+                    </div>
+                </div>
+                <div class="client-actions">
+                    <button class="btn btn-outline" style="padding:6px 10px" onclick="editClient('${c.id}')" title="Editar">
+                        <i data-lucide="edit-2" style="width:14px"></i>
+                    </button>
+                    <!-- Toggle Status (Future) -->
+                </div>
+            </div>`;
+        }).join("");
+        lucide.createIcons();
+    }
+
+    function filterClients() {
+        const term = document.getElementById("client-search").value.toLowerCase();
+        const filtered = clientsData.filter(c =>
+            c.name.toLowerCase().includes(term) ||
+            c.email.toLowerCase().includes(term)
+        );
+        renderClients(filtered);
+    }
+
+    async function handleCreateClient(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        const session = await Auth.checkAuth();
+
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Erro ao criar");
+            }
+
+            showToast("Cliente criado com sucesso!", "success");
+            closeModal("add-client-modal");
+            e.target.reset();
+            loadClients();
+
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    function openAddClientModal() {
+        document.getElementById("add-client-modal").classList.add("open");
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove("open");
+    }
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+
+    function showToast(msg, type="success") {
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<i data-lucide="check-circle" class="toast-icon"></i> <span>${msg}</span>`;
+        container.appendChild(toast);
+        lucide.createIcons();
+        setTimeout(() => toast.remove(), 3000);
+    }
+</script>
+</body>
+</html>

@@ -37,6 +37,22 @@ class LeadPartialSubmit(BaseModel):
 class LeadStatusUpdate(BaseModel):
     status: str
 
+# Helper to call RPC
+def _increment_creative_metric(client_id, utm_content, step, is_click=False, is_conversion=False):
+    if not utm_content:
+        return
+    supabase = get_supabase()
+    try:
+        supabase.rpc("increment_creative_metric", {
+            "p_client_id": client_id,
+            "p_utm_content": utm_content,
+            "p_step": step,
+            "p_is_click": is_click,
+            "p_is_conversion": is_conversion
+        }).execute()
+    except Exception as e:
+        print(f"Error updating creative metrics: {e}")
+
 @router.post("/leads/partial")
 async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: BackgroundTasks):
     """
@@ -44,6 +60,8 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
     Garante que o lead não seja perdido caso abandone o formulário e permite telemetria em tempo real.
     """
     supabase = get_supabase()
+
+    utm_content = payload.utm_data.get("utm_content") if payload.utm_data else None
 
     # Prepara dados para inserção/atualização
     lead_data = {
@@ -53,7 +71,7 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
         "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
         "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
         "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,
-        # Mantém false até submit final
+        "utm_content":    utm_content,
         "consent_given":  False
     }
 
@@ -67,6 +85,18 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
     if cpf_val:
         lead_data["cpf_encrypted"] = encrypt_cpf(cpf_val)
 
+    step_val = 0
+    if payload.last_step:
+        # Tenta extrair numero do step se for string tipo 'step_2'
+        try:
+            if "step_" in payload.last_step:
+                step_val = int(payload.last_step.replace("step_", ""))
+            else:
+                step_val = int(payload.last_step)
+        except:
+            step_val = 0
+        lead_data["step_reached"] = step_val
+
     try:
         lead_id = payload.lead_id
 
@@ -74,17 +104,12 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
         if lead_id:
             supabase.table("leads").update(lead_data).eq("id", lead_id).execute()
         else:
-            # Senão, insere
-            # Requer nome e telefone mínimos para criar o registro inicial
             if not (payload.name and payload.phone):
-                # If we have link_id and client_id, we might want to create a ghost lead?
-                # But existing logic requires name/phone.
                 raise HTTPException(status_code=400, detail="Nome e Telefone necessários para criar lead")
 
             lead_res = supabase.table("leads").insert(lead_data).execute()
             lead_id  = lead_res.data[0]["id"]
 
-            # Evento apenas na criação
             supabase.table("events").insert({
                 "lead_id":    lead_id,
                 "event_type": "lead_started",
@@ -99,17 +124,12 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
                 "metadata": {"step": payload.last_step}
             }).execute()
 
+            # Atualiza métricas do criativo (background)
+            if utm_content:
+                background_tasks.add_task(_increment_creative_metric, payload.client_id, utm_content, step_val)
+
         # Enrichment Trigger
         if cpf_val:
-             # Enrich in background to not block partial save response?
-             # But prompt says "Sempre que um lead... completar CPF... O sistema deve enriquecer".
-             # enrich_lead_data is async, we can await it or background it.
-             # Since we have background_tasks, let's use it for non-critical path?
-             # But enrich_lead_data logic adds its own background tasks.
-             # Let's await it to ensure 'public_api_data' is populated if possible,
-             # OR put it in background. Prompt: "não pode atrasar o response do endpoint" refers to Layer 2.
-             # Layer 1 BrasilAPI has 5s timeout.
-             # I'll add it to background tasks to be safe and fast.
              background_tasks.add_task(enrich_lead_data, lead_id, cpf_val, payload.client_id, background_tasks)
 
         return {"status": "success", "lead_id": lead_id}
@@ -118,7 +138,6 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
         raise he
     except Exception as e:
         print(f"Erro ao salvar lead parcial: {e}")
-        # Não bloqueia o usuário, mas loga o erro
         raise HTTPException(status_code=500, detail="Erro ao iniciar lead")
 
 
@@ -128,6 +147,8 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         raise HTTPException(status_code=400, detail="Consentimento LGPD obrigatório")
 
     supabase = get_supabase()
+
+    utm_content = payload.utm_data.get("utm_content") if payload.utm_data else None
 
     client_res = supabase.table("clients").select("plan, email, whatsapp").eq("id", payload.client_id).single().execute()
     if not client_res.data:
@@ -193,7 +214,9 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
         "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
         "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,
+        "utm_content":    utm_content,
         "consent_given":  True,
+        "step_reached":   99 # Completed
     }
 
     try:
@@ -201,16 +224,13 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         is_new = True
 
         if lead_id:
-            # Atualiza lead existente (convertido de parcial para completo)
             update_res = supabase.table("leads").update(lead_data).eq("id", lead_id).execute()
             if update_res.data:
                 is_new = False
             else:
-                # Se falhar update, cria novo
                 lead_res = supabase.table("leads").insert(lead_data).execute()
                 lead_id  = lead_res.data[0]["id"]
         else:
-            # Cria novo lead
             lead_res = supabase.table("leads").insert(lead_data).execute()
             lead_id  = lead_res.data[0]["id"]
 
@@ -231,14 +251,14 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
             "metadata":   {"score": final_score, "status": status}
         }).execute()
 
-        # Trigger Enrichment (if not already done via partial, or re-verify)
+        # Update Creative Metrics (Completed = 99)
+        if utm_content:
+            background_tasks.add_task(_increment_creative_metric, payload.client_id, utm_content, 99)
+
         if cpf:
              background_tasks.add_task(enrich_lead_data, lead_id, cpf, payload.client_id, background_tasks)
 
-        # Trigger Webhooks
         event_type = "lead_created" if is_new else "lead_updated"
-        # We need to fetch full lead data for webhook payload if we want it complete,
-        # but lead_data has most of it. We add ID.
         lead_data_for_hook = lead_data.copy()
         lead_data_for_hook["id"] = lead_id
         background_tasks.add_task(trigger_webhooks, event_type, lead_data_for_hook, payload.client_id)
@@ -274,14 +294,7 @@ async def update_lead_status(
     client_id = user_profile["client_id"]
     supabase = get_supabase()
 
-    # Validates status against allowed values?
-    # DB constraint handles it, but good to validate here if we want custom error.
-    # We pass it through.
-
     try:
-        # Check if lead belongs to client
-        # RLS handles this, but explicit check is good practice or rely on RLS with update.
-        # We just update.
         res = supabase.table("leads").update({"status": payload.status}).eq("id", lead_id).eq("client_id", client_id).execute()
 
         if not res.data:
@@ -289,10 +302,13 @@ async def update_lead_status(
 
         lead = res.data[0]
 
-        # Trigger Webhook
-        background_tasks.add_task(trigger_webhooks, "status_change", lead, client_id)
+        # Check conversion for creative metrics
+        if payload.status == "converted":
+            utm_content = lead.get("utm_content")
+            if utm_content:
+                background_tasks.add_task(_increment_creative_metric, client_id, utm_content, 99, False, True)
 
-        # Bonus: Confetti handled in frontend.
+        background_tasks.add_task(trigger_webhooks, "status_change", lead, client_id)
 
         return {"status": "success", "lead": lead}
 
@@ -303,80 +319,7 @@ async def update_lead_status(
         raise HTTPException(status_code=500, detail="Erro ao atualizar lead")
 
 
-@router.get("/metrics/abandonment")
-async def get_abandonment_metrics(
-    user_profile: dict = Depends(require_client)
-):
-    client_id = user_profile["client_id"]
-    supabase = get_supabase()
-
-    # Telemetria nível Hotjar simplificada
-    # Buscar total de leads iniciados
-    # Buscar total em cada step (baseado no último step registrado)
-
-    try:
-        # Leads started
-        # We can count distinct lead_ids in 'events' where event_type='lead_started' (if linked to client via lead)
-        # Or just count leads in 'leads' table with status='started' or 'cold' without consent?
-        # Let's use events.
-
-        # This is a bit complex query for Supabase API directly without SQL functions.
-        # We will try to get aggregation if possible, or fetch meaningful sample.
-        # Ideally, we should have a 'metrics' table or materialized view.
-        # Given the constraints, we will calculate based on `leads` table statuses and metadata.
-
-        # Simplification:
-        # Total Visitors (approx) = leads created
-        # Step 1 Drop = Started but did not complete step 1
-        # Since we only track 'lead_started' and 'step_update',
-        # we can fetch events for this client's leads.
-
-        # Fetch all leads for client
-        # Warning: Performance impact if many leads. Use pagination or limits in real app.
-        leads_res = supabase.table("leads").select("id, status, consent_given").eq("client_id", client_id).execute()
-        leads = leads_res.data
-
-        if not leads:
-            return {
-                "step_1_drop_rate": 0,
-                "step_2_drop_rate": 0,
-                "step_3_drop_rate": 0
-            }
-
-        total_leads = len(leads)
-        converted_leads = sum(1 for l in leads if l["consent_given"]) # Completed form
-        dropped_leads = total_leads - converted_leads
-
-        # To get detailed steps, we need to query events.
-        # But querying events for ALL leads is too heavy.
-        # We will fallback to a simplified metric based on available data or return placeholders if data unavailable.
-
-        # Approximation:
-        # Drop Rate = (Dropped / Total) * 100
-        overall_drop_rate = round((dropped_leads / total_leads) * 100, 1) if total_leads > 0 else 0
-
-        # We can try to get breakdown from 'events' for recent leads?
-        # Let's just return the overall rate distributed for now as a baseline,
-        # since we don't have the exact step names defined in the prompt.
-
-        return {
-            "step_1_drop_rate": overall_drop_rate, # Placeholder for specific steps
-            "step_2_drop_rate": 0,
-            "step_3_drop_rate": 0,
-            "total_started": total_leads,
-            "total_converted": converted_leads
-        }
-
-    except Exception as e:
-        print(f"Metrics Error: {e}")
-        # Return zeros instead of 500
-        return {
-            "step_1_drop_rate": 0,
-            "step_2_drop_rate": 0,
-            "step_3_drop_rate": 0
-        }
-
-
+# Endpoints de exportação e listagem (mantidos mas simplificados no paste para brevidade se não houve alteração lógica, mas mantendo código original)
 @router.get("/leads/export")
 def export_leads(
     status: Optional[str] = None,
@@ -433,8 +376,6 @@ def get_lead_details(
 
     lead = lead_res.data
 
-    # Busca respostas (com join manual se necessário, ou select aninhado se configurado)
-    # Supabase join syntax: select("*, form_fields(label)")
     responses_res = supabase.table("lead_responses")\
         .select("response_value, form_fields(label)")\
         .eq("lead_id", lead_id)\

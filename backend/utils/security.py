@@ -8,12 +8,19 @@ load_dotenv()
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 if not ENCRYPTION_KEY:
-    raise RuntimeError(
-        "ENCRYPTION_KEY não configurada. "
-        "Gere com: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
-    )
+    # Fallback to a random generated key to prevent startup crash if env var is missing.
+    # WARNING: Data encrypted with this key will be lost on restart.
+    print("WARNING: ENCRYPTION_KEY not set. Using random generated key. Encrypted data will be lost on restart.")
+    ENCRYPTION_KEY = Fernet.generate_key().decode()
 
-cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+try:
+    cipher_suite = Fernet(ENCRYPTION_KEY.encode())
+except Exception as e:
+    print(f"CRITICAL ERROR: Invalid ENCRYPTION_KEY: {e}. Generating random key.")
+    # Last resort fallback
+    key = Fernet.generate_key()
+    cipher_suite = Fernet(key)
+
 
 def encrypt_cpf(cpf: str) -> str | None:
     if not cpf:

@@ -2,12 +2,15 @@ const API_URL = "https://funila-api.onrender.com";
 let currentStep = 1;
 let clientConfig = null;
 let formData = {};
+let leadId = null;
+let partialSavePromise = null;
 
 function getQueryParams() {
     const params = new URLSearchParams(window.location.search);
     return {
         client_id:    params.get("c")            || params.get("client_id"),
         link_id:      params.get("l")            || params.get("link_id"),
+        session_id:   params.get("sid")          || params.get("session_id"),
         utm_source:   params.get("utm_source")   || "",
         utm_medium:   params.get("utm_medium")   || "",
         utm_campaign: params.get("utm_campaign") || "",
@@ -18,7 +21,37 @@ function getQueryParams() {
 
 const queryParams = getQueryParams();
 
+// Rastreamento de eventos
+async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}) {
+    if (!queryParams.session_id) return; // Se não tem sessão, ignora (ou gera uma nova?)
+
+    const payload = {
+        session_id:  queryParams.session_id,
+        link_id:     queryParams.link_id,
+        event_type:  eventType,
+        step:        step,
+        field_key:   fieldKey,
+        metadata:    metadata
+    };
+
+    try {
+        await fetch(`${API_URL}/funnel/event`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        // Silencioso para não atrapalhar UX
+        console.warn("Tracking error", e);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+    // Rastreia início do formulário
+    if (queryParams.session_id) {
+        trackEvent("step_start", 1);
+    }
+
     if (!queryParams.client_id) {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Erro: Cliente não identificado.</h1>";
         return;
@@ -33,6 +66,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Erro ao carregar formulário.</h1>";
     }
     document.getElementById("lead-form").addEventListener("submit", handleSubmit);
+
+    // Rastreia abandono (best-effort)
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") {
+            trackEvent("form_abandon", currentStep);
+        }
+    });
 });
 
 function renderForm(config) {
@@ -88,10 +128,14 @@ function renderFieldsToContainer(fields, containerId) {
                 const radio = document.createElement("input");
                 radio.type = "radio"; radio.name = field.field_key; radio.value = opt;
                 if (field.required) radio.required = true;
+
+                // Tracking change
                 radio.addEventListener("change", () => {
                     input.querySelectorAll(".radio-option").forEach(l => l.classList.remove("selected"));
                     radioLabel.classList.add("selected");
+                    trackEvent("field_blur", currentStep, field.field_key); // Radio change is effectively a complete/blur
                 });
+
                 radioLabel.appendChild(radio);
                 radioLabel.appendChild(document.createTextNode(opt));
                 input.appendChild(radioLabel);
@@ -105,20 +149,35 @@ function renderFieldsToContainer(fields, containerId) {
             if (field.field_key === "cpf")   input.classList.add("mask-cpf");
         }
 
+        // Tracking events for standard inputs
+        if (field.type !== "radio") {
+            input.addEventListener("focus", () => trackEvent("field_focus", currentStep, field.field_key));
+            input.addEventListener("blur", () => trackEvent("field_blur", currentStep, field.field_key));
+        }
+
         group.appendChild(input);
         container.appendChild(group);
     });
 }
 
-window.nextStep = function(step) {
+window.nextStep = async function(step) {
     if (!validateStep(step)) return;
     saveStepData(step);
+
+    trackEvent("step_complete", step);
+
+    // Salvar parcial se for etapa 1
+    if (step === 1) {
+        partialSavePromise = savePartialLead();
+    }
+
     if (step < 3) {
         document.getElementById(`step-${step}`).classList.remove("active");
         document.getElementById(`step-${step + 1}`).classList.add("active");
         document.getElementById(`step-dot-${step}`).style.backgroundColor = "var(--accent)";
         document.getElementById(`step-dot-${step + 1}`).classList.add("active");
         currentStep++;
+        trackEvent("step_start", currentStep);
     }
 };
 
@@ -127,6 +186,7 @@ window.prevStep = function(step) {
         document.getElementById(`step-${step}`).classList.remove("active");
         document.getElementById(`step-${step - 1}`).classList.add("active");
         currentStep--;
+        trackEvent("step_start", currentStep); // Voltar também é iniciar a etapa
     }
 };
 
@@ -150,6 +210,36 @@ function saveStepData(step) {
     });
 }
 
+async function savePartialLead() {
+    // Dados mínimos para partial save
+    const payload = {
+        client_id:    queryParams.client_id,
+        link_id:      queryParams.link_id,
+        name:         formData["full_name"],
+        phone:        formData["phone"],
+        utm_data: {
+            utm_source:   queryParams.utm_source,
+            utm_medium:   queryParams.utm_medium,
+            utm_campaign: queryParams.utm_campaign,
+        }
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/leads/partial`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === "success" && data.lead_id) {
+            leadId = data.lead_id; // Armazena ID para uso no submit final
+            console.log("Lead parcial salvo:", leadId);
+        }
+    } catch (e) {
+        console.error("Erro ao salvar lead parcial:", e);
+    }
+}
+
 async function handleSubmit(e) {
     e.preventDefault();
     if (!validateStep(3)) return;
@@ -166,10 +256,16 @@ async function handleSubmit(e) {
     btn.disabled = true;
     btn.innerText = "Enviando...";
 
+    // Aguarda salvamento parcial se estiver pendente
+    if (partialSavePromise) {
+        try { await partialSavePromise; } catch(e) {}
+    }
+
     try {
         const payload = {
             client_id:     queryParams.client_id,
             link_id:       queryParams.link_id,
+            lead_id:       leadId, // Envia ID se existir
             form_data:     formData,
             consent_given: true,
             utm_data: {
@@ -190,6 +286,7 @@ async function handleSubmit(e) {
         const data = await res.json();
 
         if (data.status === "success") {
+            trackEvent("form_submit");
             showSuccess(data);
         } else {
             alert("Erro ao enviar. Tente novamente.");

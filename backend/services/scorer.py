@@ -8,17 +8,34 @@ async def calculate_score(lead_data: dict, form_config: list, plan: str) -> tupl
     external_score = 0
     serasa_score_raw = None
 
+    # Normalização de strings para evitar erros de digitação/espaços
+    def normalize(s):
+        if not s: return ""
+        return s.lower().replace(" ", "").replace("r$", "").replace(".", "").replace(",", "").replace("-", "").replace("–", "")
+
     clt_years = lead_data.get("clt_years", "")
-    if clt_years == "Mais de 3 anos":
+    clt_norm  = normalize(clt_years)
+
+    # "Mais de 3 anos" -> "maisde3anos"
+    if "maisde3" in clt_norm or "acimade3" in clt_norm:
         internal_score += 30
-    elif clt_years in ("2 a 3 anos", "2-3 anos"):
+    elif "2a3" in clt_norm or "23anos" in clt_norm:
         internal_score += 15
 
     income = lead_data.get("income_range", "")
-    if income in ("R$3.000 - R$5.000", "Acima de R$5.000", "R$3.000 – R$5.000", "Acima de R$ 5.000"):
+    inc_norm = normalize(income)
+
+    # "R$3.000 - R$5.000" -> "30005000"
+    # "Acima de R$5.000"  -> "acimade5000"
+    if "3000" in inc_norm and "5000" in inc_norm:
+        internal_score += 25
+    elif "acima" in inc_norm and "5000" in inc_norm:
+        internal_score += 25
+    elif "maisde5000" in inc_norm:
         internal_score += 25
 
-    if lead_data.get("tried_financing") in ("Não", "Nao", "não"):
+    tried = lead_data.get("tried_financing", "")
+    if normalize(tried) in ("nao", "não", "nunca"):
         internal_score += 20
 
     if lead_data.get("phone"):

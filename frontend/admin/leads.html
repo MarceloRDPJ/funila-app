@@ -1,166 +1,218 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Funila — CRM de Leads</title>
-    <link rel="icon" href="/frontend/assets/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="kanban.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SortableJS -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <style>
-        /* Drawer Styles */
-        .drawer-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s;
-            backdrop-filter: blur(2px);
-        }
-        .drawer-overlay.open { opacity: 1; pointer-events: auto; }
-        .drawer {
-            position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 90vw;
-            background: #0F1115; border-left: 1px solid var(--border);
-            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 1001; display: flex; flex-direction: column;
-            box-shadow: -4px 0 24px rgba(0,0,0,0.4);
-        }
-        .drawer.open { transform: translateX(0); }
-
-        .drawer-header {
-            padding: 20px 24px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            background: #1C212B;
-        }
-        .drawer-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
-        .drawer-close {
-            background: none; border: none; color: var(--text-muted); cursor: pointer;
-            padding: 4px; border-radius: 4px; transition: color 0.2s;
-        }
-        .drawer-close:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
-
-        .drawer-body {
-            flex: 1; overflow-y: auto; padding: 24px;
-        }
-
-        .drawer-section { margin-bottom: 32px; }
-        .drawer-section-title {
-            font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 8px;
-        }
-
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .info-card {
-            background: #1C212B; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
-        }
-        .info-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
-        .info-value { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
-        .info-value.score { color: var(--accent); }
-        .info-value.serasa { color: #A78BFA; }
-
-        .response-item {
-            background: #1C212B; border: 1px solid var(--border); border-radius: 8px;
-            padding: 12px; margin-bottom: 8px;
-        }
-        .response-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
-        .response-val { font-size: 0.9rem; color: var(--text-primary); }
-
-        /* Timeline */
-        .timeline { position: relative; padding-left: 24px; border-left: 2px solid var(--border); margin-left: 8px; }
-        .timeline-item { position: relative; margin-bottom: 24px; }
-        .timeline-item:last-child { margin-bottom: 0; }
-        .timeline-dot {
-            position: absolute; left: -31px; top: 0; width: 12px; height: 12px;
-            border-radius: 50%; background: var(--bg-secondary); border: 2px solid var(--accent);
-        }
-        .timeline-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
-        .timeline-content { font-size: 0.9rem; color: var(--text-primary); background: #1C212B; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
-        .timeline-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Leads CRM</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="kanban.css">
+<!-- Iconografia -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
 
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="app">
 
-<aside class="sidebar" id="sidebar">
-    <div class="brand">FUNILA <span>PRO</span></div>
-    <ul class="nav-links">
-        <li class="nav-item"><a href="dashboard.html">
-            <i data-lucide="layout-dashboard" class="nav-icon"></i>
-            Dashboard
-        </a></li>
-        <li class="nav-item"><a href="leads.html" class="active">
-            <i data-lucide="users" class="nav-icon"></i>
-            Leads CRM
-        </a></li>
-        <li class="nav-item"><a href="links.html">
-            <i data-lucide="link" class="nav-icon"></i>
-            Links
-        </a></li>
-        <li class="nav-item"><a href="forms.html">
-            <i data-lucide="clipboard-list" class="nav-icon"></i>
-            Formulário
-        </a></li>
-    </ul>
-    <div class="user-info">
-        <button class="logout-btn" onclick="Auth.logout()">
-            <i data-lucide="log-out" class="nav-icon" style="width:16px;height:16px"></i>
-            Sair
+  <!-- ════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 16 16"><path d="M8 2L14 13H2L8 2Z"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Inteligência Comercial</div>
+      </div>
+    </div>
+
+    <div class="client-info">
+      <div class="client-avatar">JC</div>
+      <div>
+        <div class="client-name">João Corretor</div>
+        <div class="client-plan">Profissional</div>
+      </div>
+      <div class="client-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="leads.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M2 13.5C2 11.015 4.686 9 8 9s6 2.015 6 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Pipeline CRM
+        <span class="nav-badge hot">4</span>
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10M3 4h10M3 12h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Leads
+        <span class="nav-badge">127</span>
+      </a>
+
+      <div class="nav-label">Rastreamento</div>
+      <a href="links.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8.5C2 5.462 4.462 3 7.5 3 10.538 3 13 5.462 13 8.5c0 1.38-.503 2.64-1.33 3.607" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M7.5 6.5V9l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="13" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Smart Links
+      </a>
+      <a href="forms.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M5 4V3M11 4V3M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Formulários
+      </a>
+
+      <div class="nav-label">Inteligência</div>
+      <a href="creatives.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/>
+        </svg>
+        Criativos
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Analytics
+      </a>
+
+      <div class="nav-label">Conta</div>
+      <a href="integrations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8a6 6 0 1112 0A6 6 0 012 8z" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M6 8a2 2 0 104 0 2 2 0 00-4 0z" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Integrações
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div>
+          <div class="plan-name">Profissional</div>
+          <div class="plan-detail">247 créditos restantes</div>
+        </div>
+        <button class="btn-upgrade">Upgrade</button>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- ════════════════════════════════════
+       MAIN WRAPPER
+  ════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span>Funila</span>
+        <span class="breadcrumb-sep">/</span>
+        <strong>CRM Pipeline</strong>
+      </div>
+
+      <div class="topbar-search">
+        <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input type="search" id="filter-search" placeholder="Buscar nome, telefone..." oninput="debounceSearch()">
+      </div>
+
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="exportLeads()" title="Exportar CSV">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
         </button>
-    </div>
-</aside>
-
-<main class="main-content">
-    <div class="page-header">
-        <div style="display:flex;align-items:center;gap:12px">
-            <button class="mobile-menu-btn" onclick="openSidebar()">
-                <i data-lucide="menu"></i>
-            </button>
-            <h1 class="page-title">Gestão de Leads</h1>
-        </div>
-        <div style="display:flex;gap:10px">
-            <button class="btn btn-outline" onclick="exportLeads()">
-                <i data-lucide="download" style="width:16px"></i>
-                CSV
-            </button>
-            <button class="btn btn-outline" onclick="loadLeads()">
-                <i data-lucide="refresh-cw" style="width:16px"></i>
-            </button>
-        </div>
+        <button class="topbar-btn" onclick="loadLeads()" title="Atualizar">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 7a6 6 0 106-6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M4 4l-3 3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <div class="user-avatar">JC</div>
+      </div>
     </div>
 
-    <div class="filter-bar">
-        <div style="position:relative;flex:1">
-            <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;color:var(--text-muted)"></i>
-            <input type="search" id="filter-search" placeholder="Buscar nome, telefone..."
-                oninput="debounceSearch()" style="padding-left:32px;width:100%">
-        </div>
-    </div>
+    <!-- CONTENT -->
+    <div class="content" style="overflow-x:hidden">
 
-    <div class="page-body" style="padding-top:0">
-        <div id="kanban-board" class="kanban-board">
-            <div class="empty-state" style="width:100%">
-                <div class="spinner"></div>
-            </div>
+        <div id="kanban-board" class="kanban-board anim-1">
+            <!-- Kanban loaded by JS -->
+            <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--text-40)">Carregando...</div>
         </div>
 
         <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:10px;margin-bottom:20px">
         </div>
-    </div>
-</main>
 
-<!-- Drawer Detalhes -->
+    </div>
+  </div>
+
+</div>
+
+<!-- DRAWER -->
 <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="lead-drawer">
-    <div class="drawer-header">
-        <h3 class="drawer-title">Detalhes do Lead</h3>
-        <button class="drawer-close" onclick="closeDrawer()"><i data-lucide="x"></i></button>
+    <div class="drawer-head">
+        <!-- Avatar and Name populated by JS -->
+        <div class="drawer-lead-avatar" id="d-avatar">JS</div>
+        <div>
+            <div class="drawer-lead-name" id="d-name">Carregando...</div>
+            <div class="drawer-lead-phone" id="d-phone">...</div>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M13 1L1 13M1 1l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </button>
     </div>
     <div class="drawer-body" id="drawer-content">
-        <div style="text-align:center;padding:40px"><div class="spinner"></div></div>
+        <!-- Details populated by JS -->
+    </div>
+    <div class="drawer-footer" id="drawer-footer">
+        <!-- Buttons populated by JS -->
     </div>
 </div>
 
@@ -173,8 +225,12 @@
     let limit = 100;
     let searchTimer = null;
 
-    document.addEventListener("DOMContentLoaded", async () => {
+    // Inicialização de Ícones
+    if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
         const session = await Auth.checkAuth();
         if (session) loadLeads();
     });
@@ -210,7 +266,7 @@
         } catch (err) {
             console.error(err);
             document.getElementById("kanban-board").innerHTML =
-                `<div class="empty-state" style="width:100%"><p style="color:var(--error)">Erro ao carregar leads.</p></div>`;
+                `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--dead)">Erro ao carregar leads.</div>`;
         }
     }
 
@@ -224,9 +280,9 @@
         }
 
         container.innerHTML = `
-            <button class="btn btn-outline" ${page <= 1 ? "disabled" : ""} onclick="loadLeads(${page - 1})">Anterior</button>
-            <span class="text-muted" style="font-size:.85rem">Página ${page} de ${totalPages}</span>
-            <button class="btn btn-outline" ${page >= totalPages ? "disabled" : ""} onclick="loadLeads(${page + 1})">Próxima</button>
+            <button class="btn btn-ghost" ${page <= 1 ? "disabled" : ""} onclick="loadLeads(${page - 1})">Anterior</button>
+            <span class="text-muted" style="font-size:.85rem;color:var(--text-40)">Página ${page} de ${totalPages}</span>
+            <button class="btn btn-ghost" ${page >= totalPages ? "disabled" : ""} onclick="loadLeads(${page + 1})">Próxima</button>
         `;
     }
 
@@ -257,10 +313,14 @@
         const overlay = document.getElementById("drawer-overlay");
         const drawer = document.getElementById("lead-drawer");
         const content = document.getElementById("drawer-content");
+        const footer = document.getElementById("drawer-footer");
+        const dName = document.getElementById("d-name");
+        const dPhone = document.getElementById("d-phone");
+        const dAvatar = document.getElementById("d-avatar");
 
         overlay.classList.add("open");
         drawer.classList.add("open");
-        content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-40)">Carregando detalhes...</div>';
 
         const session = await Auth.checkAuth();
         if (!session) return;
@@ -271,10 +331,10 @@
             });
             if (!res.ok) throw new Error("Erro");
             const data = await res.json();
-            renderLeadDetails(data, content);
+            renderLeadDetails(data, content, footer, dName, dPhone, dAvatar);
         } catch (e) {
             console.error(e);
-            content.innerHTML = '<div style="color:var(--error);text-align:center">Erro ao carregar detalhes.</div>';
+            content.innerHTML = '<div style="color:var(--dead);text-align:center">Erro ao carregar detalhes.</div>';
         }
     }
 
@@ -283,102 +343,116 @@
         document.getElementById("lead-drawer").classList.remove("open");
     }
 
-    function renderLeadDetails(data, container) {
+    function renderLeadDetails(data, container, footer, dName, dPhone, dAvatar) {
         const l = data.lead;
         const responses = data.responses || [];
         const timeline = data.timeline || [];
         const score = (l.internal_score || 0) + (l.external_score || 0);
 
-        // Header Info
+        // Header Updates
+        dName.textContent = l.name || "Sem Nome";
+        dPhone.textContent = l.phone || "Sem Telefone";
+        if (l.name) {
+            const parts = l.name.split(' ');
+            dAvatar.textContent = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        } else {
+            dAvatar.textContent = "??";
+        }
+
         const phoneClean = l.phone ? l.phone.replace(/\D/g, "") : "";
-        const waLink = phoneClean ? `https://wa.me/55${phoneClean}` : "#";
 
+        // Body Content
         let html = `
-            <div style="margin-bottom:32px">
-                <h2 style="font-size:1.5rem;font-weight:600;margin-bottom:8px">${l.name || "Sem Nome"}</h2>
-                <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
-                    <a href="${waLink}" target="_blank" class="btn btn-primary" style="padding:6px 12px;font-size:0.85rem">
-                        <i data-lucide="message-circle" style="width:16px"></i> WhatsApp
-                    </a>
-                    <div style="font-size:0.85rem;color:var(--text-muted)">
-                        <i data-lucide="map-pin" style="width:14px;display:inline;vertical-align:middle"></i>
-                        Origem: <span style="color:var(--text-primary)">${l.utm_source || "Direto"}</span> / ${l.utm_campaign || "-"}
-                    </div>
-                </div>
-            </div>
-
             <div class="drawer-section">
-                <div class="drawer-section-title"><i data-lucide="brain-circuit" style="width:16px"></i> Inteligência</div>
-                <div class="info-grid">
-                    <div class="info-card">
-                        <div class="info-label">Score Interno</div>
-                        <div class="info-value score">${score}</div>
+                <div class="drawer-section-title">Score de Qualificação</div>
+                <div class="score-display">
+                    <div class="score-box">
+                        <div class="score-box-val" style="color:var(--hot)">${score}</div>
+                        <div class="score-box-label">Funila Score</div>
                     </div>
                     ${l.serasa_score ? `
-                    <div class="info-card">
-                        <div class="info-label">Serasa Score</div>
-                        <div class="info-value serasa">${l.serasa_score}</div>
-                    </div>` : ''}
-                    ${l.abandoned_step ? `
-                    <div class="info-card" style="grid-column: span 2">
-                        <div class="info-label">Abandono</div>
-                        <div class="info-value" style="color:var(--error)">Etapa ${l.abandoned_step}</div>
+                    <div class="score-box">
+                        <div class="score-box-val" style="color:var(--purple)">${l.serasa_score}</div>
+                        <div class="score-box-label">Serasa Score</div>
                     </div>` : ''}
                 </div>
             </div>
 
             <div class="drawer-section">
-                <div class="drawer-section-title"><i data-lucide="list-checks" style="width:16px"></i> Respostas</div>
-                ${responses.map(r => `
-                    <div class="response-item">
-                        <div class="response-label">${r.form_fields ? r.form_fields.label : "Campo"}</div>
-                        <div class="response-val">${r.response_value}</div>
+                <div class="drawer-section-title">Atribuição de Origem</div>
+                <div class="creative-origin">
+                    <div class="creative-origin-thumb"><div class="thumb-placeholder thumb-1">ADS</div></div>
+                    <div class="creative-origin-info">
+                        <div class="creative-origin-name">${l.utm_source || "Direto"}</div>
+                        <div class="creative-origin-camp">${l.utm_campaign || "Sem campanha"}</div>
                     </div>
-                `).join("")}
-                ${!responses.length ? '<div class="text-muted" style="font-size:.85rem">Nenhuma resposta.</div>' : ''}
+                </div>
             </div>
 
             <div class="drawer-section">
-                <div class="drawer-section-title"><i data-lucide="history" style="width:16px"></i> Timeline</div>
+                <div class="drawer-section-title">Respostas do Formulário</div>
+                <div class="info-grid-2">
+                ${responses.map(r => `
+                    <div class="info-box">
+                        <div class="info-box-label">${r.form_fields ? r.form_fields.label : "Campo"}</div>
+                        <div class="info-box-val">${r.response_value}</div>
+                    </div>
+                `).join("")}
+                </div>
+                ${!responses.length ? '<div class="text-muted" style="font-size:.85rem;color:var(--text-40)">Nenhuma resposta.</div>' : ''}
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title">Timeline de Eventos</div>
                 <div class="timeline">
                     ${timeline.map(t => {
                         const date = new Date(t.created_at).toLocaleString("pt-BR", { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-                        let icon = "activity";
-                        let color = "var(--text-muted)";
-
-                        if(t.event_type === 'lead_started') { icon = "play"; color = "var(--accent)"; }
-                        if(t.event_type === 'form_submit') { icon = "check-circle-2"; color = "var(--success)"; }
-                        if(t.event_type === 'status_change') { icon = "refresh-ccw"; color = "#F59E0B"; }
+                        let dotClass = "active"; // Default
+                        if(t.event_type === 'form_submit' || t.event_type === 'converted') dotClass = "done";
 
                         return `
                         <div class="timeline-item">
-                            <div class="timeline-dot" style="border-color:${color}"></div>
-                            <div class="timeline-date">${date}</div>
+                            <div class="timeline-dot ${dotClass}"></div>
                             <div class="timeline-content">
-                                <div style="font-weight:600;display:flex;align-items:center;gap:6px">
-                                    <i data-lucide="${icon}" style="width:14px;color:${color}"></i>
-                                    ${t.event_type}
-                                </div>
-                                ${t.metadata ? `<div class="timeline-meta"><pre style="margin:0;white-space:pre-wrap;font-family:inherit">${JSON.stringify(t.metadata, null, 2).replace(/[{}"],?/g, '')}</pre></div>` : ''}
+                                <div class="timeline-text">${t.event_type}</div>
+                                <div class="timeline-ts">${date}</div>
+                                ${t.metadata ? `<div style="font-size:0.6rem;color:var(--text-40);margin-top:2px;font-family:monospace">${JSON.stringify(t.metadata).slice(0, 50)}...</div>` : ''}
                             </div>
                         </div>`;
                     }).join("")}
-                    ${!timeline.length ? '<div class="text-muted" style="font-size:.85rem">Nenhum evento.</div>' : ''}
+                    ${!timeline.length ? '<div class="text-muted" style="font-size:.85rem;color:var(--text-40)">Nenhum evento.</div>' : ''}
                 </div>
             </div>
         `;
 
         container.innerHTML = html;
+
+        // Footer Actions
+        footer.innerHTML = `
+            <button class="btn-whatsapp" onclick="window.open('https://wa.me/55${phoneClean}', '_blank')">WhatsApp</button>
+            <button class="btn-converted" onclick="markConverted('${l.id}')">✅ Ganho</button>
+            <button class="btn-delete" onclick="deleteLead('${l.id}')">🗑</button>
+        `;
+
         lucide.createIcons();
     }
 
-    function openSidebar() {
-        document.getElementById("sidebar").classList.add("open");
-        document.getElementById("sidebar-overlay").classList.add("open");
+    // Placeholder functions for buttons (should be in kanban.js or leads.js)
+    async function markConverted(id) {
+        if(confirm("Marcar como ganho?")) {
+            // Logic to update status
+            updateLeadStatus(id, 'converted').then(() => {
+                closeDrawer();
+                loadLeads(currentPage);
+            });
+        }
     }
-    function closeSidebar() {
-        document.getElementById("sidebar").classList.remove("open");
-        document.getElementById("sidebar-overlay").classList.remove("open");
+
+    async function deleteLead(id) {
+        if(confirm("Tem certeza?")) {
+            // Logic to delete
+            alert("Implementar delete");
+        }
     }
 </script>
 </body>

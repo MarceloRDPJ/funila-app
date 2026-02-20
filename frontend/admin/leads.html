@@ -7,132 +7,11 @@
     <link rel="icon" href="/frontend/assets/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="kanban.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        /* CRM Specific Styles */
-        .crm-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-        }
-
-        .lead-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
-        }
-        .lead-card:hover {
-            border-color: var(--border-strong);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        }
-
-        .lead-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-
-        .lead-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-        .lead-meta {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .lead-score-badge {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--accent);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-family: var(--font-mono);
-            font-weight: 700;
-            font-size: 0.85rem;
-        }
-
-        .lead-body {
-            margin-bottom: 20px;
-        }
-        .lead-status-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 99px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .status-pill.abandoned { background: rgba(248, 113, 113, 0.1); color: var(--error); border: 1px solid rgba(248, 113, 113, 0.2); }
-        .status-pill.completed { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
-
-        .step-indicator {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .lead-actions {
-            display: grid;
-            grid-template-columns: 1fr 40px;
-            gap: 10px;
-        }
-
-        .btn-whatsapp-crm {
-            background: #25D366;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            padding: 10px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-            transition: var(--transition);
-        }
-        .btn-whatsapp-crm:hover { background: #1DA851; transform: translateY(-1px); }
-
-        .btn-icon {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-strong);
-            color: var(--text-secondary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .btn-icon:hover { color: var(--text-primary); border-color: var(--text-primary); }
-
-        @media (max-width: 768px) {
-            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
-            .filter-bar { padding: 16px; flex-direction: column; align-items: stretch; }
-            .filter-bar input { width: 100%; }
-        }
-    </style>
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
 
@@ -186,13 +65,7 @@
     </div>
 
     <div class="filter-bar">
-        <select id="filter-status" onchange="loadLeads(1)">
-            <option value="">Todos os status</option>
-            <option value="hot">Quente</option>
-            <option value="warm">Morno</option>
-            <option value="cold">Frio / Incompleto</option>
-            <option value="converted">Convertido</option>
-        </select>
+        <!-- Kanban doesn't filter status usually, but we keep search -->
         <div style="position:relative;flex:1">
             <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;color:var(--text-muted)"></i>
             <input type="search" id="filter-search" placeholder="Buscar nome, telefone..."
@@ -201,15 +74,15 @@
     </div>
 
     <div class="page-body" style="padding-top:0">
-        <div id="leads-container" class="crm-grid">
-            <!-- Leads will be injected here -->
-            <div class="empty-state" style="grid-column:1/-1">
+        <!-- Kanban Board Container -->
+        <div id="kanban-board" class="kanban-board">
+            <div class="empty-state" style="width:100%">
                 <div class="spinner"></div>
             </div>
         </div>
 
-        <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:32px;margin-bottom:40px">
-            <!-- Pagination injected by JS -->
+        <!-- Pagination (Hidden for infinite scroll or if unused, but we keep for safety if limit reached) -->
+        <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:10px;margin-bottom:20px">
         </div>
     </div>
 </main>
@@ -230,9 +103,10 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script src="js/auth.js"></script>
+<script src="kanban.js"></script>
 <script>
     let currentPage = 1;
-    let limit = 12; // Card layout fits better with 3 or 4 cols
+    let limit = 100; // Increase limit for Kanban to show more leads
     let searchTimer = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -251,11 +125,10 @@
         const session = await Auth.checkAuth();
         if (!session) return;
 
-        const statusFilter = document.getElementById("filter-status").value;
         const searchFilter = document.getElementById("filter-search").value;
 
+        // Note: We removed status filter because Kanban shows all columns
         let url = `${Auth.API_URL}/leads?page=${page}&limit=${limit}`;
-        if (statusFilter) url += `&status=${statusFilter}`;
         if (searchFilter) url += `&search=${searchFilter}`;
 
         try {
@@ -264,82 +137,20 @@
             });
             if (!res.ok) throw new Error("Erro ao buscar leads");
             const json = await res.json();
-            renderLeadsCRM(json.data);
+
+            // Use Kanban renderer from kanban.js
+            if (typeof renderKanbanBoard === 'function') {
+                renderKanbanBoard(json.data);
+            } else {
+                console.error("renderKanbanBoard not found");
+            }
+
             renderPagination(json.total, json.page, json.limit);
         } catch (err) {
             console.error(err);
-            document.getElementById("leads-container").innerHTML =
-                `<div class="empty-state" style="grid-column:1/-1"><p style="color:var(--error)">Erro ao carregar leads.</p></div>`;
+            document.getElementById("kanban-board").innerHTML =
+                `<div class="empty-state" style="width:100%"><p style="color:var(--error)">Erro ao carregar leads.</p></div>`;
         }
-    }
-
-    function renderLeadsCRM(leads) {
-        const container = document.getElementById("leads-container");
-
-        if (!leads || !leads.length) {
-            container.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>Nenhum lead encontrado.</p></div>`;
-            return;
-        }
-
-        container.innerHTML = leads.map(lead => {
-            const score = (lead.internal_score || 0) + (lead.external_score || 0);
-            const date  = new Date(lead.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
-            const isIncomplete = lead.status === 'started' || lead.status === 'cold' && !lead.consent_given;
-            // Better logic: if score is 0 and status cold, likely incomplete if logic hasn't run.
-            // But 'cold' is used for low score too.
-            // Let's use metadata or check if 'consent_given' is true.
-            // In backend partial save, consent_given is false.
-
-            const abandoned = lead.consent_given === false;
-
-            let statusBadge = `<span class="status-pill completed"><i data-lucide="check-circle" style="width:12px"></i> Novo Lead</span>`;
-            if (abandoned) {
-                statusBadge = `<span class="status-pill abandoned"><i data-lucide="alert-circle" style="width:12px"></i> Incompleto</span>`;
-            } else if (lead.status === 'hot') {
-                statusBadge = `<span class="status-pill" style="background:rgba(239,68,68,0.1);color:#EF4444;border-color:rgba(239,68,68,0.2)"><i data-lucide="flame" style="width:12px"></i> Quente</span>`;
-            }
-
-            // WhatsApp Message Logic
-            const firstName = lead.name ? lead.name.split(" ")[0] : "visitante";
-            const msg = abandoned
-                ? `Olá ${firstName}, vi que você começou a preencher nosso formulário mas não finalizou. Ficou com alguma dúvida?`
-                : `Olá ${firstName}, vi seu perfil e tenho uma oportunidade perfeita para você. Podemos conversar?`;
-
-            const phoneClean = lead.phone ? lead.phone.replace(/\D/g, "") : "";
-            const waLink = phoneClean ? `https://wa.me/55${phoneClean}?text=${encodeURIComponent(msg)}` : "#";
-
-            const safeName = lead.name ? lead.name.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "Sem nome";
-
-            return `
-            <div class="lead-card">
-                <div class="lead-header">
-                    <div>
-                        <div class="lead-name">${safeName}</div>
-                        <div class="lead-meta">
-                            <i data-lucide="calendar" style="width:12px"></i> ${date}
-                        </div>
-                    </div>
-                    <div class="lead-score-badge">${score} pts</div>
-                </div>
-
-                <div class="lead-body">
-                    <div class="lead-status-row">
-                        ${statusBadge}
-                    </div>
-                    ${abandoned ? `<div class="step-indicator">Parou no formulário</div>` : `<div class="step-indicator">Formulário completo</div>`}
-                </div>
-
-                <div class="lead-actions">
-                    <a href="${waLink}" target="_blank" class="btn-whatsapp-crm" ${!phoneClean ? "disabled style='opacity:0.5;pointer-events:none'" : ""}>
-                        <i data-lucide="message-circle" style="width:16px"></i> Atender
-                    </a>
-                    <button class="btn-icon" onclick="openLeadDetails('${lead.id}')" title="Ver Detalhes">
-                        <i data-lucide="eye" style="width:16px"></i>
-                    </button>
-                </div>
-            </div>`;
-        }).join("");
-        lucide.createIcons();
     }
 
     function renderPagination(total, page, limit) {
@@ -361,10 +172,8 @@
     async function exportLeads() {
         const session = await Auth.checkAuth();
         if (!session) return;
-        const statusFilter = document.getElementById("filter-status").value;
         const searchFilter = document.getElementById("filter-search").value;
         let url = `${Auth.API_URL}/leads/export?`;
-        if (statusFilter) url += `&status=${statusFilter}`;
         if (searchFilter) url += `&search=${searchFilter}`;
 
         try {
@@ -407,8 +216,29 @@
     function renderLeadDetails(data, container) {
         const l = data.lead;
         const responses = data.responses || [];
-        const events = data.timeline || [];
         const score = (l.internal_score || 0) + (l.external_score || 0);
+
+        // Additional enrichment data display
+        let enrichmentHtml = "";
+        if (l.public_api_data || l.whatsapp_meta || l.serasa_score) {
+            enrichmentHtml = `<div style="margin-top:24px;border-top:1px solid var(--border);padding-top:24px">
+                <h4 style="font-size:.85rem;margin-bottom:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Enriquecimento de Dados</h4>
+                <div style="display:grid;gap:12px">`;
+
+            if (l.serasa_score) {
+                enrichmentHtml += `<div class="form-group"><label>Serasa Score</label><div class="card-value" style="font-size:1.2rem">${l.serasa_score}</div></div>`;
+            }
+            if (l.whatsapp_meta) {
+                const wm = l.whatsapp_meta;
+                enrichmentHtml += `<div class="form-group"><label>WhatsApp Status</label>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        ${wm.valid ? '<span class="status-badge status-hot">Válido</span>' : '<span class="status-badge status-error">Inválido</span>'}
+                        ${wm.profile_pic ? `<img src="${wm.profile_pic}" style="width:32px;height:32px;border-radius:50%">` : ''}
+                    </div>
+                </div>`;
+            }
+            enrichmentHtml += `</div></div>`;
+        }
 
         let html = `
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:24px">
@@ -438,6 +268,8 @@
                     </div>
                 </div>
             </div>
+
+            ${enrichmentHtml}
 
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal()">Fechar</button>

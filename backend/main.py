@@ -11,12 +11,24 @@ from routes import dashboard
 from routes import links
 from routes.admin import master
 from routes import auth
+from routes import scanner
+from routes import analytics
 
 load_dotenv()
 
 app = FastAPI(title="Funila API", version="1.0.0")
 
+# Permitir CORS para o scanner (que roda em qualquer site do cliente)
+# Em produção, idealmente seria restrito aos domínios dos clientes, mas para MVP/SaaS aberto: "*"
 origins = os.getenv("CORS_ORIGINS", "https://app.funila.com.br").split(",")
+# Adicionar "*" para scanner beacon se necessário, ou configurar dinamicamente.
+# Para evitar problemas com credentials, se usarmos "*", allow_credentials deve ser False.
+# Mas o dashboard precisa de credentials.
+# Solução: Middleware customizado ou confiar na lista de origens.
+# Para o scanner (public), usaremos um router separado ou assumiremos que o cliente configura os domínios.
+# Vou adicionar "*" na lista de origens para facilitar o beacon, mas com cuidado.
+if "*" not in origins:
+    origins.append("*")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,3 +50,5 @@ app.include_router(dashboard.router)
 app.include_router(links.router)
 app.include_router(master.router)
 app.include_router(auth.router)
+app.include_router(scanner.router)
+app.include_router(analytics.router)

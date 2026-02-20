@@ -9,10 +9,8 @@ const COLUMN_LABELS = {
 
 document.addEventListener("DOMContentLoaded", () => {
     // Override loadLeads to render Kanban
-    // We keep existing loadLeads logic but change render function
-    // Check if we are on leads page
     if (document.getElementById("kanban-board")) {
-        // Initialize Kanban
+        // Init happens via loadLeads
     }
 });
 
@@ -49,21 +47,10 @@ function renderKanbanBoard(leads) {
     leads.forEach(lead => {
         let status = lead.status;
         if (!KANBAN_COLUMNS.includes(status)) {
-            // Map unknown status to cold or warm?
-            // If 'started', map to 'cold'
+            // Mapping Logic
             if (status === 'started') status = 'cold';
-            else if (status === 'hot') status = 'warm'; // Map hot to warm or create hot column?
-            // Prompt said columns: cold, warm, negotiation, converted, trash.
-            // But DB has 'hot'.
-            // I should probably map 'hot' to 'warm' or add 'hot' column?
-            // Prompt explicitly listed columns. I will add 'hot' column if needed or map it.
-            // Let's assume 'hot' goes to 'warm' or I should add 'hot' column.
-            // Wait, "Kanban horizontal com colunas: cold, warm, negotiation, converted, trash".
-            // So 'hot' leads will be hidden or mapped.
-            // I'll map 'hot' to 'warm' visually, but keep data 'hot'?
-            // Or maybe 'warm' column includes 'hot'.
-            if (status === 'hot') status = 'warm';
-            else status = 'cold'; // Default fallback
+            else if (status === 'hot') status = 'warm';
+            else status = 'cold'; // Fallback
         }
 
         counts[status]++;
@@ -77,14 +64,14 @@ function renderKanbanBoard(leads) {
         if (el) el.innerText = counts[s];
     });
 
-    // Initialize Sortable for each column
+    // Initialize Sortable
     KANBAN_COLUMNS.forEach(status => {
         const el = document.getElementById(`col-${status}`);
         new Sortable(el, {
-            group: 'kanban', // set both lists to same group
+            group: 'kanban',
             animation: 150,
             ghostClass: 'kanban-ghost',
-            delay: 100, // delay to prevent accidental drag on touch
+            delay: 100,
             delayOnTouchOnly: true,
             onEnd: async function (evt) {
                 const itemEl = evt.item;
@@ -95,7 +82,6 @@ function renderKanbanBoard(leads) {
                 if (newStatus === oldStatus) return;
 
                 // Optimistic update
-                // Update counter
                 updateCount(oldStatus, -1);
                 updateCount(newStatus, 1);
 
@@ -107,12 +93,8 @@ function renderKanbanBoard(leads) {
                         fireConfetti();
                     }
                 } catch (error) {
-                    // Revert
                     showToast("Erro ao mover lead", "error");
-                    // Sortable doesn't easily revert via API, we might need to move DOM back manually
-                    // or just reload. Reloading is safer for state consistency.
-                    // But simpler: just append back to 'from'
-                    evt.from.appendChild(itemEl);
+                    evt.from.appendChild(itemEl); // Revert
                     updateCount(oldStatus, 1);
                     updateCount(newStatus, -1);
                 }
@@ -131,13 +113,14 @@ function createKanbanCard(lead) {
     const phoneClean = lead.phone ? lead.phone.replace(/\D/g, "") : "";
     const waLink = phoneClean ? `https://wa.me/55${phoneClean}` : "#";
     const name = lead.name || "Sem Nome";
+    const utmContent = lead.utm_content ? `<div style="font-size:0.7rem;color:#555;margin-top:4px;overflow:hidden;text-overflow:ellipsis">Criativo: ${lead.utm_content}</div>` : "";
+    const stepReached = lead.step_reached ? `<span style="font-size:0.7rem;color:#888">Etapa: ${lead.step_reached}</span>` : "";
 
-    // Check for "Etapa abandonada"
     let subtext = "";
     if (lead.status === 'started' || (lead.status === 'cold' && !lead.consent_given)) {
-        subtext = `<span style="color:#F87171">Abandono</span>`;
+        subtext = `<span style="color:#F87171;font-size:0.8rem">Abandono</span>`;
     } else {
-        subtext = `Score: ${score}`;
+        subtext = `<div style="display:flex;justify-content:space-between;align-items:center"><span>Score: ${score}</span> ${stepReached}</div>`;
     }
 
     card.innerHTML = `
@@ -147,6 +130,7 @@ function createKanbanCard(lead) {
         </div>
         <div class="kanban-card-body">
             ${subtext}
+            ${utmContent}
         </div>
         <div class="kanban-card-footer">
             <span class="kanban-date">${date}</span>
@@ -154,7 +138,7 @@ function createKanbanCard(lead) {
                 <a href="${waLink}" target="_blank" class="btn-whatsapp-mini" title="WhatsApp">
                     <i data-lucide="message-circle" style="width:14px"></i>
                 </a>
-                <button class="btn-whatsapp-mini" style="background:#333" onclick="openLeadDetails('${lead.id}')">
+                <button class="btn-whatsapp-mini" style="background:#2A3242" onclick="openLeadDetails('${lead.id}')">
                     <i data-lucide="eye" style="width:14px"></i>
                 </button>
             </div>
@@ -199,10 +183,9 @@ async function updateLeadStatus(leadId, newStatus) {
     return await res.json();
 }
 
-// Toast helper (reusing existing or creating new if needed, existing leads.html has toast container)
 function showToast(msg, type="success") {
     const container = document.getElementById("toast-container");
-    if (!container) return; // Should exist in leads.html
+    if (!container) return;
 
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
@@ -211,17 +194,16 @@ function showToast(msg, type="success") {
         <span>${msg}</span>
     `;
     container.appendChild(toast);
-    lucide.createIcons(); // Refresh icons
+    lucide.createIcons();
 
     setTimeout(() => {
-        toast.style.animation = "slideOut 0.3s forwards"; // Add slideOut keyframes if not exists, or just remove
+        toast.style.animation = "slideOut 0.3s forwards"; // Ensure CSS handles slideOut
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-// Confetti
 function fireConfetti() {
-    const colors = ['#a864fd', '#29cdff', '#78ff44', '#ff718d', '#fdff6a'];
+    const colors = ['#2563EB', '#22C55E', '#F59E0B', '#EF4444', '#A78BFA'];
     for (let i = 0; i < 50; i++) {
         const conf = document.createElement('div');
         conf.className = 'confetti';

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Funila — Leads</title>
     <link rel="icon" href="/frontend/assets/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -49,11 +49,17 @@
             </button>
             <h1 class="page-title">Leads</h1>
         </div>
-        <button class="btn btn-outline" onclick="loadLeads()">Atualizar</button>
+        <div style="display:flex;gap:10px">
+            <button class="btn btn-outline" onclick="exportLeads()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar CSV
+            </button>
+            <button class="btn btn-outline" onclick="loadLeads()">Atualizar</button>
+        </div>
     </div>
 
     <div class="filter-bar">
-        <select id="filter-status" onchange="loadLeads()">
+        <select id="filter-status" onchange="loadLeads(1)">
             <option value="">Todos os status</option>
             <option value="hot">Quente</option>
             <option value="warm">Morno</option>
@@ -79,12 +85,30 @@
                 <tbody id="leads-body"></tbody>
             </table>
         </div>
+
+        <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:24px">
+            <!-- Pagination injected by JS -->
+        </div>
     </div>
 </main>
 
+<!-- Modal Detalhes -->
+<div class="modal-overlay" id="lead-modal">
+    <div class="modal-box" style="max-width:600px">
+        <div class="modal-header">
+            <h3 class="modal-title">Detalhes do Lead</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div id="lead-modal-content">
+            <div style="text-align:center;padding:20px">Carregando...</div>
+        </div>
+    </div>
+</div>
+
 <script src="js/auth.js"></script>
 <script>
-    let allLeads = [];
+    let currentPage = 1;
+    let limit = 10;
     let searchTimer = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -94,25 +118,29 @@
 
     function debounceSearch() {
         clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => renderLeads(), 300);
+        searchTimer = setTimeout(() => loadLeads(1), 500);
     }
 
-    async function loadLeads() {
+    async function loadLeads(page = 1) {
+        currentPage = page;
         const session = await Auth.checkAuth();
         if (!session) return;
 
         const statusFilter = document.getElementById("filter-status").value;
-        const url = statusFilter
-            ? `${Auth.API_URL}/leads?status=${statusFilter}`
-            : `${Auth.API_URL}/leads`;
+        const searchFilter = document.getElementById("filter-search").value;
+
+        let url = `${Auth.API_URL}/leads?page=${page}&limit=${limit}`;
+        if (statusFilter) url += `&status=${statusFilter}`;
+        if (searchFilter) url += `&search=${searchFilter}`;
 
         try {
             const res = await fetch(url, {
                 headers: { "Authorization": `Bearer ${session.access_token}` }
             });
             if (!res.ok) throw new Error("Erro ao buscar leads");
-            allLeads = await res.json();
-            renderLeads();
+            const json = await res.json();
+            renderLeads(json.data);
+            renderPagination(json.total, json.page, json.limit);
         } catch (err) {
             console.error(err);
             document.getElementById("leads-body").innerHTML =
@@ -120,19 +148,10 @@
         }
     }
 
-    function renderLeads() {
-        const search = document.getElementById("filter-search").value.toLowerCase().trim();
-        const tbody  = document.getElementById("leads-body");
+    function renderLeads(leads) {
+        const tbody = document.getElementById("leads-body");
 
-        let leads = allLeads;
-        if (search) {
-            leads = leads.filter(l =>
-                (l.name || "").toLowerCase().includes(search) ||
-                (l.phone || "").includes(search)
-            );
-        }
-
-        if (!leads.length) {
+        if (!leads || !leads.length) {
             tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>Nenhum lead encontrado.</p></div></td></tr>`;
             return;
         }
@@ -141,13 +160,14 @@
             hot:       { label: "Quente",    cls: "status-hot" },
             warm:      { label: "Morno",     cls: "status-warm" },
             cold:      { label: "Frio",      cls: "status-cold" },
-            converted: { label: "Convertido",cls: "status-converted" }
+            converted: { label: "Convertido",cls: "status-converted" },
+            started:   { label: "Iniciado",  cls: "status-cold" }
         };
 
         tbody.innerHTML = leads.map(lead => {
             const s     = statusMap[lead.status] || { label: lead.status, cls: "status-cold" };
             const phone = (lead.phone || "").replace(/\D/g, "");
-            const date  = new Date(lead.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit" });
+            const date  = new Date(lead.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" });
             const score = (lead.internal_score || 0) + (lead.external_score || 0);
             return `
                 <tr>
@@ -156,17 +176,163 @@
                         <div class="text-muted">${lead.phone || ""}</div>
                     </td>
                     <td data-label="Status"><span class="status-badge ${s.cls}">${s.label}</span></td>
-                    <td data-label="Score" style="font-family:var(--font-mono);font-size:.85rem">${score}</td>
+                    <td data-label="Score" class="font-mono">${score}</td>
                     <td data-label="Origem"><span class="text-muted truncate">${lead.utm_source || "—"}</span></td>
                     <td data-label="Data"><span class="text-muted">${date}</span></td>
                     <td data-label="Ação">
-                        <a href="https://wa.me/55${phone}" target="_blank" rel="noopener"
-                           class="btn btn-outline" style="padding:5px 12px;font-size:.8rem">
-                           WhatsApp
-                        </a>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-outline" style="padding:5px 10px;font-size:.75rem" onclick="openLeadDetails('${lead.id}')">Ver</button>
+                            <a href="https://wa.me/55${phone}" target="_blank" rel="noopener"
+                               class="btn btn-primary" style="padding:5px 10px;font-size:.75rem">
+                               WhatsApp
+                            </a>
+                        </div>
                     </td>
                 </tr>`;
         }).join("");
+    }
+
+    function renderPagination(total, page, limit) {
+        const totalPages = Math.ceil(total / limit);
+        const container = document.getElementById("pagination-controls");
+
+        if (totalPages <= 1) {
+            container.innerHTML = "";
+            return;
+        }
+
+        container.innerHTML = `
+            <button class="btn btn-outline" ${page <= 1 ? "disabled" : ""} onclick="loadLeads(${page - 1})">Anterior</button>
+            <span class="text-muted" style="font-size:.85rem">Página ${page} de ${totalPages}</span>
+            <button class="btn btn-outline" ${page >= totalPages ? "disabled" : ""} onclick="loadLeads(${page + 1})">Próxima</button>
+        `;
+    }
+
+    async function exportLeads() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const statusFilter = document.getElementById("filter-status").value;
+        const searchFilter = document.getElementById("filter-search").value;
+
+        let url = `${Auth.API_URL}/leads/export?`;
+        if (statusFilter) url += `&status=${statusFilter}`;
+        if (searchFilter) url += `&search=${searchFilter}`;
+
+        window.open(url + `&access_token=${session.access_token}`, "_blank");
+        // Note: For proper auth in window.open/download, we might need a workaround if token is needed in header.
+        // Assuming API accepts token in query param or we use fetch+blob.
+        // Let's use fetch+blob for security.
+
+        try {
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            if (!res.ok) throw new Error("Erro ao exportar");
+            const blob = await res.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = "leads.csv";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch(e) {
+            alert("Erro ao exportar CSV");
+        }
+    }
+
+    async function openLeadDetails(leadId) {
+        const modal = document.getElementById("lead-modal");
+        const content = document.getElementById("lead-modal-content");
+        modal.classList.add("open");
+        content.innerHTML = '<div style="text-align:center;padding:20px">Carregando...</div>';
+
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${Auth.API_URL}/leads/${leadId}`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            if (!res.ok) throw new Error("Erro ao carregar detalhes");
+            const data = await res.json();
+            renderLeadDetails(data, content);
+        } catch (e) {
+            console.error(e);
+            content.innerHTML = '<div style="color:var(--error);text-align:center">Erro ao carregar detalhes.</div>';
+        }
+    }
+
+    function renderLeadDetails(data, container) {
+        const l = data.lead;
+        const responses = data.responses || [];
+        const events = data.timeline || [];
+
+        const score = (l.internal_score || 0) + (l.external_score || 0);
+
+        let html = `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:20px">
+                <div>
+                    <div style="font-size:1.2rem;font-weight:600">${l.name}</div>
+                    <div class="text-muted">${l.phone} • ${l.email || "Sem e-mail"}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:1.5rem;font-weight:600;color:var(--accent)">${score}</div>
+                    <div class="text-muted" style="font-size:.7rem">SCORE</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+                <div>
+                    <h4 style="font-size:.9rem;margin-bottom:10px;color:var(--text-secondary)">Dados de Qualificação</h4>
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        ${responses.map(r => `
+                            <div style="font-size:.85rem">
+                                <span class="text-muted">${r.form_fields ? r.form_fields.label : "Campo"}:</span>
+                                <span style="font-weight:500;color:var(--text-primary)">${r.response_value}</span>
+                            </div>
+                        `).join("")}
+                        ${!responses.length ? '<div class="text-muted" style="font-size:.8rem">Nenhuma resposta registrada.</div>' : ''}
+                    </div>
+                </div>
+                <div>
+                    <h4 style="font-size:.9rem;margin-bottom:10px;color:var(--text-secondary)">Timeline</h4>
+                    <div style="display:flex;flex-direction:column;gap:12px;max-height:200px;overflow-y:auto;padding-right:4px">
+                        ${events.map(e => {
+                            const time = new Date(e.created_at).toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
+                            return `
+                                <div style="display:flex;gap:10px;font-size:.8rem">
+                                    <span class="text-muted" style="min-width:40px">${time}</span>
+                                    <div>
+                                        <div style="color:var(--text-primary)">${formatEventType(e.event_type)}</div>
+                                        ${e.metadata ? `<div class="text-muted" style="font-size:.7rem">${JSON.stringify(e.metadata)}</div>` : ''}
+                                    </div>
+                                </div>`;
+                        }).join("")}
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
+            </div>
+        `;
+        container.innerHTML = html;
+    }
+
+    function formatEventType(type) {
+        const map = {
+            "lead_started": "Iniciou formulário",
+            "form_submit": "Enviou formulário",
+            "email_sent": "E-mail enviado",
+            "score_calculated": "Score calculado"
+        };
+        return map[type] || type;
+    }
+
+    function closeModal() {
+        document.getElementById("lead-modal").classList.remove("open");
     }
 
     function openSidebar() {

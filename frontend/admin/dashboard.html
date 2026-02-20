@@ -90,6 +90,37 @@
             </div>
         </div>
 
+        <!-- Funnel Widget -->
+        <div class="card" style="margin-bottom:24px;padding:20px 24px 24px">
+            <div class="card-label" style="margin-bottom:20px">Funil de Conversão</div>
+            <div class="funnel-container" id="funnel-container" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;text-align:center">
+                <!-- Step 1 -->
+                <div class="funnel-step">
+                    <div class="funnel-count" id="f-step1">—</div>
+                    <div class="funnel-label">Visitantes (Etapa 1)</div>
+                    <div class="funnel-rate text-muted" id="f-rate1">—</div>
+                </div>
+                <!-- Step 2 -->
+                <div class="funnel-step">
+                    <div class="funnel-count" id="f-step2">—</div>
+                    <div class="funnel-label">Dados Pessoais (Etapa 2)</div>
+                    <div class="funnel-rate text-muted" id="f-rate2">—</div>
+                </div>
+                <!-- Step 3 -->
+                <div class="funnel-step">
+                    <div class="funnel-count" id="f-step3">—</div>
+                    <div class="funnel-label">Financeiro (Etapa 3)</div>
+                    <div class="funnel-rate text-muted" id="f-rate3">—</div>
+                </div>
+                <!-- Converted -->
+                <div class="funnel-step">
+                    <div class="funnel-count" id="f-conv" style="color:var(--success)">—</div>
+                    <div class="funnel-label">Convertidos</div>
+                    <div class="funnel-rate text-muted" id="f-rate4">—</div>
+                </div>
+            </div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div class="card">
                 <div class="card-label" style="margin-bottom:16px">Distribuição por status</div>

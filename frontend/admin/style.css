@@ -189,6 +189,33 @@ body {
     margin-bottom: 24px;
 }
 
+/* ── Funnel ── */
+.funnel-step {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.funnel-count {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.funnel-label {
+    font-size: .75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.funnel-rate {
+    font-size: .7rem;
+    margin-top: 4px;
+    color: var(--text-muted);
+}
+
 /* ── Buttons ── */
 .btn {
     display: inline-flex;

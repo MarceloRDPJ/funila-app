@@ -1,5 +1,8 @@
 import urllib.parse
+import csv
+import io
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from database import get_supabase
@@ -189,16 +192,106 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
         raise HTTPException(status_code=500, detail="Não foi possível salvar o lead")
 
 
-@router.get("/leads")
-def list_leads(
+@router.get("/leads/export")
+def export_leads(
     status: Optional[str] = None,
+    search: Optional[str] = None,
     user_profile: dict = Depends(require_client)
 ):
     client_id = user_profile["client_id"]
     supabase = get_supabase()
 
     query = supabase.table("leads").select("*").eq("client_id", client_id).order("created_at", desc=True)
+
     if status:
         query = query.eq("status", status)
 
-    return query.execute().data
+    if search:
+        query = query.or_(f"name.ilike.%{search}%,phone.ilike.%{search}%")
+
+    leads = query.execute().data
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Nome", "Telefone", "Status", "Score", "Origem", "Data"])
+
+    for l in leads:
+        score = (l.get("internal_score") or 0) + (l.get("external_score") or 0)
+        writer.writerow([
+            l["id"],
+            l["name"],
+            l["phone"],
+            l["status"],
+            score,
+            l.get("utm_source", ""),
+            l["created_at"]
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode()),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=leads.csv"}
+    )
+
+@router.get("/leads/{lead_id}")
+def get_lead_details(
+    lead_id: str,
+    user_profile: dict = Depends(require_client)
+):
+    client_id = user_profile["client_id"]
+    supabase = get_supabase()
+
+    lead_res = supabase.table("leads").select("*").eq("id", lead_id).eq("client_id", client_id).single().execute()
+    if not lead_res.data:
+        raise HTTPException(status_code=404, detail="Lead não encontrado")
+
+    lead = lead_res.data
+
+    # Busca respostas (com join manual se necessário, ou select aninhado se configurado)
+    # Supabase join syntax: select("*, form_fields(label)")
+    responses_res = supabase.table("lead_responses")\
+        .select("response_value, form_fields(label)")\
+        .eq("lead_id", lead_id)\
+        .execute()
+
+    events_res = supabase.table("events").select("*").eq("lead_id", lead_id).order("created_at", desc=True).execute()
+
+    return {
+        "lead": lead,
+        "responses": responses_res.data,
+        "timeline": events_res.data
+    }
+
+
+@router.get("/leads")
+def list_leads(
+    page: int = 1,
+    limit: int = 50,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    user_profile: dict = Depends(require_client)
+):
+    client_id = user_profile["client_id"]
+    supabase = get_supabase()
+
+    query = supabase.table("leads").select("*", count="exact").eq("client_id", client_id).order("created_at", desc=True)
+
+    if status:
+        query = query.eq("status", status)
+
+    if search:
+        query = query.or_(f"name.ilike.%{search}%,phone.ilike.%{search}%")
+
+    start = (page - 1) * limit
+    end   = start + limit - 1
+    query = query.range(start, end)
+
+    res = query.execute()
+
+    return {
+        "data": res.data,
+        "total": res.count,
+        "page": page,
+        "limit": limit
+    }

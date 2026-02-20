@@ -50,9 +50,14 @@ def create_link(link: LinkCreate, user_profile: dict = Depends(require_client)):
     slug = link.slug
     if not slug:
         base = link.name.lower().replace(" ", "-")
+        # Ensure only alphanumeric and dashes
         base = "".join(c for c in base if c.isalnum() or c == "-")
+        # Handle empty base if name is all special chars
+        if not base:
+            base = "link"
         slug = f"{base}-{str(uuid.uuid4())[:4]}"
 
+    # Check for slug uniqueness
     existing = supabase.table("links").select("id").eq("slug", slug).execute()
     if existing.data:
         raise HTTPException(status_code=400, detail="Slug já existe")
@@ -61,7 +66,17 @@ def create_link(link: LinkCreate, user_profile: dict = Depends(require_client)):
     data["slug"]      = slug
     data["client_id"] = client_id
 
-    return supabase.table("links").insert(data).execute().data[0]
+    # Remove keys that are None to allow DB defaults if any, though here we mostly have strings
+    # But specifically 'active' defaults to true in DB, we didn't include it in Create model which is fine.
+
+    try:
+        res = supabase.table("links").insert(data).execute()
+        if not res.data:
+             raise HTTPException(status_code=500, detail="Erro ao criar link no banco de dados")
+        return res.data[0]
+    except Exception as e:
+        print(f"Erro criando link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.patch("/links/{link_id}")
@@ -69,21 +84,32 @@ def update_link(link_id: str, update: LinkUpdate, user_profile: dict = Depends(r
     client_id = user_profile["client_id"]
     supabase  = get_supabase()
 
+    # Filter out None values
     data = {k: v for k, v in update.dict().items() if v is not None}
+
     if not data:
         return {"status": "sem alterações"}
 
-    return supabase.table("links").update(data)\
-        .eq("id", link_id).eq("client_id", client_id)\
-        .execute().data
+    try:
+        res = supabase.table("links").update(data)\
+            .eq("id", link_id).eq("client_id", client_id)\
+            .execute()
+        return res.data
+    except Exception as e:
+        print(f"Erro atualizando link: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar link")
 
 
 @router.delete("/links/{link_id}")
 def delete_link(link_id: str, user_profile: dict = Depends(require_client)):
     client_id = user_profile["client_id"]
     supabase  = get_supabase()
-    supabase.table("links").delete().eq("id", link_id).eq("client_id", client_id).execute()
-    return {"status": "deleted"}
+    try:
+        supabase.table("links").delete().eq("id", link_id).eq("client_id", client_id).execute()
+        return {"status": "deleted"}
+    except Exception as e:
+        print(f"Erro deletando link: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao deletar link")
 
 
 @router.get("/links/{link_id}/analytics")
@@ -103,15 +129,23 @@ def link_analytics(link_id: str, user_profile: dict = Depends(require_client)):
         raise HTTPException(status_code=404, detail="Link não encontrado")
 
     # Total de cliques
+    # Using count='exact' requires head=True usually for just count, but with select it returns data too.
+    # Supabase-py might handle count differently.
     clicks = supabase.table("clicks").select("id", count="exact")\
         .eq("link_id", link_id).execute()
     total_clicks = clicks.count or 0
 
     # Total de sessões
-    sessions = supabase.table("visitor_sessions").select("id, converted", count="exact")\
+    sessions = supabase.table("visitor_sessions").select("id", count="exact")\
         .eq("link_id", link_id).execute()
     total_sessions  = sessions.count or 0
-    total_converted = sum(1 for s in (sessions.data or []) if s.get("converted"))
+
+    # Converted (based on leads?)
+    # Visitor sessions doesn't strictly track 'converted' flag unless updated.
+    # Better to count leads table for conversions.
+    leads = supabase.table("leads").select("id", count="exact")\
+        .eq("link_id", link_id).execute()
+    total_converted = leads.count or 0
 
     # Eventos de funil agrupados
     events = supabase.table("funnel_events").select("*")\

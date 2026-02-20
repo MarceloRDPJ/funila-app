@@ -10,8 +10,8 @@
     --border: #334155; /* Slate 700 */
     --success: #22C55E;
     --whatsapp: #25D366;
-    --radius: 12px;
-    --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --radius: 16px;
+    --font-stack: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-stack); }
@@ -40,7 +40,7 @@ body {
         background-color: var(--card-bg);
         border-radius: var(--radius);
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        padding: 40px;
+        padding: 48px;
         border: 1px solid var(--border);
     }
 }
@@ -49,36 +49,38 @@ body {
 .progress-container {
     display: flex;
     justify-content: center;
-    margin-bottom: 32px;
+    margin-bottom: 40px;
 }
 .progress-steps {
     display: flex;
-    gap: 8px;
+    gap: 12px;
 }
 .step {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
     background-color: var(--border);
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .step.active {
     background-color: var(--accent);
-    transform: scale(1.2);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
 /* Header */
-.header { text-align: center; margin-bottom: 32px; }
+.header { text-align: center; margin-bottom: 40px; }
 .client-name {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 8px;
-    letter-spacing: -0.025em;
+    margin-bottom: 12px;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
 }
 .headline {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: var(--text-secondary);
+    line-height: 1.5;
 }
 
 /* Forms */
@@ -86,7 +88,7 @@ body {
     display: none;
     flex-direction: column;
     gap: 24px;
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .form-step.active { display: flex; }
 
@@ -98,16 +100,17 @@ body {
 .form-group { display: flex; flex-direction: column; gap: 8px; }
 
 label {
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     font-weight: 500;
     color: var(--text-secondary);
+    margin-left: 4px;
 }
 
 input, select {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
+    border-radius: 12px;
+    padding: 16px;
     color: var(--text-primary);
     font-size: 1rem;
     width: 100%;
@@ -117,7 +120,8 @@ input, select {
 
 input:focus, select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    background-color: #1E293B;
 }
 
 input::placeholder { color: var(--text-disabled); }
@@ -129,16 +133,16 @@ input::placeholder { color: var(--text-disabled); }
     align-items: center;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
+    border-radius: 12px;
+    padding: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 .radio-option:hover {
     border-color: var(--text-secondary);
-    background-color: rgba(255,255,255,0.02);
+    background-color: rgba(255,255,255,0.03);
 }
-.radio-option input { width: auto; margin-right: 12px; }
+.radio-option input { width: auto; margin-right: 16px; accent-color: var(--accent); }
 .radio-option.selected {
     border-color: var(--accent);
     background-color: rgba(59, 130, 246, 0.1);
@@ -146,41 +150,43 @@ input::placeholder { color: var(--text-disabled); }
 
 /* Buttons */
 .btn-primary {
-    background-color: var(--accent);
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
     color: white;
     border: none;
-    border-radius: 8px;
-    padding: 14px;
-    font-size: 1rem;
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 1.05rem;
     font-weight: 600;
     cursor: pointer;
     width: 100%;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    margin-top: 8px;
 }
 .btn-primary:hover {
-    background-color: var(--accent-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
 }
 .btn-primary:active { transform: translateY(0); }
 .btn-primary:disabled {
-    background-color: var(--border);
+    background: var(--border);
     cursor: not-allowed;
     opacity: 0.7;
     transform: none;
+    box-shadow: none;
 }
 
 .btn-text {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    padding: 8px;
+    padding: 12px;
     text-align: center;
     width: 100%;
     transition: color 0.2s;
+    margin-top: 4px;
 }
 .btn-text:hover { color: var(--text-primary); }
 
@@ -191,51 +197,57 @@ input::placeholder { color: var(--text-disabled); }
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
-    border-radius: 8px;
+    padding: 18px;
+    border-radius: 12px;
     font-weight: 600;
-    font-size: 1.125rem;
-    margin-top: 24px;
-    transition: all 0.2s;
+    font-size: 1.1rem;
+    margin-top: 32px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);
 }
-.btn-whatsapp:hover { filter: brightness(1.1); }
+.btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+}
 
 /* Utils */
 .security-text {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    font-size: 0.75rem;
+    gap: 8px;
+    font-size: 0.8rem;
     color: var(--text-disabled);
-    margin-top: 16px;
+    margin-top: 24px;
 }
-.checkbox-group { flex-direction: row; align-items: flex-start; }
-.checkbox-group input { width: 16px; height: 16px; margin-top: 3px; accent-color: var(--accent); }
-.checkbox-group label { font-size: 0.75rem; line-height: 1.4; margin-left: 10px; color: var(--text-secondary); }
+.checkbox-group { flex-direction: row; align-items: flex-start; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+.checkbox-group input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+.checkbox-group label { font-size: 0.85rem; line-height: 1.5; margin-left: 12px; color: var(--text-secondary); }
 
-.footer-links { text-align: center; margin-top: 24px; }
-.footer-links a { font-size: 0.75rem; color: var(--text-disabled); text-decoration: none; transition: color 0.2s; }
+.footer-links { text-align: center; margin-top: 32px; }
+.footer-links a { font-size: 0.8rem; color: var(--text-disabled); text-decoration: none; transition: color 0.2s; }
 .footer-links a:hover { color: var(--text-secondary); }
 
 /* Success Screen */
 .success-screen { text-align: center; align-items: center; padding-top: 20px; }
 .success-icon {
-    margin-bottom: 24px;
+    margin-bottom: 32px;
     display: inline-flex;
-    padding: 20px;
+    padding: 24px;
     background: rgba(34, 197, 94, 0.1);
     border-radius: 50%;
+    box-shadow: 0 0 40px rgba(34, 197, 94, 0.2);
 }
-.success-screen h2 { font-size: 1.5rem; margin-bottom: 8px; color: var(--text-primary); }
-.subtext { font-size: 0.875rem; color: var(--text-secondary); margin-top: 16px; }
+.success-screen h2 { font-size: 1.75rem; margin-bottom: 12px; color: var(--text-primary); }
+.subtext { font-size: 0.95rem; color: var(--text-secondary); margin-top: 16px; line-height: 1.5; }
 
 /* Mobile optimization */
 @media (max-width: 480px) {
     .app-container {
-        padding: 24px 20px;
+        padding: 32px 20px;
     }
-    .header { margin-bottom: 24px; }
-    .client-name { font-size: 1.25rem; }
+    .header { margin-bottom: 32px; }
+    .client-name { font-size: 1.5rem; }
     .btn-primary { padding: 16px; }
+    .step { width: 32px; }
 }

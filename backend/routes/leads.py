@@ -13,9 +13,57 @@ router = APIRouter(tags=["Leads"])
 class LeadSubmit(BaseModel):
     client_id: str
     link_id: Optional[str] = None
+    lead_id: Optional[str] = None
     form_data: Dict[str, Any]
     utm_data: Optional[Dict[str, str]] = None
     consent_given: bool = False
+
+class LeadPartialSubmit(BaseModel):
+    client_id: str
+    link_id: Optional[str] = None
+    name: str
+    phone: str
+    utm_data: Optional[Dict[str, str]] = None
+
+@router.post("/leads/partial")
+async def submit_lead_partial(payload: LeadPartialSubmit):
+    """
+    Salva o lead parcialmente (após preencher nome e telefone na etapa 1).
+    Garante que o lead não seja perdido caso abandone o formulário.
+    """
+    supabase = get_supabase()
+
+    lead_insert = {
+        "client_id":      payload.client_id,
+        "link_id":        payload.link_id,
+        "name":           payload.name,
+        "phone":          payload.phone,
+        "status":         "started",  # Status inicial para indicar lead incompleto
+        "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
+        "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
+        "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,
+        "consent_given":  False,  # Ainda não aceitou explicitamente na etapa final
+    }
+
+    try:
+        # Tenta inserir
+        lead_res = supabase.table("leads").insert(lead_insert).execute()
+        lead_id  = lead_res.data[0]["id"]
+
+        # Registra evento de início
+        supabase.table("events").insert({
+            "lead_id":    lead_id,
+            "event_type": "lead_started",
+            "metadata":   {"partial": True}
+        }).execute()
+
+        return {"status": "success", "lead_id": lead_id}
+
+    except Exception as e:
+        print(f"Erro ao salvar lead parcial: {e}")
+        # Não bloqueia o usuário, mas loga o erro
+        raise HTTPException(status_code=500, detail="Erro ao iniciar lead")
+
 
 @router.post("/leads")
 async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, request: Request):
@@ -75,7 +123,7 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
     else:
         whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(whatsapp_msg)}"
 
-    lead_insert = {
+    lead_data = {
         "client_id":      payload.client_id,
         "link_id":        payload.link_id,
         "name":           name,
@@ -92,8 +140,19 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
     }
 
     try:
-        lead_res = supabase.table("leads").insert(lead_insert).execute()
-        lead_id  = lead_res.data[0]["id"]
+        lead_id = payload.lead_id
+        if lead_id:
+            # Atualiza lead existente (convertido de parcial para completo)
+            update_res = supabase.table("leads").update(lead_data).eq("id", lead_id).execute()
+            # Se por algum motivo o update falhar (ex: lead apagado), cria novo?
+            # Por enquanto, assumimos que se update retornar vazio, criamos novo.
+            if not update_res.data:
+                lead_res = supabase.table("leads").insert(lead_data).execute()
+                lead_id  = lead_res.data[0]["id"]
+        else:
+            # Cria novo lead
+            lead_res = supabase.table("leads").insert(lead_data).execute()
+            lead_id  = lead_res.data[0]["id"]
 
         fields_res = supabase.table("form_fields").select("id, field_key").execute()
         field_map  = {f["field_key"]: f["id"] for f in fields_res.data}

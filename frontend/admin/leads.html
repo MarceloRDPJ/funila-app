@@ -3,12 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Funila — Leads</title>
+    <title>Funila — CRM de Leads</title>
     <link rel="icon" href="/frontend/assets/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* CRM Specific Styles */
+        .crm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .lead-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .lead-card:hover {
+            border-color: var(--border-strong);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .lead-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .lead-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .lead-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lead-score-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .lead-body {
+            margin-bottom: 20px;
+        }
+        .lead-status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-pill.abandoned { background: rgba(248, 113, 113, 0.1); color: var(--error); border: 1px solid rgba(248, 113, 113, 0.2); }
+        .status-pill.completed { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
+
+        .step-indicator {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .lead-actions {
+            display: grid;
+            grid-template-columns: 1fr 40px;
+            gap: 10px;
+        }
+
+        .btn-whatsapp-crm {
+            background: #25D366;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .btn-whatsapp-crm:hover { background: #1DA851; transform: translateY(-1px); }
+
+        .btn-icon {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-strong);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-icon:hover { color: var(--text-primary); border-color: var(--text-primary); }
+
+        @media (max-width: 768px) {
+            .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .filter-bar { padding: 16px; flex-direction: column; align-items: stretch; }
+            .filter-bar input { width: 100%; }
+        }
+    </style>
 </head>
 <body>
 
@@ -23,7 +147,7 @@
         </a></li>
         <li class="nav-item"><a href="leads.html" class="active">
             <i data-lucide="users" class="nav-icon"></i>
-            Leads
+            Leads CRM
         </a></li>
         <li class="nav-item"><a href="links.html">
             <i data-lucide="link" class="nav-icon"></i>
@@ -48,12 +172,12 @@
             <button class="mobile-menu-btn" onclick="openSidebar()">
                 <i data-lucide="menu"></i>
             </button>
-            <h1 class="page-title">Leads</h1>
+            <h1 class="page-title">Gestão de Leads</h1>
         </div>
         <div style="display:flex;gap:10px">
             <button class="btn btn-outline" onclick="exportLeads()">
                 <i data-lucide="download" style="width:16px"></i>
-                Exportar CSV
+                CSV
             </button>
             <button class="btn btn-outline" onclick="loadLeads()">
                 <i data-lucide="refresh-cw" style="width:16px"></i>
@@ -66,34 +190,25 @@
             <option value="">Todos os status</option>
             <option value="hot">Quente</option>
             <option value="warm">Morno</option>
-            <option value="cold">Frio</option>
+            <option value="cold">Frio / Incompleto</option>
             <option value="converted">Convertido</option>
         </select>
-        <div style="position:relative">
+        <div style="position:relative;flex:1">
             <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;color:var(--text-muted)"></i>
-            <input type="search" id="filter-search" placeholder="Buscar por nome ou telefone..."
-                oninput="debounceSearch()" style="padding-left:32px">
+            <input type="search" id="filter-search" placeholder="Buscar nome, telefone..."
+                oninput="debounceSearch()" style="padding-left:32px;width:100%">
         </div>
     </div>
 
     <div class="page-body" style="padding-top:0">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Status</th>
-                        <th>Score</th>
-                        <th>Origem</th>
-                        <th>Data</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="leads-body"></tbody>
-            </table>
+        <div id="leads-container" class="crm-grid">
+            <!-- Leads will be injected here -->
+            <div class="empty-state" style="grid-column:1/-1">
+                <div class="spinner"></div>
+            </div>
         </div>
 
-        <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:24px">
+        <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:32px;margin-bottom:40px">
             <!-- Pagination injected by JS -->
         </div>
     </div>
@@ -117,7 +232,7 @@
 <script src="js/auth.js"></script>
 <script>
     let currentPage = 1;
-    let limit = 10;
+    let limit = 12; // Card layout fits better with 3 or 4 cols
     let searchTimer = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -149,57 +264,80 @@
             });
             if (!res.ok) throw new Error("Erro ao buscar leads");
             const json = await res.json();
-            renderLeads(json.data);
+            renderLeadsCRM(json.data);
             renderPagination(json.total, json.page, json.limit);
         } catch (err) {
             console.error(err);
-            document.getElementById("leads-body").innerHTML =
-                `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px">Erro ao carregar leads.</td></tr>`;
-            showToast("Erro ao carregar leads.", "error");
+            document.getElementById("leads-container").innerHTML =
+                `<div class="empty-state" style="grid-column:1/-1"><p style="color:var(--error)">Erro ao carregar leads.</p></div>`;
         }
     }
 
-    function renderLeads(leads) {
-        const tbody = document.getElementById("leads-body");
+    function renderLeadsCRM(leads) {
+        const container = document.getElementById("leads-container");
 
         if (!leads || !leads.length) {
-            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>Nenhum lead encontrado.</p></div></td></tr>`;
+            container.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>Nenhum lead encontrado.</p></div>`;
             return;
         }
 
-        const statusMap = {
-            hot:       { label: "Quente",    cls: "status-hot" },
-            warm:      { label: "Morno",     cls: "status-warm" },
-            cold:      { label: "Frio",      cls: "status-cold" },
-            converted: { label: "Convertido",cls: "status-converted" },
-            started:   { label: "Iniciado",  cls: "status-cold" }
-        };
-
-        tbody.innerHTML = leads.map(lead => {
-            const s     = statusMap[lead.status] || { label: lead.status, cls: "status-cold" };
-            const phone = (lead.phone || "").replace(/\D/g, "");
-            const date  = new Date(lead.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+        container.innerHTML = leads.map(lead => {
             const score = (lead.internal_score || 0) + (lead.external_score || 0);
+            const date  = new Date(lead.created_at).toLocaleDateString("pt-BR", { day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit" });
+            const isIncomplete = lead.status === 'started' || lead.status === 'cold' && !lead.consent_given;
+            // Better logic: if score is 0 and status cold, likely incomplete if logic hasn't run.
+            // But 'cold' is used for low score too.
+            // Let's use metadata or check if 'consent_given' is true.
+            // In backend partial save, consent_given is false.
+
+            const abandoned = lead.consent_given === false;
+
+            let statusBadge = `<span class="status-pill completed"><i data-lucide="check-circle" style="width:12px"></i> Novo Lead</span>`;
+            if (abandoned) {
+                statusBadge = `<span class="status-pill abandoned"><i data-lucide="alert-circle" style="width:12px"></i> Incompleto</span>`;
+            } else if (lead.status === 'hot') {
+                statusBadge = `<span class="status-pill" style="background:rgba(239,68,68,0.1);color:#EF4444;border-color:rgba(239,68,68,0.2)"><i data-lucide="flame" style="width:12px"></i> Quente</span>`;
+            }
+
+            // WhatsApp Message Logic
+            const firstName = lead.name ? lead.name.split(" ")[0] : "visitante";
+            const msg = abandoned
+                ? `Olá ${firstName}, vi que você começou a preencher nosso formulário mas não finalizou. Ficou com alguma dúvida?`
+                : `Olá ${firstName}, vi seu perfil e tenho uma oportunidade perfeita para você. Podemos conversar?`;
+
+            const phoneClean = lead.phone ? lead.phone.replace(/\D/g, "") : "";
+            const waLink = phoneClean ? `https://wa.me/55${phoneClean}?text=${encodeURIComponent(msg)}` : "#";
+
+            const safeName = lead.name ? lead.name.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "Sem nome";
+
             return `
-                <tr>
-                    <td data-label="Nome">
-                        <div style="font-weight:600;font-size:.9rem">${lead.name || "—"}</div>
-                        <div class="text-muted" style="font-size:.8rem">${lead.phone || ""}</div>
-                    </td>
-                    <td data-label="Status"><span class="status-badge ${s.cls}">${s.label}</span></td>
-                    <td data-label="Score" class="font-mono">${score}</td>
-                    <td data-label="Origem"><span class="text-muted truncate">${lead.utm_source || "—"}</span></td>
-                    <td data-label="Data"><span class="text-muted">${date}</span></td>
-                    <td data-label="Ação">
-                        <div style="display:flex;gap:8px">
-                            <button class="btn btn-outline" style="padding:6px 12px;font-size:.75rem" onclick="openLeadDetails('${lead.id}')">Ver</button>
-                            <a href="https://wa.me/55${phone}" target="_blank" rel="noopener"
-                               class="btn btn-primary" style="padding:6px 12px;font-size:.75rem;background:#25D366;border-color:#25D366;color:#fff">
-                               <i data-lucide="message-circle" style="width:14px"></i> WhatsApp
-                            </a>
+            <div class="lead-card">
+                <div class="lead-header">
+                    <div>
+                        <div class="lead-name">${safeName}</div>
+                        <div class="lead-meta">
+                            <i data-lucide="calendar" style="width:12px"></i> ${date}
                         </div>
-                    </td>
-                </tr>`;
+                    </div>
+                    <div class="lead-score-badge">${score} pts</div>
+                </div>
+
+                <div class="lead-body">
+                    <div class="lead-status-row">
+                        ${statusBadge}
+                    </div>
+                    ${abandoned ? `<div class="step-indicator">Parou no formulário</div>` : `<div class="step-indicator">Formulário completo</div>`}
+                </div>
+
+                <div class="lead-actions">
+                    <a href="${waLink}" target="_blank" class="btn-whatsapp-crm" ${!phoneClean ? "disabled style='opacity:0.5;pointer-events:none'" : ""}>
+                        <i data-lucide="message-circle" style="width:16px"></i> Atender
+                    </a>
+                    <button class="btn-icon" onclick="openLeadDetails('${lead.id}')" title="Ver Detalhes">
+                        <i data-lucide="eye" style="width:16px"></i>
+                    </button>
+                </div>
+            </div>`;
         }).join("");
         lucide.createIcons();
     }
@@ -223,21 +361,15 @@
     async function exportLeads() {
         const session = await Auth.checkAuth();
         if (!session) return;
-
         const statusFilter = document.getElementById("filter-status").value;
         const searchFilter = document.getElementById("filter-search").value;
-
         let url = `${Auth.API_URL}/leads/export?`;
         if (statusFilter) url += `&status=${statusFilter}`;
         if (searchFilter) url += `&search=${searchFilter}`;
 
-        showToast("Gerando exportação...", "success");
-
         try {
-            const res = await fetch(url, {
-                headers: { "Authorization": `Bearer ${session.access_token}` }
-            });
-            if (!res.ok) throw new Error("Erro ao exportar");
+            const res = await fetch(url, { headers: { "Authorization": `Bearer ${session.access_token}` } });
+            if (!res.ok) throw new Error("Erro");
             const blob = await res.blob();
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -247,7 +379,7 @@
             a.click();
             a.remove();
         } catch(e) {
-            showToast("Erro ao exportar CSV", "error");
+            alert("Erro ao exportar");
         }
     }
 
@@ -264,12 +396,11 @@
             const res = await fetch(`${Auth.API_URL}/leads/${leadId}`, {
                 headers: { "Authorization": `Bearer ${session.access_token}` }
             });
-            if (!res.ok) throw new Error("Erro ao carregar detalhes");
+            if (!res.ok) throw new Error("Erro");
             const data = await res.json();
             renderLeadDetails(data, content);
         } catch (e) {
-            console.error(e);
-            content.innerHTML = '<div style="color:var(--error);text-align:center">Erro ao carregar detalhes.</div>';
+            content.innerHTML = '<div style="color:var(--error);text-align:center">Erro ao carregar.</div>';
         }
     }
 
@@ -277,7 +408,6 @@
         const l = data.lead;
         const responses = data.responses || [];
         const events = data.timeline || [];
-
         const score = (l.internal_score || 0) + (l.external_score || 0);
 
         let html = `
@@ -286,7 +416,6 @@
                     <div style="font-size:1.4rem;font-weight:600;margin-bottom:4px">${l.name}</div>
                     <div class="text-muted" style="display:flex;gap:12px;align-items:center">
                         <span style="display:flex;gap:4px;align-items:center"><i data-lucide="phone" style="width:14px"></i> ${l.phone}</span>
-                        ${l.email ? `<span style="display:flex;gap:4px;align-items:center"><i data-lucide="mail" style="width:14px"></i> ${l.email}</span>` : ""}
                     </div>
                 </div>
                 <div style="text-align:right">
@@ -295,33 +424,17 @@
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:24px">
+            <div style="display:grid;grid-template-columns:1fr;gap:24px;margin-bottom:24px">
                 <div>
-                    <h4 style="font-size:.85rem;margin-bottom:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Dados de Qualificação</h4>
+                    <h4 style="font-size:.85rem;margin-bottom:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Dados do Formulário</h4>
                     <div style="display:flex;flex-direction:column;gap:10px">
                         ${responses.map(r => `
-                            <div style="font-size:.9rem;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:8px">
-                                <span class="text-muted" style="font-size:.8rem;display:block;margin-bottom:2px">${r.form_fields ? r.form_fields.label : "Campo"}</span>
+                            <div style="font-size:.9rem;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:8px;display:flex;justify-content:space-between">
+                                <span class="text-muted" style="font-size:.8rem">${r.form_fields ? r.form_fields.label : "Campo"}</span>
                                 <span style="font-weight:500;color:var(--text-primary)">${r.response_value}</span>
                             </div>
                         `).join("")}
                         ${!responses.length ? '<div class="text-muted" style="font-size:.85rem">Nenhuma resposta registrada.</div>' : ''}
-                    </div>
-                </div>
-                <div>
-                    <h4 style="font-size:.85rem;margin-bottom:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Timeline</h4>
-                    <div style="display:flex;flex-direction:column;gap:16px;max-height:300px;overflow-y:auto;padding-right:4px">
-                        ${events.map(e => {
-                            const time = new Date(e.created_at).toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"});
-                            return `
-                                <div style="display:flex;gap:12px;font-size:.85rem;position:relative">
-                                    <span class="text-muted" style="min-width:40px;font-family:var(--font-mono);font-size:.75rem;padding-top:2px">${time}</span>
-                                    <div>
-                                        <div style="color:var(--text-primary);font-weight:500;margin-bottom:2px">${formatEventType(e.event_type)}</div>
-                                        ${e.metadata ? `<div class="text-muted" style="font-size:.75rem;background:rgba(0,0,0,0.2);padding:4px 8px;border-radius:4px;display:inline-block">${JSON.stringify(e.metadata)}</div>` : ''}
-                                    </div>
-                                </div>`;
-                        }).join("")}
                     </div>
                 </div>
             </div>
@@ -334,36 +447,8 @@
         lucide.createIcons();
     }
 
-    function formatEventType(type) {
-        const map = {
-            "lead_started": "Iniciou formulário",
-            "form_submit": "Enviou formulário",
-            "email_sent": "E-mail enviado",
-            "score_calculated": "Score calculado"
-        };
-        return map[type] || type;
-    }
-
     function closeModal() {
         document.getElementById("lead-modal").classList.remove("open");
-    }
-
-    function showToast(message, type = "success") {
-        const container = document.getElementById("toast-container");
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-
-        let icon = `<i data-lucide="check-circle-2" class="toast-icon"></i>`;
-        if(type === 'error') icon = `<i data-lucide="alert-circle" class="toast-icon"></i>`;
-
-        toast.innerHTML = `${icon} <span>${message}</span>`;
-        container.appendChild(toast);
-        lucide.createIcons();
-
-        setTimeout(() => {
-            toast.style.transform = "translateX(100%)";
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
     }
 
     function openSidebar() {

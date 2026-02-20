@@ -7,7 +7,7 @@ router = APIRouter(tags=["Public Forms"])
 def get_public_form_config(client_id: str):
     supabase = get_supabase()
 
-    client_res = supabase.table("clients").select("id, name, active, plan").eq("id", client_id).single().execute()
+    client_res = supabase.table("clients").select("id, name, active, plan, brand_logo_url, brand_primary_color").eq("id", client_id).single().execute()
     if not client_res.data or not client_res.data["active"]:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
@@ -37,6 +37,8 @@ def get_public_form_config(client_id: str):
         return {
             "client_name": client_data["name"],
             "plan":        client_data["plan"],
+            "brand_logo_url": client_data.get("brand_logo_url"),
+            "brand_primary_color": client_data.get("brand_primary_color"),
             "fields":      fields
         }
     except Exception as e:

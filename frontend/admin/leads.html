@@ -12,6 +12,74 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- SortableJS -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        /* Drawer Styles */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            backdrop-filter: blur(2px);
+        }
+        .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; right: 0; bottom: 0; width: 480px; max-width: 90vw;
+            background: #0F1115; border-left: 1px solid var(--border);
+            transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1001; display: flex; flex-direction: column;
+            box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+        }
+        .drawer.open { transform: translateX(0); }
+
+        .drawer-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: #1C212B;
+        }
+        .drawer-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+        .drawer-close {
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
+            padding: 4px; border-radius: 4px; transition: color 0.2s;
+        }
+        .drawer-close:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+
+        .drawer-body {
+            flex: 1; overflow-y: auto; padding: 24px;
+        }
+
+        .drawer-section { margin-bottom: 32px; }
+        .drawer-section-title {
+            font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .info-card {
+            background: #1C212B; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+        }
+        .info-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+        .info-value { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+        .info-value.score { color: var(--accent); }
+        .info-value.serasa { color: #A78BFA; }
+
+        .response-item {
+            background: #1C212B; border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px; margin-bottom: 8px;
+        }
+        .response-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+        .response-val { font-size: 0.9rem; color: var(--text-primary); }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 24px; border-left: 2px solid var(--border); margin-left: 8px; }
+        .timeline-item { position: relative; margin-bottom: 24px; }
+        .timeline-item:last-child { margin-bottom: 0; }
+        .timeline-dot {
+            position: absolute; left: -31px; top: 0; width: 12px; height: 12px;
+            border-radius: 50%; background: var(--bg-secondary); border: 2px solid var(--accent);
+        }
+        .timeline-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+        .timeline-content { font-size: 0.9rem; color: var(--text-primary); background: #1C212B; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+        .timeline-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    </style>
 </head>
 <body>
 
@@ -65,7 +133,6 @@
     </div>
 
     <div class="filter-bar">
-        <!-- Kanban doesn't filter status usually, but we keep search -->
         <div style="position:relative;flex:1">
             <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;color:var(--text-muted)"></i>
             <input type="search" id="filter-search" placeholder="Buscar nome, telefone..."
@@ -74,29 +141,26 @@
     </div>
 
     <div class="page-body" style="padding-top:0">
-        <!-- Kanban Board Container -->
         <div id="kanban-board" class="kanban-board">
             <div class="empty-state" style="width:100%">
                 <div class="spinner"></div>
             </div>
         </div>
 
-        <!-- Pagination (Hidden for infinite scroll or if unused, but we keep for safety if limit reached) -->
         <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:10px;margin-bottom:20px">
         </div>
     </div>
 </main>
 
-<!-- Modal Detalhes -->
-<div class="modal-overlay" id="lead-modal">
-    <div class="modal-box" style="max-width:600px">
-        <div class="modal-header">
-            <h3 class="modal-title">Detalhes do Lead</h3>
-            <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
-        <div id="lead-modal-content">
-            <div style="text-align:center;padding:20px"><div class="spinner"></div></div>
-        </div>
+<!-- Drawer Detalhes -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="lead-drawer">
+    <div class="drawer-header">
+        <h3 class="drawer-title">Detalhes do Lead</h3>
+        <button class="drawer-close" onclick="closeDrawer()"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body" id="drawer-content">
+        <div style="text-align:center;padding:40px"><div class="spinner"></div></div>
     </div>
 </div>
 
@@ -106,7 +170,7 @@
 <script src="kanban.js"></script>
 <script>
     let currentPage = 1;
-    let limit = 100; // Increase limit for Kanban to show more leads
+    let limit = 100;
     let searchTimer = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
@@ -126,8 +190,6 @@
         if (!session) return;
 
         const searchFilter = document.getElementById("filter-search").value;
-
-        // Note: We removed status filter because Kanban shows all columns
         let url = `${Auth.API_URL}/leads?page=${page}&limit=${limit}`;
         if (searchFilter) url += `&search=${searchFilter}`;
 
@@ -138,7 +200,6 @@
             if (!res.ok) throw new Error("Erro ao buscar leads");
             const json = await res.json();
 
-            // Use Kanban renderer from kanban.js
             if (typeof renderKanbanBoard === 'function') {
                 renderKanbanBoard(json.data);
             } else {
@@ -193,10 +254,13 @@
     }
 
     async function openLeadDetails(leadId) {
-        const modal = document.getElementById("lead-modal");
-        const content = document.getElementById("lead-modal-content");
-        modal.classList.add("open");
-        content.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+        const overlay = document.getElementById("drawer-overlay");
+        const drawer = document.getElementById("lead-drawer");
+        const content = document.getElementById("drawer-content");
+
+        overlay.classList.add("open");
+        drawer.classList.add("open");
+        content.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div></div>';
 
         const session = await Auth.checkAuth();
         if (!session) return;
@@ -209,78 +273,103 @@
             const data = await res.json();
             renderLeadDetails(data, content);
         } catch (e) {
-            content.innerHTML = '<div style="color:var(--error);text-align:center">Erro ao carregar.</div>';
+            console.error(e);
+            content.innerHTML = '<div style="color:var(--error);text-align:center">Erro ao carregar detalhes.</div>';
         }
+    }
+
+    function closeDrawer() {
+        document.getElementById("drawer-overlay").classList.remove("open");
+        document.getElementById("lead-drawer").classList.remove("open");
     }
 
     function renderLeadDetails(data, container) {
         const l = data.lead;
         const responses = data.responses || [];
+        const timeline = data.timeline || [];
         const score = (l.internal_score || 0) + (l.external_score || 0);
 
-        // Additional enrichment data display
-        let enrichmentHtml = "";
-        if (l.public_api_data || l.whatsapp_meta || l.serasa_score) {
-            enrichmentHtml = `<div style="margin-top:24px;border-top:1px solid var(--border);padding-top:24px">
-                <h4 style="font-size:.85rem;margin-bottom:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Enriquecimento de Dados</h4>
-                <div style="display:grid;gap:12px">`;
-
-            if (l.serasa_score) {
-                enrichmentHtml += `<div class="form-group"><label>Serasa Score</label><div class="card-value" style="font-size:1.2rem">${l.serasa_score}</div></div>`;
-            }
-            if (l.whatsapp_meta) {
-                const wm = l.whatsapp_meta;
-                enrichmentHtml += `<div class="form-group"><label>WhatsApp Status</label>
-                    <div style="display:flex;align-items:center;gap:8px">
-                        ${wm.valid ? '<span class="status-badge status-hot">Válido</span>' : '<span class="status-badge status-error">Inválido</span>'}
-                        ${wm.profile_pic ? `<img src="${wm.profile_pic}" style="width:32px;height:32px;border-radius:50%">` : ''}
-                    </div>
-                </div>`;
-            }
-            enrichmentHtml += `</div></div>`;
-        }
+        // Header Info
+        const phoneClean = l.phone ? l.phone.replace(/\D/g, "") : "";
+        const waLink = phoneClean ? `https://wa.me/55${phoneClean}` : "#";
 
         let html = `
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:24px">
-                <div>
-                    <div style="font-size:1.4rem;font-weight:600;margin-bottom:4px">${l.name}</div>
-                    <div class="text-muted" style="display:flex;gap:12px;align-items:center">
-                        <span style="display:flex;gap:4px;align-items:center"><i data-lucide="phone" style="width:14px"></i> ${l.phone}</span>
+            <div style="margin-bottom:32px">
+                <h2 style="font-size:1.5rem;font-weight:600;margin-bottom:8px">${l.name || "Sem Nome"}</h2>
+                <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+                    <a href="${waLink}" target="_blank" class="btn btn-primary" style="padding:6px 12px;font-size:0.85rem">
+                        <i data-lucide="message-circle" style="width:16px"></i> WhatsApp
+                    </a>
+                    <div style="font-size:0.85rem;color:var(--text-muted)">
+                        <i data-lucide="map-pin" style="width:14px;display:inline;vertical-align:middle"></i>
+                        Origem: <span style="color:var(--text-primary)">${l.utm_source || "Direto"}</span> / ${l.utm_campaign || "-"}
                     </div>
-                </div>
-                <div style="text-align:right">
-                    <div style="font-size:2rem;font-weight:700;color:var(--accent);line-height:1">${score}</div>
-                    <div class="text-muted" style="font-size:.7rem;font-weight:600;letter-spacing:0.05em">SCORE</div>
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr;gap:24px;margin-bottom:24px">
-                <div>
-                    <h4 style="font-size:.85rem;margin-bottom:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Dados do Formulário</h4>
-                    <div style="display:flex;flex-direction:column;gap:10px">
-                        ${responses.map(r => `
-                            <div style="font-size:.9rem;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:8px;display:flex;justify-content:space-between">
-                                <span class="text-muted" style="font-size:.8rem">${r.form_fields ? r.form_fields.label : "Campo"}</span>
-                                <span style="font-weight:500;color:var(--text-primary)">${r.response_value}</span>
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i data-lucide="brain-circuit" style="width:16px"></i> Inteligência</div>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-label">Score Interno</div>
+                        <div class="info-value score">${score}</div>
+                    </div>
+                    ${l.serasa_score ? `
+                    <div class="info-card">
+                        <div class="info-label">Serasa Score</div>
+                        <div class="info-value serasa">${l.serasa_score}</div>
+                    </div>` : ''}
+                    ${l.abandoned_step ? `
+                    <div class="info-card" style="grid-column: span 2">
+                        <div class="info-label">Abandono</div>
+                        <div class="info-value" style="color:var(--error)">Etapa ${l.abandoned_step}</div>
+                    </div>` : ''}
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i data-lucide="list-checks" style="width:16px"></i> Respostas</div>
+                ${responses.map(r => `
+                    <div class="response-item">
+                        <div class="response-label">${r.form_fields ? r.form_fields.label : "Campo"}</div>
+                        <div class="response-val">${r.response_value}</div>
+                    </div>
+                `).join("")}
+                ${!responses.length ? '<div class="text-muted" style="font-size:.85rem">Nenhuma resposta.</div>' : ''}
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i data-lucide="history" style="width:16px"></i> Timeline</div>
+                <div class="timeline">
+                    ${timeline.map(t => {
+                        const date = new Date(t.created_at).toLocaleString("pt-BR", { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+                        let icon = "activity";
+                        let color = "var(--text-muted)";
+
+                        if(t.event_type === 'lead_started') { icon = "play"; color = "var(--accent)"; }
+                        if(t.event_type === 'form_submit') { icon = "check-circle-2"; color = "var(--success)"; }
+                        if(t.event_type === 'status_change') { icon = "refresh-ccw"; color = "#F59E0B"; }
+
+                        return `
+                        <div class="timeline-item">
+                            <div class="timeline-dot" style="border-color:${color}"></div>
+                            <div class="timeline-date">${date}</div>
+                            <div class="timeline-content">
+                                <div style="font-weight:600;display:flex;align-items:center;gap:6px">
+                                    <i data-lucide="${icon}" style="width:14px;color:${color}"></i>
+                                    ${t.event_type}
+                                </div>
+                                ${t.metadata ? `<div class="timeline-meta"><pre style="margin:0;white-space:pre-wrap;font-family:inherit">${JSON.stringify(t.metadata, null, 2).replace(/[{}"],?/g, '')}</pre></div>` : ''}
                             </div>
-                        `).join("")}
-                        ${!responses.length ? '<div class="text-muted" style="font-size:.85rem">Nenhuma resposta registrada.</div>' : ''}
-                    </div>
+                        </div>`;
+                    }).join("")}
+                    ${!timeline.length ? '<div class="text-muted" style="font-size:.85rem">Nenhum evento.</div>' : ''}
                 </div>
-            </div>
-
-            ${enrichmentHtml}
-
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeModal()">Fechar</button>
             </div>
         `;
+
         container.innerHTML = html;
         lucide.createIcons();
-    }
-
-    function closeModal() {
-        document.getElementById("lead-modal").classList.remove("open");
     }
 
     function openSidebar() {

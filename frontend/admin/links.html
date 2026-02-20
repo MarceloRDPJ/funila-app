@@ -59,7 +59,7 @@
         .funnel-badge.landing { background:rgba(34,197,94,.12);   color:#22C55E; }
 
         .help-text { font-size:.8rem; color:var(--text-muted); margin-top:6px; line-height:1.5; }
-        .modal-box { max-width:560px; }
+        .modal-box { max-width:600px; max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -75,7 +75,7 @@
         </a></li>
         <li class="nav-item"><a href="leads.html">
             <i data-lucide="users" class="nav-icon"></i>
-            Leads
+            Leads CRM
         </a></li>
         <li class="nav-item"><a href="links.html" class="active">
             <i data-lucide="link" class="nav-icon"></i>
@@ -213,7 +213,22 @@
                 </p>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <!-- New Section: Page Appearance -->
+            <div class="form-group" style="margin-top:24px;border-top:1px solid var(--border);padding-top:24px">
+                <h4 style="font-size:.9rem;font-weight:600;margin-bottom:16px;color:var(--text-primary)">Aparência da Página de Captura</h4>
+
+                <div class="form-group">
+                    <label>Título Principal (Headline)</label>
+                    <input type="text" id="link-headline" placeholder="Ex: Descubra como financiar seu imóvel">
+                </div>
+
+                <div class="form-group">
+                    <label>URL do Vídeo (YouTube/Vimeo)</label>
+                    <input type="url" id="link-video-url" placeholder="https://youtube.com/watch?v=...">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;border-top:1px solid var(--border);padding-top:24px">
                 <div class="form-group">
                     <label>UTM Source</label>
                     <input type="text" id="link-utm-source" placeholder="instagram">
@@ -370,6 +385,10 @@ async function createLink(e) {
         capture_url:  document.getElementById("link-capture-url").value || null,
         utm_source:   document.getElementById("link-utm-source").value   || null,
         utm_campaign: document.getElementById("link-utm-campaign").value || null,
+        metadata: {
+            headline:  document.getElementById("link-headline").value || null,
+            video_url: document.getElementById("link-video-url").value || null
+        }
     };
 
     try {

@@ -11,11 +11,10 @@ async function loadDashboard() {
 
     const period = document.getElementById("period-filter").value;
     const token = session.access_token;
+    const headers = { "Authorization": `Bearer ${token}` };
 
-    // Carrega Métricas Gerais
-    fetch(`${Auth.API_URL}/metrics?period=${period}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-    })
+    // 1. Carrega Métricas Gerais (Cliques, Leads, Conversão)
+    fetch(`${Auth.API_URL}/metrics?period=${period}`, { headers })
     .then(r => {
         if (!r.ok) throw new Error("Erro metrics");
         return r.json();
@@ -27,23 +26,41 @@ async function loadDashboard() {
     })
     .catch(console.error);
 
-    // Carrega Funil
-    fetch(`${Auth.API_URL}/funnel?period=${period}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-    })
+    // 2. Carrega Funil Detalhado
+    fetch(`${Auth.API_URL}/funnel?period=${period}`, { headers })
     .then(r => {
         if (!r.ok) throw new Error("Erro funnel");
         return r.json();
     })
     .then(renderFunnel)
     .catch(console.error);
+
+    // 3. Carrega Abandono (Novo Card)
+    fetch(`${Auth.API_URL}/metrics/abandonment`, { headers })
+    .then(r => {
+        if (!r.ok) throw new Error("Erro abandonment");
+        return r.json();
+    })
+    .then(data => {
+        // Usa o drop rate da etapa 1 como principal indicador de abandono inicial,
+        // ou uma média. Vamos usar step_1_drop_rate (Visitantes que não passaram para etapa 2)
+        // Se quiser abandono total do funil: (1 - conversão)
+        // O prompt pede "Abandono no Funil". Vamos mostrar o drop rate da primeira etapa que é o mais crítico.
+        // Ou o step_1_drop_rate * 100.
+        const abandonment = (data.step_1_drop_rate || 0) * 100;
+        document.getElementById("val-abandon").textContent = Math.round(abandonment) + "%";
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById("val-abandon").textContent = "—%";
+    });
 }
 
 function renderMetrics(data) {
     const m = data.metrics;
     document.getElementById("val-clicks").textContent = m.clicks.toLocaleString("pt-BR");
     document.getElementById("val-leads").textContent  = m.leads.toLocaleString("pt-BR");
-    document.getElementById("val-hot").textContent    = m.hot_leads.toLocaleString("pt-BR");
+    // Removed val-hot assignment as it is no longer a top card
     document.getElementById("val-conv").textContent   = m.conversion_rate + "%";
 }
 
@@ -72,6 +89,11 @@ function renderChart(chartData) {
 
     if (chartInstance) chartInstance.destroy();
 
+    // Chart Design System Colors
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(59,110,248,0.2)');
+    gradient.addColorStop(1, 'rgba(59,110,248,0)');
+
     chartInstance = new Chart(ctx, {
         type: "line",
         data: {
@@ -80,11 +102,13 @@ function renderChart(chartData) {
                 label: "Leads",
                 data: values,
                 borderColor: "#3B6EF8",
-                backgroundColor: "rgba(59,110,248,0.08)",
+                backgroundColor: gradient,
                 borderWidth: 2,
-                pointBackgroundColor: "#3B6EF8",
-                pointRadius: 3,
-                pointHoverRadius: 5,
+                pointBackgroundColor: "#0F1115",
+                pointBorderColor: "#3B6EF8",
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
                 fill: true,
                 tension: 0.4
             }]
@@ -96,26 +120,27 @@ function renderChart(chartData) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: "#181C24",
-                    borderColor: "rgba(255,255,255,0.1)",
+                    backgroundColor: "#1C212B",
+                    borderColor: "#2A3242",
                     borderWidth: 1,
-                    titleColor: "#8A919E",
-                    bodyColor: "#F0F2F5",
-                    padding: 10,
+                    titleColor: "#9CA3AF",
+                    bodyColor: "#F3F4F6",
+                    padding: 12,
+                    displayColors: false,
                     callbacks: {
-                        label: ctx => ` ${ctx.parsed.y} lead${ctx.parsed.y !== 1 ? "s" : ""}`
+                        label: ctx => ` ${ctx.parsed.y} leads`
                     }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: "rgba(255,255,255,0.05)", drawBorder: false },
-                    ticks: { color: "#8A919E", font: { size: 11 }, maxTicksLimit: 5, precision: 0 }
+                    grid: { color: "#2A3242", drawBorder: false },
+                    ticks: { color: "#6B7280", font: { size: 11 }, maxTicksLimit: 5, precision: 0 }
                 },
                 x: {
                     grid: { display: false, drawBorder: false },
-                    ticks: { color: "#8A919E", font: { size: 11 } }
+                    ticks: { color: "#6B7280", font: { size: 11 } }
                 }
             }
         }
@@ -137,12 +162,12 @@ function renderBreakdown(breakdown) {
         const pct = Math.round((val / total) * 100);
         return `
             <div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-                    <span style="font-size:.8rem;color:var(--text-secondary)">${item.label}</span>
-                    <span style="font-size:.8rem;font-weight:600;color:${item.color}">${val}</span>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:.85rem;color:var(--text-secondary)">${item.label}</span>
+                    <span style="font-size:.85rem;font-weight:600;color:${item.color}">${val}</span>
                 </div>
-                <div style="background:rgba(255,255,255,.06);border-radius:99px;height:4px;overflow:hidden">
-                    <div style="width:${pct}%;height:100%;background:${item.color};border-radius:99px;transition:width .4s"></div>
+                <div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden">
+                    <div style="width:${pct}%;height:100%;background:${item.color};border-radius:99px;transition:width .6s ease-out"></div>
                 </div>
             </div>`;
     }).join("");
@@ -150,17 +175,17 @@ function renderBreakdown(breakdown) {
     const summary = document.getElementById("summary-list");
     const m = { clicks: 0, leads: total, conversion_rate: 0 };
     summary.innerHTML = `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:.85rem;color:var(--text-secondary)">Total de leads</span>
-            <span style="font-size:.85rem;font-weight:600">${total}</span>
+        <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.9rem;color:var(--text-secondary)">Total de leads</span>
+            <span style="font-size:.9rem;font-weight:600;color:var(--text-primary)">${total}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:.85rem;color:var(--text-secondary)">Convertidos</span>
-            <span style="font-size:.85rem;font-weight:600;color:var(--converted)">${breakdown.converted || 0}</span>
+        <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.9rem;color:var(--text-secondary)">Convertidos</span>
+            <span style="font-size:.9rem;font-weight:600;color:var(--converted)">${breakdown.converted || 0}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 0">
-            <span style="font-size:.85rem;color:var(--text-secondary)">Taxa de fechamento</span>
-            <span style="font-size:.85rem;font-weight:600">${total ? Math.round(((breakdown.converted || 0) / total) * 100) : 0}%</span>
+        <div style="display:flex;justify-content:space-between;padding:12px 0">
+            <span style="font-size:.9rem;color:var(--text-secondary)">Taxa de fechamento</span>
+            <span style="font-size:.9rem;font-weight:600;color:var(--text-primary)">${total ? Math.round(((breakdown.converted || 0) / total) * 100) : 0}%</span>
         </div>`;
 }
 

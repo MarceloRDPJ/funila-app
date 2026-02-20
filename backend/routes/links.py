@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from database import get_supabase
 from dependencies import require_client
 from pydantic import BaseModel
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict, Any
 import uuid
 
 router = APIRouter(tags=["Links"])
@@ -18,6 +18,7 @@ class LinkCreate(BaseModel):
     utm_campaign: Optional[str] = None
     utm_medium:   Optional[str] = None
     utm_content:  Optional[str] = None
+    metadata:     Optional[Dict[str, Any]] = None
 
 
 class LinkUpdate(BaseModel):
@@ -28,6 +29,7 @@ class LinkUpdate(BaseModel):
     utm_source:   Optional[str] = None
     utm_campaign: Optional[str] = None
     active:       Optional[bool] = None
+    metadata:     Optional[Dict[str, Any]] = None
 
 
 @router.get("/links")
@@ -65,6 +67,10 @@ def create_link(link: LinkCreate, user_profile: dict = Depends(require_client)):
     data = link.dict()
     data["slug"]      = slug
     data["client_id"] = client_id
+
+    # Ensure metadata is at least empty dict if None
+    if data.get("metadata") is None:
+        data["metadata"] = {}
 
     # Remove keys that are None to allow DB defaults if any, though here we mostly have strings
     # But specifically 'active' defaults to true in DB, we didn't include it in Create model which is fine.

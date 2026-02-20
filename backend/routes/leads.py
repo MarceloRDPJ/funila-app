@@ -370,23 +370,35 @@ def get_lead_details(
     client_id = user_profile["client_id"]
     supabase = get_supabase()
 
+    # Select all columns to ensure new enrichment fields are returned
     lead_res = supabase.table("leads").select("*").eq("id", lead_id).eq("client_id", client_id).single().execute()
     if not lead_res.data:
         raise HTTPException(status_code=404, detail="Lead não encontrado")
 
     lead = lead_res.data
 
-    responses_res = supabase.table("lead_responses")\
-        .select("response_value, form_fields(label)")\
-        .eq("lead_id", lead_id)\
-        .execute()
+    # Robust handling for associated tables
+    try:
+        responses_res = supabase.table("lead_responses")\
+            .select("response_value, form_fields(label)")\
+            .eq("lead_id", lead_id)\
+            .execute()
+        responses = responses_res.data or []
+    except Exception as e:
+        print(f"Erro ao buscar respostas do lead {lead_id}: {e}")
+        responses = []
 
-    events_res = supabase.table("events").select("*").eq("lead_id", lead_id).order("created_at", desc=True).execute()
+    try:
+        events_res = supabase.table("events").select("*").eq("lead_id", lead_id).order("created_at", desc=True).execute()
+        timeline = events_res.data or []
+    except Exception as e:
+        print(f"Erro ao buscar timeline do lead {lead_id}: {e}")
+        timeline = []
 
     return {
         "lead": lead,
-        "responses": responses_res.data,
-        "timeline": events_res.data
+        "responses": responses,
+        "timeline": timeline
     }
 
 

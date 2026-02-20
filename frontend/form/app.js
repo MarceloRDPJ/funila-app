@@ -1,4 +1,4 @@
-const API_URL = "https://funila-api.onrender.com";
+const API_URL = "https://funila-app.onrender.com";
 let currentStep = 1;
 let clientConfig = null;
 let formData = {};
@@ -23,7 +23,7 @@ const queryParams = getQueryParams();
 
 // Rastreamento de eventos
 async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}) {
-    if (!queryParams.session_id) return; // Se não tem sessão, ignora (ou gera uma nova?)
+    if (!queryParams.session_id) return;
 
     const payload = {
         session_id:  queryParams.session_id,
@@ -41,21 +41,55 @@ async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}
             body: JSON.stringify(payload)
         });
     } catch (e) {
-        // Silencioso para não atrapalhar UX
         console.warn("Tracking error", e);
     }
 }
 
+function showLoading() {
+    const header = document.querySelector(".header");
+    if (header) {
+        header.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3B6EF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                <p style="color:var(--text-muted);font-size:0.9rem">Carregando formulário...</p>
+            </div>`;
+    }
+}
+
+function showError(msg) {
+    document.querySelector(".app-container").innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;color:white">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h2 style="font-size:1.2rem;margin-bottom:8px">Algo deu errado</h2>
+            <p style="color:#9CA3AF;font-size:0.9rem">${msg}</p>
+            <button onclick="window.location.reload()" style="margin-top:20px;padding:10px 20px;background:#3B6EF8;border:none;border-radius:6px;color:white;cursor:pointer">Tentar novamente</button>
+        </div>
+    `;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
-    // Rastreia início do formulário
+    // Inject styles for spinner if not present
+    if (!document.getElementById("spinner-style")) {
+        const style = document.createElement("style");
+        style.id = "spinner-style";
+        style.textContent = `
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            .animate-spin { animation: spin 1s linear infinite; }
+        `;
+        document.head.appendChild(style);
+    }
+
     if (queryParams.session_id) {
         trackEvent("step_start", 1);
     }
 
     if (!queryParams.client_id) {
-        document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Erro: Cliente não identificado.</h1>";
+        showError("Cliente não identificado.");
         return;
     }
+
+    showLoading();
+
     try {
         const res = await fetch(`${API_URL}/forms/config/${queryParams.client_id}`);
         if (!res.ok) throw new Error("Config não encontrada");
@@ -63,11 +97,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderForm(clientConfig);
     } catch (e) {
         console.error(e);
-        document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Erro ao carregar formulário.</h1>";
+        showError("Não foi possível carregar o formulário. Verifique sua conexão.");
     }
-    document.getElementById("lead-form").addEventListener("submit", handleSubmit);
 
-    // Rastreia abandono (best-effort)
+    const form = document.getElementById("lead-form");
+    if (form) form.addEventListener("submit", handleSubmit);
+
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "hidden") {
             trackEvent("form_abandon", currentStep);
@@ -76,7 +111,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function renderForm(config) {
-    document.getElementById("client-name").innerText = config.client_name;
+    // Restaurar header
+    const header = document.querySelector(".header");
+    header.innerHTML = `
+        <h1 id="client-name" class="client-name">${config.client_name}</h1>
+        <p class="headline">Responda rápido para agilizar seu atendimento</p>
+    `;
+
     document.title = `${config.client_name} - Qualificação`;
 
     const step1Fields = config.fields.filter(f => ["full_name", "phone", "email"].includes(f.field_key));
@@ -91,6 +132,7 @@ function renderForm(config) {
 
 function renderFieldsToContainer(fields, containerId) {
     const container = document.getElementById(containerId);
+    if (!container) return;
     container.innerHTML = "";
 
     fields.sort((a, b) => a.order - b.order).forEach(field => {
@@ -98,7 +140,7 @@ function renderFieldsToContainer(fields, containerId) {
         group.className = "form-group";
 
         const label = document.createElement("label");
-        label.innerText = field.label + (field.required ? " *" : "");
+        label.innerText = (field.label_custom || field.label) + (field.required ? " *" : "");
         group.appendChild(label);
 
         let input;
@@ -129,11 +171,10 @@ function renderFieldsToContainer(fields, containerId) {
                 radio.type = "radio"; radio.name = field.field_key; radio.value = opt;
                 if (field.required) radio.required = true;
 
-                // Tracking change
                 radio.addEventListener("change", () => {
                     input.querySelectorAll(".radio-option").forEach(l => l.classList.remove("selected"));
                     radioLabel.classList.add("selected");
-                    trackEvent("field_blur", currentStep, field.field_key); // Radio change is effectively a complete/blur
+                    trackEvent("field_blur", currentStep, field.field_key);
                 });
 
                 radioLabel.appendChild(radio);
@@ -144,12 +185,11 @@ function renderFieldsToContainer(fields, containerId) {
             input = document.createElement("input");
             input.type = "text"; input.name = field.field_key;
             if (field.required) input.required = true;
-            input.placeholder = field.label;
+            input.placeholder = field.label_custom || field.label; // Use custom label as placeholder too if desired
             if (field.field_key === "phone") input.classList.add("mask-phone");
             if (field.field_key === "cpf")   input.classList.add("mask-cpf");
         }
 
-        // Tracking events for standard inputs
         if (field.type !== "radio") {
             input.addEventListener("focus", () => trackEvent("field_focus", currentStep, field.field_key));
             input.addEventListener("blur", () => trackEvent("field_blur", currentStep, field.field_key));
@@ -166,16 +206,22 @@ window.nextStep = async function(step) {
 
     trackEvent("step_complete", step);
 
-    // Salvar parcial se for etapa 1
     if (step === 1) {
         partialSavePromise = savePartialLead();
     }
 
-    if (step < 3) {
-        document.getElementById(`step-${step}`).classList.remove("active");
-        document.getElementById(`step-${step + 1}`).classList.add("active");
-        document.getElementById(`step-dot-${step}`).style.backgroundColor = "var(--accent)";
-        document.getElementById(`step-dot-${step + 1}`).classList.add("active");
+    const currentStepEl = document.getElementById(`step-${step}`);
+    const nextStepEl = document.getElementById(`step-${step + 1}`);
+
+    if (nextStepEl) {
+        currentStepEl.classList.remove("active");
+        nextStepEl.classList.add("active");
+
+        const currentDot = document.getElementById(`step-dot-${step}`);
+        const nextDot = document.getElementById(`step-dot-${step + 1}`);
+        if (currentDot) currentDot.style.backgroundColor = "var(--accent)";
+        if (nextDot) nextDot.classList.add("active");
+
         currentStep++;
         trackEvent("step_start", currentStep);
     }
@@ -186,12 +232,13 @@ window.prevStep = function(step) {
         document.getElementById(`step-${step}`).classList.remove("active");
         document.getElementById(`step-${step - 1}`).classList.add("active");
         currentStep--;
-        trackEvent("step_start", currentStep); // Voltar também é iniciar a etapa
+        trackEvent("step_start", currentStep);
     }
 };
 
 function validateStep(step) {
     const container = document.getElementById(`fields-step-${step}`);
+    if (!container) return true;
     let valid = true;
     container.querySelectorAll("input, select").forEach(input => {
         if (!input.checkValidity()) { input.reportValidity(); valid = false; }
@@ -201,6 +248,7 @@ function validateStep(step) {
 
 function saveStepData(step) {
     const container = document.getElementById(`fields-step-${step}`);
+    if (!container) return;
     container.querySelectorAll("input, select").forEach(input => {
         if (input.type === "radio") {
             if (input.checked) formData[input.name] = input.value;
@@ -211,7 +259,6 @@ function saveStepData(step) {
 }
 
 async function savePartialLead() {
-    // Dados mínimos para partial save
     const payload = {
         client_id:    queryParams.client_id,
         link_id:      queryParams.link_id,
@@ -232,8 +279,7 @@ async function savePartialLead() {
         });
         const data = await res.json();
         if (data.status === "success" && data.lead_id) {
-            leadId = data.lead_id; // Armazena ID para uso no submit final
-            console.log("Lead parcial salvo:", leadId);
+            leadId = data.lead_id;
         }
     } catch (e) {
         console.error("Erro ao salvar lead parcial:", e);
@@ -245,7 +291,7 @@ async function handleSubmit(e) {
     if (!validateStep(3)) return;
 
     const consent = document.getElementById("lgpd-consent");
-    if (!consent.checked) {
+    if (!consent || !consent.checked) {
         alert("Você precisa aceitar a Política de Privacidade para continuar.");
         return;
     }
@@ -253,10 +299,10 @@ async function handleSubmit(e) {
     saveStepData(3);
 
     const btn = e.target.querySelector("button[type='submit']");
+    const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "Enviando...";
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Enviando...`;
 
-    // Aguarda salvamento parcial se estiver pendente
     if (partialSavePromise) {
         try { await partialSavePromise; } catch(e) {}
     }
@@ -265,7 +311,7 @@ async function handleSubmit(e) {
         const payload = {
             client_id:     queryParams.client_id,
             link_id:       queryParams.link_id,
-            lead_id:       leadId, // Envia ID se existir
+            lead_id:       leadId,
             form_data:     formData,
             consent_given: true,
             utm_data: {
@@ -291,23 +337,29 @@ async function handleSubmit(e) {
         } else {
             alert("Erro ao enviar. Tente novamente.");
             btn.disabled = false;
-            btn.innerText = "Enviar e falar com o corretor";
+            btn.innerText = originalText;
         }
     } catch (err) {
         console.error(err);
         alert("Erro de conexão. Tente novamente.");
         btn.disabled = false;
-        btn.innerText = "Enviar e falar com o corretor";
+        btn.innerText = originalText;
     }
 }
 
 function showSuccess(data) {
     document.querySelectorAll(".form-step").forEach(el => el.classList.remove("active"));
-    document.querySelector(".progress-container").style.display = "none";
+    const progress = document.querySelector(".progress-container");
+    if (progress) progress.style.display = "none";
+
     const successDiv = document.getElementById("step-success");
-    successDiv.classList.add("active");
-    successDiv.style.display = "flex";
-    document.getElementById("whatsapp-btn").href = data.whatsapp_link;
+    if (successDiv) {
+        successDiv.classList.add("active");
+        successDiv.style.display = "flex";
+    }
+
+    const waBtn = document.getElementById("whatsapp-btn");
+    if (waBtn && data.whatsapp_link) waBtn.href = data.whatsapp_link;
 }
 
 function setupMasks() {

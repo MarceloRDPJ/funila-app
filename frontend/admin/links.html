@@ -7,45 +7,59 @@
     <link rel="icon" href="/frontend/assets/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+        .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
         .mode-card {
-            border:1.5px solid var(--border-strong); border-radius:10px;
-            padding:14px 12px; cursor:pointer; transition:all .15s;
+            border:1px solid var(--border-strong); border-radius:10px;
+            padding:16px; cursor:pointer; transition:all .15s;
             background:var(--bg-tertiary); text-align:center; user-select:none;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
         }
         .mode-card:hover { border-color:rgba(59,110,248,.4); background:rgba(59,110,248,.05); }
         .mode-card.selected {
             border-color:var(--accent); background:rgba(59,110,248,.1);
-            box-shadow:0 0 0 3px rgba(59,110,248,.15);
+            box-shadow:0 0 0 2px rgba(59,110,248,.2);
         }
-        .mode-icon  { font-size:1.6rem; margin-bottom:6px; }
-        .mode-label { font-size:.78rem; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
-        .mode-desc  { font-size:.7rem; color:var(--text-muted); line-height:1.4; }
+        .mode-icon {
+            width: 32px; height: 32px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .mode-card.selected .mode-icon { color: var(--accent); }
+
+        .mode-label { font-size:.85rem; font-weight:600; color:var(--text-primary); }
+        .mode-desc  { font-size:.75rem; color:var(--text-muted); line-height:1.4; }
 
         .field-conditional { display:none; }
         .field-conditional.visible { display:block; }
 
         .flow-visual {
-            display:flex; align-items:center; gap:6px;
+            display:flex; align-items:center; gap:8px;
             background:rgba(59,110,248,.06); border:1px solid rgba(59,110,248,.15);
-            border-radius:8px; padding:10px 14px; margin-bottom:16px; flex-wrap:wrap;
+            border-radius:12px; padding:16px; margin-bottom:24px; flex-wrap:wrap;
         }
-        .flow-node { font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:99px; white-space:nowrap; }
+        .flow-node {
+            font-size:.75rem; font-weight:600; padding:6px 12px; border-radius:99px;
+            white-space:nowrap; display: flex; align-items: center; gap: 6px;
+        }
+        .flow-node svg { width: 14px; height: 14px; }
+
         .flow-node.ad      { background:rgba(245,158,11,.15);  color:#F59E0B; }
         .flow-node.track   { background:rgba(59,110,248,.15);  color:#3B6EF8; }
         .flow-node.mid     { background:rgba(167,139,250,.15); color:#A78BFA; }
         .flow-node.dest    { background:rgba(34,197,94,.15);   color:#22C55E; }
         .flow-arrow        { color:var(--text-muted); font-size:.8rem; }
 
-        .funnel-badge { display:inline-flex; align-items:center; gap:4px; font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:99px; }
+        .funnel-badge { display:inline-flex; align-items:center; gap:6px; font-size:.75rem; font-weight:600; padding:4px 10px; border-radius:99px; }
+        .funnel-badge svg { width: 12px; height: 12px; }
         .funnel-badge.form    { background:rgba(59,110,248,.12);  color:#3B6EF8; }
         .funnel-badge.capture { background:rgba(167,139,250,.12); color:#A78BFA; }
         .funnel-badge.landing { background:rgba(34,197,94,.12);   color:#22C55E; }
 
-        .help-text { font-size:.75rem; color:var(--text-muted); margin-top:4px; line-height:1.5; }
-        .modal-box { max-width:520px; }
+        .help-text { font-size:.8rem; color:var(--text-muted); margin-top:6px; line-height:1.5; }
+        .modal-box { max-width:560px; }
     </style>
 </head>
 <body>
@@ -56,25 +70,25 @@
     <div class="brand">FUNILA <span>PRO</span></div>
     <ul class="nav-links">
         <li class="nav-item"><a href="dashboard.html">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <i data-lucide="layout-dashboard" class="nav-icon"></i>
             Dashboard
         </a></li>
         <li class="nav-item"><a href="leads.html">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <i data-lucide="users" class="nav-icon"></i>
             Leads
         </a></li>
         <li class="nav-item"><a href="links.html" class="active">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <i data-lucide="link" class="nav-icon"></i>
             Links
         </a></li>
         <li class="nav-item"><a href="forms.html">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+            <i data-lucide="clipboard-list" class="nav-icon"></i>
             Formulário
         </a></li>
     </ul>
     <div class="user-info">
         <button class="logout-btn" onclick="Auth.logout()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <i data-lucide="log-out" class="nav-icon" style="width:16px;height:16px"></i>
             Sair
         </button>
     </div>
@@ -84,25 +98,32 @@
     <div class="page-header">
         <div style="display:flex;align-items:center;gap:12px">
             <button class="mobile-menu-btn" onclick="openSidebar()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <i data-lucide="menu"></i>
             </button>
             <h1 class="page-title">Links de Campanha</h1>
         </div>
-        <button class="btn btn-primary" onclick="openModal()">+ Novo Link</button>
+        <button class="btn btn-primary" onclick="openModal()">
+            <i data-lucide="plus" style="width:18px"></i> Novo Link
+        </button>
     </div>
 
     <div class="page-body">
         <!-- Fluxo visual explicativo -->
-        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span style="font-size:.75rem;color:var(--text-muted);font-weight:500;white-space:nowrap">Fluxo:</span>
-            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(245,158,11,.12);color:#F59E0B;font-weight:600">📢 Propaganda</span>
-            <span style="color:var(--text-muted);font-size:.9rem">→</span>
-            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(59,110,248,.12);color:#3B6EF8;font-weight:600">🔗 Link Funila</span>
-            <span style="color:var(--text-muted);font-size:.9rem">→</span>
-            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(167,139,250,.12);color:#A78BFA;font-weight:600">📋 Captura de dados</span>
-            <span style="color:var(--text-muted);font-size:.9rem">→</span>
-            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(34,197,94,.12);color:#22C55E;font-weight:600">✅ Destino final</span>
-            <span style="margin-left:auto;font-size:.72rem;color:var(--text-muted)">Rastreio ponta a ponta em cada etapa</span>
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:.8rem;color:var(--text-muted);font-weight:500;white-space:nowrap;margin-right:8px">Fluxo:</span>
+
+            <div class="flow-node ad"><i data-lucide="megaphone"></i> Propaganda</div>
+            <i data-lucide="arrow-right" class="flow-arrow" style="width:16px"></i>
+
+            <div class="flow-node track"><i data-lucide="link"></i> Link Funila</div>
+            <i data-lucide="arrow-right" class="flow-arrow" style="width:16px"></i>
+
+            <div class="flow-node mid"><i data-lucide="clipboard-list"></i> Captura</div>
+            <i data-lucide="arrow-right" class="flow-arrow" style="width:16px"></i>
+
+            <div class="flow-node dest"><i data-lucide="check-circle-2"></i> Destino</div>
+
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-muted)">Rastreio ponta a ponta</span>
         </div>
 
         <div class="table-container">
@@ -117,7 +138,7 @@
                     </tr>
                 </thead>
                 <tbody id="links-body">
-                    <tr><td colspan="5"><div class="empty-state">Carregando...</div></td></tr>
+                    <tr><td colspan="5"><div class="empty-state"><div class="spinner"></div></div></td></tr>
                 </tbody>
             </table>
         </div>
@@ -129,7 +150,7 @@
     <div class="modal-box">
         <div class="modal-header">
             <span class="modal-title">Novo Link de Campanha</span>
-            <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+            <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
         <form id="link-form" class="modal-form" onsubmit="createLink(event)">
 
@@ -142,19 +163,19 @@
                 <label style="margin-bottom:8px;display:block">Como quer capturar os leads?</label>
                 <div class="mode-grid">
                     <div class="mode-card selected" data-mode="form" onclick="selectMode('form',this)">
-                        <div class="mode-icon">📋</div>
-                        <div class="mode-label">Formulário Funila</div>
-                        <div class="mode-desc">Perguntas rápidas em etapas. Score automático.</div>
+                        <i data-lucide="clipboard-list" class="mode-icon"></i>
+                        <div class="mode-label">Formulário</div>
+                        <div class="mode-desc">Perguntas em etapas.</div>
                     </div>
                     <div class="mode-card" data-mode="landing" onclick="selectMode('landing',this)">
-                        <div class="mode-icon">🎯</div>
+                        <i data-lucide="target" class="mode-icon"></i>
                         <div class="mode-label">Página Padrão</div>
-                        <div class="mode-desc">Landing de alta conversão pronta pra usar.</div>
+                        <div class="mode-desc">Landing de alta conversão.</div>
                     </div>
                     <div class="mode-card" data-mode="capture" onclick="selectMode('capture',this)">
-                        <div class="mode-icon">🔍</div>
+                        <i data-lucide="search" class="mode-icon"></i>
                         <div class="mode-label">Página Própria</div>
-                        <div class="mode-desc">Sua página existente com rastreio injetado.</div>
+                        <div class="mode-desc">Sua página existente.</div>
                     </div>
                 </div>
                 <input type="hidden" id="link-funnel-type" value="form">
@@ -162,13 +183,16 @@
 
             <!-- Preview do fluxo dinâmico -->
             <div class="flow-visual">
-                <span class="flow-node ad">📢 Anúncio</span>
-                <span class="flow-arrow">→</span>
-                <span class="flow-node track">🔗 Link Funila</span>
-                <span class="flow-arrow">→</span>
-                <span class="flow-node mid" id="flow-mid">📋 Formulário Funila</span>
-                <span class="flow-arrow">→</span>
-                <span class="flow-node dest" id="flow-dest-preview">✅ Destino final</span>
+                <div class="flow-node ad"><i data-lucide="megaphone"></i> Anúncio</div>
+                <i data-lucide="arrow-right" class="flow-arrow" style="width:14px"></i>
+
+                <div class="flow-node track"><i data-lucide="link"></i> Link Funila</div>
+                <i data-lucide="arrow-right" class="flow-arrow" style="width:14px"></i>
+
+                <div class="flow-node mid" id="flow-mid"><i data-lucide="clipboard-list"></i> Formulário</div>
+                <i data-lucide="arrow-right" class="flow-arrow" style="width:14px"></i>
+
+                <div class="flow-node dest" id="flow-dest-preview"><i data-lucide="check-circle-2"></i> Destino</div>
             </div>
 
             <!-- Só aparece no modo "capture" -->
@@ -176,27 +200,27 @@
                 <label>URL da sua página de captura</label>
                 <input type="url" id="link-capture-url" placeholder="https://suapagina.com/landing">
                 <p class="help-text">
-                    O Funila acessa essa URL, faz uma cópia e injeta um script invisível de rastreio. Você troca só o link do anúncio — sua página não muda nada. A gente rastreia cliques, quais campos foram preenchidos e onde as pessoas desistem.
+                    O Funila injeta rastreio invisível nesta página.
                 </p>
             </div>
 
             <div class="form-group">
-                <label>Destino final <span style="color:var(--text-muted);font-weight:400;font-size:.78rem">— após a captura</span></label>
+                <label>Destino final <span style="color:var(--text-muted);font-weight:400;font-size:.8rem">— após a captura</span></label>
                 <input type="url" id="link-dest" required placeholder="https://wa.me/5562999999999"
                     oninput="updateDestPreview(this.value)">
                 <p class="help-text" id="dest-help">
-                    Para onde o lead vai depois de preencher o formulário. WhatsApp, site de obrigado, qualquer URL.
+                    Para onde o lead vai depois de preencher o formulário.
                 </p>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div class="form-group">
-                    <label>UTM Source <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
-                    <input type="text" id="link-utm-source" placeholder="instagram, google...">
+                    <label>UTM Source</label>
+                    <input type="text" id="link-utm-source" placeholder="instagram">
                 </div>
                 <div class="form-group">
-                    <label>UTM Campaign <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
-                    <input type="text" id="link-utm-campaign" placeholder="nome-campanha">
+                    <label>UTM Campaign</label>
+                    <input type="text" id="link-utm-campaign" placeholder="verao-2024">
                 </div>
             </div>
 
@@ -208,46 +232,66 @@
     </div>
 </div>
 
+<div class="toast-container" id="toast-container"></div>
+
 <script src="js/auth.js"></script>
 <script>
 const TRACKER_BASE = Auth.API_URL;
 
 const modeConfig = {
-    form:    { midLabel:"📋 Formulário Funila",      destHelp:"Para onde o lead vai depois do formulário. WhatsApp, site, qualquer URL.", showCapture:false },
-    landing: { midLabel:"🎯 Página Padrão Funila",   destHelp:"Para onde o lead vai depois da landing page. Normalmente WhatsApp ou página de obrigado.", showCapture:false },
-    capture: { midLabel:"🔍 Sua Página (rastreada)", destHelp:"Para onde o lead vai depois de sair da sua página. O Funila detecta o submit e redireciona.", showCapture:true },
+    form:    { midLabel:"Formulário", icon: "clipboard-list", destHelp:"Para onde o lead vai depois do formulário.", showCapture:false },
+    landing: { midLabel:"Página Padrão", icon: "target", destHelp:"Para onde o lead vai depois da landing page.", showCapture:false },
+    capture: { midLabel:"Sua Página", icon: "search", destHelp:"Para onde o lead vai depois de sair da sua página.", showCapture:true },
 };
 
 function selectMode(mode, el) {
     document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("selected"));
     el.classList.add("selected");
     document.getElementById("link-funnel-type").value = mode;
+
     const cfg = modeConfig[mode];
-    document.getElementById("flow-mid").textContent   = cfg.midLabel;
+    const midEl = document.getElementById("flow-mid");
+    midEl.innerHTML = `<i data-lucide="${cfg.icon}"></i> ${cfg.midLabel}`;
+
     document.getElementById("dest-help").textContent  = cfg.destHelp;
     const capField = document.getElementById("field-capture-url");
     capField.classList.toggle("visible", cfg.showCapture);
     document.getElementById("link-capture-url").required = cfg.showCapture;
+
+    lucide.createIcons();
 }
 
 function updateDestPreview(val) {
     const el = document.getElementById("flow-dest-preview");
-    if (!val) { el.textContent = "✅ Destino final"; return; }
-    try {
-        if (val.includes("wa.me")) el.textContent = "💬 WhatsApp";
-        else el.textContent = "🌐 " + new URL(val).hostname;
-    } catch(e) { el.textContent = "✅ Destino final"; }
+    if (!val) {
+        el.innerHTML = `<i data-lucide="check-circle-2"></i> Destino`;
+    } else {
+        try {
+            if (val.includes("wa.me")) {
+                el.innerHTML = `<i data-lucide="message-circle"></i> WhatsApp`;
+            } else {
+                el.innerHTML = `<i data-lucide="globe"></i> ${new URL(val).hostname}`;
+            }
+        } catch(e) {
+            el.innerHTML = `<i data-lucide="check-circle-2"></i> Destino`;
+        }
+    }
+    lucide.createIcons();
 }
 
-function openModal()  { document.getElementById("modal").classList.add("open"); }
+function openModal() {
+    document.getElementById("modal").classList.add("open");
+    lucide.createIcons();
+}
 function closeModal() {
     document.getElementById("modal").classList.remove("open");
     document.getElementById("link-form").reset();
     selectMode("form", document.querySelector(".mode-card[data-mode='form']"));
-    document.getElementById("flow-dest-preview").textContent = "✅ Destino final";
+    updateDestPreview("");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+    lucide.createIcons();
     const session = await Auth.checkAuth();
     if (session) loadLinks();
 });
@@ -255,45 +299,59 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function loadLinks() {
     const session = await Auth.checkAuth();
     if (!session) return;
-    const res   = await fetch(`${Auth.API_URL}/links`, { headers:{"Authorization":`Bearer ${session.access_token}`} });
-    const links = await res.json();
-    const tbody = document.getElementById("links-body");
 
-    if (!links.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>Nenhum link criado ainda.</p></div></td></tr>`;
-        return;
+    try {
+        const res = await fetch(`${Auth.API_URL}/links`, { headers:{"Authorization":`Bearer ${session.access_token}`} });
+        if(!res.ok) throw new Error("Falha ao carregar");
+
+        const links = await res.json();
+        const tbody = document.getElementById("links-body");
+
+        if (!links.length) {
+            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>Nenhum link criado ainda.</p></div></td></tr>`;
+            return;
+        }
+
+        const modeLabels = {
+            form:    { label: "Formulário", cls: "form", icon: "clipboard-list" },
+            landing: { label: "Landing Page", cls: "landing", icon: "target" },
+            capture: { label: "Página Própria", cls: "capture", icon: "search" },
+        };
+
+        tbody.innerHTML = links.map(link => {
+            const shortUrl  = `${TRACKER_BASE}/t/${link.slug}`;
+            const m = modeLabels[link.funnel_type || "form"] || modeLabels.form;
+            const destShort = link.destination.length > 35 ? link.destination.substring(0,35)+"…" : link.destination;
+
+            return `<tr>
+                <td data-label="Nome">
+                    <span style="font-weight:600">${link.name}</span>
+                    ${link.utm_source ? `<br><span class="text-muted" style="font-size:.75rem">UTM: ${link.utm_source}</span>` : ""}
+                </td>
+                <td data-label="Modo">
+                    <span class="funnel-badge ${m.cls}">
+                        <i data-lucide="${m.icon}"></i> ${m.label}
+                    </span>
+                </td>
+                <td data-label="Link">
+                    <span class="font-mono" style="color:var(--accent);font-size:.85rem">/t/${link.slug}</span>
+                </td>
+                <td data-label="Destino">
+                    <span class="text-muted" style="font-size:.85rem" title="${link.destination}">${destShort}</span>
+                </td>
+                <td data-label="Ações" style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-outline" style="padding:6px 10px;font-size:.8rem"
+                        onclick="copyLink('${shortUrl}',this)">Copiar</button>
+                    <button class="btn btn-outline" style="padding:6px 10px;font-size:.8rem;color:var(--error);border-color:rgba(248,113,113,.3)"
+                        onclick="deleteLink('${link.id}')">Excluir</button>
+                </td>
+            </tr>`;
+        }).join("");
+
+        lucide.createIcons();
+    } catch(e) {
+        document.getElementById("links-body").innerHTML = `<tr><td colspan="5"><div class="empty-state"><p style="color:var(--error)">Erro ao carregar links.</p></div></td></tr>`;
     }
-
-    const modeLabels = {
-        form:    '<span class="funnel-badge form">📋 Formulário</span>',
-        landing: '<span class="funnel-badge landing">🎯 Landing Page</span>',
-        capture: '<span class="funnel-badge capture">🔍 Página Própria</span>',
-    };
-
-    tbody.innerHTML = links.map(link => {
-        const shortUrl  = `${TRACKER_BASE}/t/${link.slug}`;
-        const badge     = modeLabels[link.funnel_type || "form"] || modeLabels.form;
-        const destShort = link.destination.length > 35 ? link.destination.substring(0,35)+"…" : link.destination;
-        return `<tr>
-            <td data-label="Nome">
-                <span style="font-weight:600">${link.name}</span>
-                ${link.utm_source ? `<br><span class="text-muted" style="font-size:.72rem">UTM: ${link.utm_source}</span>` : ""}
-            </td>
-            <td data-label="Modo">${badge}</td>
-            <td data-label="Link">
-                <span class="font-mono" style="color:var(--accent);font-size:.78rem">/t/${link.slug}</span>
-            </td>
-            <td data-label="Destino">
-                <span class="text-muted" style="font-size:.8rem" title="${link.destination}">${destShort}</span>
-            </td>
-            <td data-label="Ações" style="display:flex;gap:6px;flex-wrap:wrap">
-                <button class="btn btn-outline" style="padding:5px 10px;font-size:.78rem"
-                    onclick="copyLink('${shortUrl}',this)">Copiar</button>
-                <button class="btn btn-outline" style="padding:5px 10px;font-size:.78rem;color:var(--error);border-color:rgba(248,113,113,.3)"
-                    onclick="deleteLink('${link.id}')">Excluir</button>
-            </td>
-        </tr>`;
-    }).join("");
 }
 
 async function createLink(e) {
@@ -301,7 +359,9 @@ async function createLink(e) {
     const session = await Auth.checkAuth();
     if (!session) return;
     const btn = document.getElementById("create-btn");
-    btn.disabled = true; btn.textContent = "Criando...";
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner"></div> Criando...`;
 
     const payload = {
         name:         document.getElementById("link-name").value,
@@ -318,12 +378,20 @@ async function createLink(e) {
             headers:{"Authorization":`Bearer ${session.access_token}`,"Content-Type":"application/json"},
             body: JSON.stringify(payload)
         });
-        btn.disabled = false; btn.textContent = "Criar link";
-        if (res.ok) { closeModal(); loadLinks(); }
-        else { const err = await res.json().catch(()=>({})); alert(err.detail || "Erro ao criar link."); }
+
+        if (res.ok) {
+            closeModal();
+            loadLinks();
+            showToast("Link criado com sucesso!");
+        } else {
+            const err = await res.json().catch(()=>({}));
+            showToast(err.detail || "Erro ao criar link.", "error");
+        }
     } catch(err) {
-        btn.disabled = false; btn.textContent = "Criar link";
-        alert("Erro de conexão.");
+        showToast("Erro de conexão.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
     }
 }
 
@@ -331,17 +399,52 @@ async function deleteLink(id) {
     if (!confirm("Excluir este link?")) return;
     const session = await Auth.checkAuth();
     if (!session) return;
-    await fetch(`${Auth.API_URL}/links/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${session.access_token}`}});
-    loadLinks();
+
+    try {
+        const res = await fetch(`${Auth.API_URL}/links/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${session.access_token}`}});
+        if(res.ok) {
+            loadLinks();
+            showToast("Link excluído.");
+        } else {
+            showToast("Erro ao excluir.", "error");
+        }
+    } catch(e) {
+        showToast("Erro de conexão.", "error");
+    }
 }
 
 function copyLink(url, btn) {
     navigator.clipboard.writeText(url).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = "✓ Copiado!";
+        const orig = btn.innerText;
+        btn.innerText = "✓";
         btn.style.color = "var(--success)";
-        setTimeout(() => { btn.textContent = orig; btn.style.color = ""; }, 1800);
+        btn.style.borderColor = "var(--success)";
+        setTimeout(() => {
+            btn.innerText = orig;
+            btn.style.color = "";
+            btn.style.borderColor = "";
+        }, 1500);
+        showToast("Link copiado para a área de transferência!");
     });
+}
+
+function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+
+    // Simple icon determination
+    let icon = `<i data-lucide="check-circle-2" class="toast-icon"></i>`;
+    if(type === 'error') icon = `<i data-lucide="alert-circle" class="toast-icon"></i>`;
+
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    setTimeout(() => {
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 function openSidebar()  { document.getElementById("sidebar").classList.add("open"); document.getElementById("sidebar-overlay").classList.add("open"); }

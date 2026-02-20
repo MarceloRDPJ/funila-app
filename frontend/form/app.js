@@ -21,18 +21,18 @@ function getQueryParams() {
 
 const queryParams = getQueryParams();
 
-// Session ID Generation
+// Geração de ID de Sessão
 function getSessionId() {
-    let sid = localStorage.getItem("funila_session_id");
+    let sid = sessionStorage.getItem("funila_session_id");
     if (!sid) {
         sid = crypto.randomUUID();
-        localStorage.setItem("funila_session_id", sid);
+        sessionStorage.setItem("funila_session_id", sid);
     }
     return sid;
 }
 const sessionId = queryParams.session_id || getSessionId();
 
-// Tracking
+// Rastreamento
 async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}) {
     const payload = {
         session_id:  sessionId,
@@ -54,12 +54,12 @@ async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}
     }
 }
 
-// Autosave / Telemetry
+// Salvamento Automático / Telemetria
 function saveProgress(stepName) {
     if (saveTimeout) clearTimeout(saveTimeout);
 
     saveTimeout = setTimeout(async () => {
-        // Collect current data
+        // Coleta dados atuais
         const payload = {
             client_id:    queryParams.client_id,
             link_id:      queryParams.link_id,
@@ -74,7 +74,7 @@ function saveProgress(stepName) {
             }
         };
 
-        // Only save if we have at least name or phone to identify
+        // Salva apenas se tivermos pelo menos nome ou telefone para identificar
         if(!payload.name && !payload.phone) return;
 
         try {
@@ -115,7 +115,7 @@ function showError(msg) {
     `;
 }
 
-// Toast Implementation
+// Implementação de Toast
 function showToast(message, type = "success") {
     const container = document.getElementById("toast-container");
     if (!container) return;
@@ -284,7 +284,7 @@ window.nextStep = async function(step) {
     if (!validateStep(step)) return;
     saveStepData(step);
 
-    // Telemetry: Step Complete
+    // Telemetria: Etapa Completa
     trackEvent("step_complete", step);
     saveProgress(`step_${step}_complete`);
 
@@ -373,7 +373,7 @@ async function handleSubmit(e) {
     btn.disabled = true;
     btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Enviando...`;
 
-    // Ensure final state saved before submit
+    // Garante estado final salvo antes do envio
     if (saveTimeout) clearTimeout(saveTimeout);
 
     try {
@@ -417,9 +417,9 @@ async function handleSubmit(e) {
 }
 
 function handleSuccessAction(data) {
-    // Check Config for Action (Redirect vs Message)
-    // Assuming config has field 'finish_action'. If not present, default to redirect (legacy behavior)
-    // We need to reload config or store it globally. Stored in clientConfig.
+    // Verifica config para Ação (Redirecionar vs Mensagem)
+    // Assumindo que config tem campo 'finish_action'. Se não presente, padrão redirecionar (comportamento legado)
+    // Precisamos recarregar config ou armazenar globalmente. Armazenado em clientConfig.
 
     const action = clientConfig.finish_action || "redirect";
 
@@ -434,14 +434,14 @@ function handleSuccessAction(data) {
             successDiv.style.display = "block";
         }
 
-        // Hide WhatsApp button if just showing success message? Or keep it as option?
-        // Requirement says "Show premium success card". Usually implies no auto-redirect.
-        // We can keep the manual button.
+        // Esconde botão do WhatsApp se estiver mostrando apenas mensagem de sucesso? Ou mantém como opção?
+        // Requisito diz "Mostrar card de sucesso premium". Geralmente implica sem auto-redirecionamento.
+        // Podemos manter o botão manual.
         const waBtn = document.getElementById("whatsapp-btn");
         if (waBtn && data.whatsapp_link) waBtn.href = data.whatsapp_link;
 
     } else {
-        // Redirect
+        // Redirecionamento
         if (data.whatsapp_link) {
             window.location.href = data.whatsapp_link;
         } else {

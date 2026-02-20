@@ -1,24 +1,30 @@
-const KANBAN_COLUMNS = ['cold', 'warm', 'negotiation', 'converted', 'trash'];
+const KANBAN_COLUMNS = ['hot', 'warm', 'cold', 'abandoned', 'negotiation', 'converted', 'trash'];
 const COLUMN_LABELS = {
-    'cold': 'Frio / Incompleto',
-    'warm': 'Morno',
-    'negotiation': 'Em Negociação',
-    'converted': 'Convertido',
-    'trash': 'Descartado'
+    'hot': 'Quentes',
+    'warm': 'Mornos',
+    'cold': 'Frios',
+    'abandoned': 'Abandonados',
+    'negotiation': 'Negociação',
+    'converted': 'Convertidos',
+    'trash': 'Lixo'
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-    // Override loadLeads to render Kanban
-    if (document.getElementById("kanban-board")) {
-        // Init happens via loadLeads
-    }
-});
+const STATUS_COLORS = {
+    'hot': 'var(--hot)',
+    'warm': 'var(--warm)',
+    'cold': 'var(--cold)',
+    'abandoned': 'var(--dead)',
+    'negotiation': '#818CF8',
+    'converted': 'var(--purple)',
+    'trash': '#4B5563'
+};
 
 function renderKanbanBoard(leads) {
     const board = document.getElementById("kanban-board");
-    board.innerHTML = ""; // Clear existing
+    if (!board) return;
+    board.innerHTML = "";
 
-    // Create columns
+    // Cria as colunas
     const columns = {};
     KANBAN_COLUMNS.forEach(status => {
         const colDiv = document.createElement("div");
@@ -28,43 +34,46 @@ function renderKanbanBoard(leads) {
         colDiv.innerHTML = `
             <div class="kanban-column-header">
                 <span class="kanban-column-title">
-                    <span style="width:8px;height:8px;border-radius:50%;background:${getStatusColor(status)}"></span>
+                    <span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLORS[status] || '#ccc'}"></span>
                     ${COLUMN_LABELS[status]}
                 </span>
                 <span class="kanban-count" id="count-${status}">0</span>
             </div>
             <div class="kanban-cards-container" id="col-${status}">
-                <!-- Cards go here -->
             </div>
         `;
         board.appendChild(colDiv);
         columns[status] = colDiv.querySelector(".kanban-cards-container");
     });
 
-    // Distribute leads
-    const counts = { cold: 0, warm: 0, negotiation: 0, converted: 0, trash: 0 };
+    // Inicializa contadores
+    const counts = {};
+    KANBAN_COLUMNS.forEach(s => counts[s] = 0);
 
+    // Distribui os leads
     leads.forEach(lead => {
         let status = lead.status;
+
+        // Lógica de Mapeamento
         if (!KANBAN_COLUMNS.includes(status)) {
-            // Mapping Logic
-            if (status === 'started') status = 'cold';
-            else if (status === 'hot') status = 'warm';
+            if (status === 'started') status = 'abandoned';
             else status = 'cold'; // Fallback
         }
 
-        counts[status]++;
-        const card = createKanbanCard(lead);
-        columns[status].appendChild(card);
+        if (counts[status] !== undefined) {
+            counts[status]++;
+            const card = createKanbanCard(lead);
+            columns[status].appendChild(card);
+        }
     });
 
-    // Update counts
+    // Atualiza contadores na UI
     KANBAN_COLUMNS.forEach(s => {
         const el = document.getElementById(`count-${s}`);
         if (el) el.innerText = counts[s];
     });
 
-    // Initialize Sortable
+    // Inicializa SortableJS
     KANBAN_COLUMNS.forEach(status => {
         const el = document.getElementById(`col-${status}`);
         new Sortable(el, {
@@ -81,26 +90,30 @@ function renderKanbanBoard(leads) {
 
                 if (newStatus === oldStatus) return;
 
-                // Optimistic update
+                // Atualização Otimista
                 updateCount(oldStatus, -1);
                 updateCount(newStatus, 1);
 
                 try {
                     await updateLeadStatus(leadId, newStatus);
-                    showToast(`Lead movido para ${COLUMN_LABELS[newStatus]}`, "success");
+                    showToast(`Movido para ${COLUMN_LABELS[newStatus]}`, "success");
 
                     if (newStatus === 'converted') {
                         fireConfetti();
                     }
                 } catch (error) {
                     showToast("Erro ao mover lead", "error");
-                    evt.from.appendChild(itemEl); // Revert
+                    evt.from.appendChild(itemEl); // Reverter
                     updateCount(oldStatus, 1);
                     updateCount(newStatus, -1);
                 }
             },
         });
     });
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 function createKanbanCard(lead) {
@@ -109,41 +122,49 @@ function createKanbanCard(lead) {
     card.dataset.id = lead.id;
 
     const score = (lead.internal_score || 0) + (lead.external_score || 0);
-    const date = new Date(lead.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    const date = timeAgo(lead.created_at);
     const phoneClean = lead.phone ? lead.phone.replace(/\D/g, "") : "";
     const waLink = phoneClean ? `https://wa.me/55${phoneClean}` : "#";
     const name = lead.name || "Sem Nome";
-    const utmContent = lead.utm_content ? `<div style="font-size:0.7rem;color:#555;margin-top:4px;overflow:hidden;text-overflow:ellipsis">Criativo: ${lead.utm_content}</div>` : "";
-    const stepReached = lead.step_reached ? `<span style="font-size:0.7rem;color:#888">Etapa: ${lead.step_reached}</span>` : "";
 
-    let subtext = "";
-    if (lead.status === 'started' || (lead.status === 'cold' && !lead.consent_given)) {
-        subtext = `<span style="color:#F87171;font-size:0.8rem">Abandono</span>`;
-    } else {
-        subtext = `<div style="display:flex;justify-content:space-between;align-items:center"><span>Score: ${score}</span> ${stepReached}</div>`;
-    }
+    // Determina a classe do score
+    let scoreClass = 'score-cold';
+    if(score >= 70) scoreClass = 'score-hot';
+    else if(score >= 40) scoreClass = 'score-warm';
+
+    const stepLabel = lead.step_reached ? `Etapa ${lead.step_reached}` : "";
+
+    // Ícone de Status
+    let icon = "activity";
+    if(lead.status === 'hot') icon = "flame";
+    if(lead.status === 'abandoned') icon = "alert-circle";
+    if(lead.status === 'converted') icon = "check-circle";
 
     card.innerHTML = `
         <div class="kanban-card-header">
-            <span class="kanban-card-title truncate" title="${name}">${name}</span>
-            <span class="kanban-card-score">${score}</span>
+            <span class="kanban-card-title" title="${name}">${name}</span>
         </div>
         <div class="kanban-card-body">
-            ${subtext}
-            ${utmContent}
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span class="kanban-card-score ${scoreClass}">
+                    <i data-lucide="${icon}" style="width:10px;display:inline-block"></i> ${score}
+                </span>
+                <span style="font-size:0.62rem;color:var(--text-40)">${stepLabel}</span>
+            </div>
         </div>
         <div class="kanban-card-footer">
-            <span class="kanban-date">${date}</span>
-            <div style="display:flex;gap:8px">
-                <a href="${waLink}" target="_blank" class="btn-whatsapp-mini" title="WhatsApp">
-                    <i data-lucide="message-circle" style="width:14px"></i>
-                </a>
-                <button class="btn-whatsapp-mini" style="background:#2A3242" onclick="openLeadDetails('${lead.id}')">
-                    <i data-lucide="eye" style="width:14px"></i>
+            <span class="kanban-date">📱 ${date}</span>
+            <div style="display:flex;gap:4px">
+                <button class="lead-action-btn" onclick="window.open('${waLink}', '_blank'); event.stopPropagation();">
+                    <i data-lucide="message-circle" style="width:12px"></i>
+                </button>
+                <button class="lead-action-btn" onclick="openLeadDetails('${lead.id}'); event.stopPropagation();">
+                    <i data-lucide="eye" style="width:12px"></i>
                 </button>
             </div>
         </div>
     `;
+
     return card;
 }
 
@@ -152,17 +173,6 @@ function updateCount(status, change) {
     if (el) {
         let val = parseInt(el.innerText) || 0;
         el.innerText = Math.max(0, val + change);
-    }
-}
-
-function getStatusColor(status) {
-    switch(status) {
-        case 'cold': return '#60A5FA';
-        case 'warm': return '#F59E0B';
-        case 'negotiation': return '#3B82F6';
-        case 'converted': return '#8B5CF6';
-        case 'trash': return '#EF4444';
-        default: return '#ccc';
     }
 }
 
@@ -189,21 +199,38 @@ function showToast(msg, type="success") {
 
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
+    // Estilo Apple para toast
+    toast.style.background = "var(--layer-2)";
+    toast.style.border = "1px solid var(--border-ghost)";
+    toast.style.borderRadius = "8px";
+    toast.style.padding = "12px 16px";
+    toast.style.boxShadow = "var(--shadow-md)";
+    toast.style.color = "var(--text-100)";
+    toast.style.display = "flex";
+    toast.style.alignItems = "center";
+    toast.style.gap = "10px";
+    toast.style.marginBottom = "10px";
+    toast.style.fontSize = "0.85rem";
+
+    const iconColor = type === 'success' ? 'var(--hot)' : 'var(--dead)';
+
     toast.innerHTML = `
-        <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="toast-icon"></i>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            ${type === 'success' ? '<polyline points="20 6 9 17 4 12"></polyline>' : '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'}
+        </svg>
         <span>${msg}</span>
     `;
     container.appendChild(toast);
-    lucide.createIcons();
 
     setTimeout(() => {
-        toast.style.animation = "slideOut 0.3s forwards"; // Ensure CSS handles slideOut
+        toast.style.opacity = "0";
+        toast.style.transition = "opacity 0.3s";
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
 function fireConfetti() {
-    const colors = ['#2563EB', '#22C55E', '#F59E0B', '#EF4444', '#A78BFA'];
+    const colors = ['#3D7BFF', '#00D97E', '#F5A623', '#EF4444', '#A78BFA'];
     for (let i = 0; i < 50; i++) {
         const conf = document.createElement('div');
         conf.className = 'confetti';
@@ -213,4 +240,22 @@ function fireConfetti() {
         document.body.appendChild(conf);
         setTimeout(() => conf.remove(), 3000);
     }
+}
+
+function timeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + "a";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + "m";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + "d";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + "h";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + "min";
+    return "agora";
 }

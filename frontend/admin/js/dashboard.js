@@ -42,10 +42,10 @@ async function loadDashboard() {
         return r.json();
     })
     .then(data => {
-        // Usa o drop rate da etapa 1 como principal indicador de abandono inicial,
+        // Usa a taxa de abandono da etapa 1 como indicador principal,
         // ou uma média. Vamos usar step_1_drop_rate (Visitantes que não passaram para etapa 2)
-        // Se quiser abandono total do funil: (1 - conversão)
-        // O prompt pede "Abandono no Funil". Vamos mostrar o drop rate da primeira etapa que é o mais crítico.
+        // Se desejar abandono total do funil: (1 - conversão)
+        // O requisito pede "Abandono no Funil". Vamos mostrar a taxa de queda da primeira etapa que é crítica.
         // Ou o step_1_drop_rate * 100.
         const abandonment = (data.step_1_drop_rate || 0) * 100;
         document.getElementById("val-abandon").textContent = Math.round(abandonment) + "%";
@@ -60,7 +60,8 @@ function renderMetrics(data) {
     const m = data.metrics;
     document.getElementById("val-clicks").textContent = m.clicks.toLocaleString("pt-BR");
     document.getElementById("val-leads").textContent  = m.leads.toLocaleString("pt-BR");
-    // Removed val-hot assignment as it is no longer a top card
+    if(document.getElementById("val-hot"))
+        document.getElementById("val-hot").textContent = (m.hot_leads || 0).toLocaleString("pt-BR");
     document.getElementById("val-conv").textContent   = m.conversion_rate + "%";
 }
 
@@ -89,10 +90,10 @@ function renderChart(chartData) {
 
     if (chartInstance) chartInstance.destroy();
 
-    // Chart Design System Colors
+    // Cores do Sistema de Design para Gráficos
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(59,110,248,0.2)');
-    gradient.addColorStop(1, 'rgba(59,110,248,0)');
+    gradient.addColorStop(0, 'rgba(61,123,255,0.2)');
+    gradient.addColorStop(1, 'rgba(61,123,255,0)');
 
     chartInstance = new Chart(ctx, {
         type: "line",
@@ -101,11 +102,11 @@ function renderChart(chartData) {
             datasets: [{
                 label: "Leads",
                 data: values,
-                borderColor: "#3B6EF8",
+                borderColor: "#3D7BFF",
                 backgroundColor: gradient,
                 borderWidth: 2,
                 pointBackgroundColor: "#0F1115",
-                pointBorderColor: "#3B6EF8",
+                pointBorderColor: "#3D7BFF",
                 pointBorderWidth: 2,
                 pointRadius: 4,
                 pointHoverRadius: 6,

@@ -18,21 +18,12 @@ load_dotenv()
 
 app = FastAPI(title="Funila API", version="1.0.0")
 
-# Permitir CORS para o scanner (que roda em qualquer site do cliente)
-# Em produção, idealmente seria restrito aos domínios dos clientes, mas para MVP/SaaS aberto: "*"
-origins = os.getenv("CORS_ORIGINS", "https://app.funila.com.br").split(",")
-# Adicionar "*" para scanner beacon se necessário, ou configurar dinamicamente.
-# Para evitar problemas com credentials, se usarmos "*", allow_credentials deve ser False.
-# Mas o dashboard precisa de credentials.
-# Solução: Middleware customizado ou confiar na lista de origens.
-# Para o scanner (public), usaremos um router separado ou assumiremos que o cliente configura os domínios.
-# Vou adicionar "*" na lista de origens para facilitar o beacon, mas com cuidado.
-if "*" not in origins:
-    origins.append("*")
-
+# CORS Configuration
+# Allow any origin to support the public scanner (Beacon/Fetch) on client sites
+# Use regex to allow credentials (cookies/auth headers) for the dashboard
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https?://.*", # Allow any http/https origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

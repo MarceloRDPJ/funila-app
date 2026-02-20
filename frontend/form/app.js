@@ -3,7 +3,7 @@ let currentStep = 1;
 let clientConfig = null;
 let formData = {};
 let leadId = null;
-let partialSavePromise = null;
+let saveTimeout = null;
 
 function getQueryParams() {
     const params = new URLSearchParams(window.location.search);
@@ -21,12 +21,21 @@ function getQueryParams() {
 
 const queryParams = getQueryParams();
 
-// Rastreamento de eventos
-async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}) {
-    if (!queryParams.session_id) return;
+// Session ID Generation
+function getSessionId() {
+    let sid = localStorage.getItem("funila_session_id");
+    if (!sid) {
+        sid = crypto.randomUUID();
+        localStorage.setItem("funila_session_id", sid);
+    }
+    return sid;
+}
+const sessionId = queryParams.session_id || getSessionId();
 
+// Tracking
+async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}) {
     const payload = {
-        session_id:  queryParams.session_id,
+        session_id:  sessionId,
         link_id:     queryParams.link_id,
         event_type:  eventType,
         step:        step,
@@ -43,6 +52,45 @@ async function trackEvent(eventType, step = null, fieldKey = null, metadata = {}
     } catch (e) {
         console.warn("Tracking error", e);
     }
+}
+
+// Autosave / Telemetry
+function saveProgress(stepName) {
+    if (saveTimeout) clearTimeout(saveTimeout);
+
+    saveTimeout = setTimeout(async () => {
+        // Collect current data
+        const payload = {
+            client_id:    queryParams.client_id,
+            link_id:      queryParams.link_id,
+            lead_id:      leadId,
+            name:         formData["full_name"],
+            phone:        formData["phone"],
+            last_step:    stepName,
+            utm_data: {
+                utm_source:   queryParams.utm_source,
+                utm_medium:   queryParams.utm_medium,
+                utm_campaign: queryParams.utm_campaign,
+            }
+        };
+
+        // Only save if we have at least name or phone to identify
+        if(!payload.name && !payload.phone) return;
+
+        try {
+            const res = await fetch(`${API_URL}/leads/partial`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === "success" && data.lead_id) {
+                leadId = data.lead_id;
+            }
+        } catch (e) {
+            console.error("Autosave error", e);
+        }
+    }, 1000); // 1s debounce
 }
 
 function showLoading() {
@@ -70,7 +118,7 @@ function showError(msg) {
 // Toast Implementation
 function showToast(message, type = "success") {
     const container = document.getElementById("toast-container");
-    if (!container) return; // Should exist in HTML
+    if (!container) return;
 
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
@@ -80,10 +128,8 @@ function showToast(message, type = "success") {
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
 
     toast.innerHTML = `${icon} <span>${message}</span>`;
-
     container.appendChild(toast);
 
-    // Auto remove
     setTimeout(() => {
         toast.style.opacity = "0";
         toast.style.transform = "translateY(-10px)";
@@ -92,7 +138,6 @@ function showToast(message, type = "success") {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Inject spinner CSS if needed, though style.css handles most
     if (!document.getElementById("spinner-style")) {
         const style = document.createElement("style");
         style.id = "spinner-style";
@@ -103,9 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.head.appendChild(style);
     }
 
-    if (queryParams.session_id) {
-        trackEvent("step_start", 1);
-    }
+    trackEvent("step_start", 1);
 
     if (!queryParams.client_id) {
         showError("Link inválido ou cliente não identificado.");
@@ -135,7 +178,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function renderForm(config) {
-    // Restaurar header original (mantendo titulo fixo, mas atualizando page title)
     const header = document.querySelector(".header");
     header.innerHTML = `
         <h1>Finalize sua Qualificação</h1>
@@ -183,6 +225,10 @@ function renderFieldsToContainer(fields, containerId) {
                 o.value = opt; o.text = opt;
                 input.appendChild(o);
             });
+            input.addEventListener("change", () => {
+                formData[field.field_key] = input.value;
+                saveProgress(field.field_key);
+            });
         } else if (field.type === "radio") {
             input = document.createElement("div");
             input.className = "radio-group";
@@ -191,22 +237,19 @@ function renderFieldsToContainer(fields, containerId) {
             if (opts) opts.forEach(opt => {
                 const radioLabel = document.createElement("label");
                 radioLabel.className = "radio-option";
-
                 const radio = document.createElement("input");
-                radio.type = "radio";
-                radio.name = field.field_key;
-                radio.value = opt;
+                radio.type = "radio"; radio.name = field.field_key; radio.value = opt;
                 if (field.required) radio.required = true;
 
-                // Click handler on the label card
                 radioLabel.addEventListener("click", (e) => {
-                    // Prevent double triggering if clicked directly on input (hidden though)
                     if(e.target === radio) return;
                     radio.checked = true;
-                    // Trigger change event manually if needed, or just run logic
                     input.querySelectorAll(".radio-option").forEach(l => l.classList.remove("selected"));
                     radioLabel.classList.add("selected");
+
+                    formData[field.field_key] = opt;
                     trackEvent("field_blur", currentStep, field.field_key);
+                    saveProgress(field.field_key);
                 });
 
                 radioLabel.appendChild(radio);
@@ -220,11 +263,16 @@ function renderFieldsToContainer(fields, containerId) {
             input.placeholder = field.label_custom || field.label;
             if (field.field_key === "phone") input.classList.add("mask-phone");
             if (field.field_key === "cpf")   input.classList.add("mask-cpf");
+
+            input.addEventListener("blur", () => {
+                formData[field.field_key] = input.value;
+                saveProgress(field.field_key);
+                trackEvent("field_blur", currentStep, field.field_key);
+            });
         }
 
         if (field.type !== "radio") {
             input.addEventListener("focus", () => trackEvent("field_focus", currentStep, field.field_key));
-            input.addEventListener("blur", () => trackEvent("field_blur", currentStep, field.field_key));
         }
 
         group.appendChild(input);
@@ -236,25 +284,20 @@ window.nextStep = async function(step) {
     if (!validateStep(step)) return;
     saveStepData(step);
 
+    // Telemetry: Step Complete
     trackEvent("step_complete", step);
-
-    if (step === 1) {
-        partialSavePromise = savePartialLead();
-    }
+    saveProgress(`step_${step}_complete`);
 
     const currentStepEl = document.getElementById(`step-${step}`);
     const nextStepEl = document.getElementById(`step-${step + 1}`);
 
     if (nextStepEl) {
-        // Simple fade transition logic handled by CSS classes
         currentStepEl.classList.remove("active");
         nextStepEl.classList.add("active");
 
         const currentDot = document.getElementById(`step-dot-${step}`);
         const nextDot = document.getElementById(`step-dot-${step + 1}`);
-        if (currentDot) currentDot.classList.remove("active"); // Optional: keep history active or just current?
-        // Design usually keeps previous active. Let's keep 1 active if on 2.
-        document.getElementById(`step-dot-${step}`).style.background = "var(--accent)";
+        if (currentDot) currentDot.style.background = "var(--accent)";
         if (nextDot) nextDot.classList.add("active");
 
         currentStep++;
@@ -276,7 +319,6 @@ function validateStep(step) {
     if (!container) return true;
     let valid = true;
 
-    // Check radio groups first
     const radioGroups = container.querySelectorAll(".radio-group");
     radioGroups.forEach(group => {
         const inputs = group.querySelectorAll("input[type='radio']");
@@ -291,12 +333,10 @@ function validateStep(step) {
 
     if(!valid) return false;
 
-    // Check standard inputs
     container.querySelectorAll("input:not([type='radio']), select").forEach(input => {
         if (!input.checkValidity()) {
             input.reportValidity();
             valid = false;
-            // Optional: highlight input
             input.style.borderColor = "#EF4444";
             setTimeout(() => input.style.borderColor = "", 2000);
         }
@@ -316,34 +356,6 @@ function saveStepData(step) {
     });
 }
 
-async function savePartialLead() {
-    const payload = {
-        client_id:    queryParams.client_id,
-        link_id:      queryParams.link_id,
-        name:         formData["full_name"],
-        phone:        formData["phone"],
-        utm_data: {
-            utm_source:   queryParams.utm_source,
-            utm_medium:   queryParams.utm_medium,
-            utm_campaign: queryParams.utm_campaign,
-        }
-    };
-
-    try {
-        const res = await fetch(`${API_URL}/leads/partial`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.status === "success" && data.lead_id) {
-            leadId = data.lead_id;
-        }
-    } catch (e) {
-        console.error("Erro ao salvar lead parcial:", e);
-    }
-}
-
 async function handleSubmit(e) {
     e.preventDefault();
     if (!validateStep(3)) return;
@@ -361,9 +373,8 @@ async function handleSubmit(e) {
     btn.disabled = true;
     btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Enviando...`;
 
-    if (partialSavePromise) {
-        try { await partialSavePromise; } catch(e) {}
-    }
+    // Ensure final state saved before submit
+    if (saveTimeout) clearTimeout(saveTimeout);
 
     try {
         const payload = {
@@ -391,7 +402,7 @@ async function handleSubmit(e) {
 
         if (data.status === "success") {
             trackEvent("form_submit");
-            showSuccess(data);
+            handleSuccessAction(data);
         } else {
             showToast("Erro ao enviar. Tente novamente.", "error");
             btn.disabled = false;
@@ -405,19 +416,38 @@ async function handleSubmit(e) {
     }
 }
 
-function showSuccess(data) {
-    document.querySelectorAll(".form-step").forEach(el => el.classList.remove("active"));
-    const progress = document.querySelector(".progress-container");
-    if (progress) progress.style.display = "none";
+function handleSuccessAction(data) {
+    // Check Config for Action (Redirect vs Message)
+    // Assuming config has field 'finish_action'. If not present, default to redirect (legacy behavior)
+    // We need to reload config or store it globally. Stored in clientConfig.
 
-    const successDiv = document.getElementById("step-success");
-    if (successDiv) {
-        successDiv.classList.add("active");
-        successDiv.style.display = "block"; // Changed from flex to block/default as per new css
+    const action = clientConfig.finish_action || "redirect";
+
+    if (action === "message") {
+        document.querySelectorAll(".form-step").forEach(el => el.classList.remove("active"));
+        const progress = document.querySelector(".progress-container");
+        if (progress) progress.style.display = "none";
+
+        const successDiv = document.getElementById("step-success");
+        if (successDiv) {
+            successDiv.classList.add("active");
+            successDiv.style.display = "block";
+        }
+
+        // Hide WhatsApp button if just showing success message? Or keep it as option?
+        // Requirement says "Show premium success card". Usually implies no auto-redirect.
+        // We can keep the manual button.
+        const waBtn = document.getElementById("whatsapp-btn");
+        if (waBtn && data.whatsapp_link) waBtn.href = data.whatsapp_link;
+
+    } else {
+        // Redirect
+        if (data.whatsapp_link) {
+            window.location.href = data.whatsapp_link;
+        } else {
+            showToast("Sucesso! Entraremos em contato.", "success");
+        }
     }
-
-    const waBtn = document.getElementById("whatsapp-btn");
-    if (waBtn && data.whatsapp_link) waBtn.href = data.whatsapp_link;
 }
 
 function setupMasks() {

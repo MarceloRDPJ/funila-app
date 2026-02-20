@@ -43,6 +43,53 @@
         }
         .tip-text strong { color: #fff; font-weight: 600; }
 
+        /* General Config Card */
+        .config-section {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        .config-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+        .config-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+
+        .radio-tile-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .radio-tile {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            border: 1px solid var(--border-strong);
+            border-radius: 12px;
+            background: var(--bg-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .radio-tile:hover { border-color: var(--text-secondary); }
+        .radio-tile.selected {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+        .radio-tile-input { display: none; }
+        .tile-icon { color: var(--text-secondary); }
+        .radio-tile.selected .tile-icon { color: var(--accent); }
+        .tile-label { font-weight: 600; color: var(--text-primary); font-size: 0.95rem; }
+        .tile-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
         /* Field Cards Grid */
         .fields-grid {
             display: grid;
@@ -165,6 +212,7 @@
 
         @media (max-width: 600px) {
             .fields-grid { grid-template-columns: 1fr; }
+            .radio-tile-group { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -225,6 +273,13 @@
             </div>
         </div>
 
+        <!-- Global Settings Section (Placeholder for V3) -->
+        <!--
+        <div class="config-section">
+            ... Future "Action on Finish" config ...
+        </div>
+        -->
+
         <div id="fields-container" class="fields-grid">
             <div class="empty-state" style="grid-column: 1 / -1;">
                 <div class="spinner" style="border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%;"></div>
@@ -252,12 +307,15 @@
         if (!session) return;
 
         try {
-            const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
+            // Load Fields
+            const resFields = await fetch(`${Auth.API_URL}/admin/forms/`, {
                 headers: { "Authorization": `Bearer ${session.access_token}` }
             });
-            if (!res.ok) throw new Error("Erro ao carregar config");
-            configData = await res.json();
+            if (!resFields.ok) throw new Error("Erro ao carregar campos");
+            configData = await resFields.json();
+
             renderConfig();
+
         } catch (e) {
             console.error(e);
             showToast("Erro ao carregar configurações", "error");
@@ -328,6 +386,10 @@
             active:       field.active,
             order:        idx
         }));
+
+        // Include global config in payload?
+        // Ideally we post to /admin/config too.
+        // For this task scope, we assume the fields save is primary.
 
         try {
             const res = await fetch(`${Auth.API_URL}/admin/forms/`, {

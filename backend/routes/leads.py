@@ -24,44 +24,74 @@ class LeadSubmit(BaseModel):
 class LeadPartialSubmit(BaseModel):
     client_id: str
     link_id: Optional[str] = None
-    name: str
-    phone: str
+    lead_id: Optional[str] = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    last_step: Optional[str] = None
     utm_data: Optional[Dict[str, str]] = None
 
 @router.post("/leads/partial")
 async def submit_lead_partial(payload: LeadPartialSubmit):
     """
-    Salva o lead parcialmente (após preencher nome e telefone na etapa 1).
-    Garante que o lead não seja perdido caso abandone o formulário.
+    Salva o lead parcialmente (upsert).
+    Garante que o lead não seja perdido caso abandone o formulário e permite telemetria em tempo real.
     """
     supabase = get_supabase()
 
-    lead_insert = {
+    # Prepara dados para inserção/atualização
+    lead_data = {
         "client_id":      payload.client_id,
         "link_id":        payload.link_id,
-        "name":           payload.name,
-        "phone":          payload.phone,
-        "status":         "cold",  # Status inicial válido ('cold', 'warm', 'hot', 'converted')
+        "status":         "cold",
         "utm_source":     payload.utm_data.get("utm_source")   if payload.utm_data else None,
         "utm_campaign":   payload.utm_data.get("utm_campaign") if payload.utm_data else None,
         "utm_medium":     payload.utm_data.get("utm_medium")   if payload.utm_data else None,
-        "consent_given":  False,  # Ainda não aceitou explicitamente na etapa final
+        # Mantém false até submit final
+        "consent_given":  False
     }
 
-    try:
-        # Tenta inserir
-        lead_res = supabase.table("leads").insert(lead_insert).execute()
-        lead_id  = lead_res.data[0]["id"]
+    if payload.name:
+        lead_data["name"] = payload.name
+    if payload.phone:
+        lead_data["phone"] = payload.phone
 
-        # Registra evento de início
-        supabase.table("events").insert({
-            "lead_id":    lead_id,
-            "event_type": "lead_started",
-            "metadata":   {"partial": True}
-        }).execute()
+    try:
+        lead_id = payload.lead_id
+
+        # Se tem ID, atualiza
+        if lead_id:
+            supabase.table("leads").update(lead_data).eq("id", lead_id).execute()
+        else:
+            # Senão, insere
+            # Requer nome e telefone mínimos para criar o registro inicial
+            if not (payload.name and payload.phone):
+                raise HTTPException(status_code=400, detail="Nome e Telefone necessários para criar lead")
+
+            lead_res = supabase.table("leads").insert(lead_data).execute()
+            lead_id  = lead_res.data[0]["id"]
+
+            # Evento apenas na criação
+            supabase.table("events").insert({
+                "lead_id":    lead_id,
+                "event_type": "lead_started",
+                "metadata":   {"partial": True}
+            }).execute()
+
+        # Telemetria do passo (opcional: salvar no lead ou events table)
+        if payload.last_step:
+            # Podemos atualizar um campo auxiliar no lead ou registrar evento de step
+            # Por simplicidade, vamos registrar um evento de progresso se o passo mudou
+            # Para evitar flood, idealmente o frontend controla, mas aqui apenas aceitamos
+            supabase.table("events").insert({
+                "lead_id": lead_id,
+                "event_type": "step_update",
+                "metadata": {"step": payload.last_step}
+            }).execute()
 
         return {"status": "success", "lead_id": lead_id}
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
         print(f"Erro ao salvar lead parcial: {e}")
         # Não bloqueia o usuário, mas loga o erro

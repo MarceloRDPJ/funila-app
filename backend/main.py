@@ -1,6 +1,8 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -59,6 +61,22 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok", "environment": os.getenv("ENVIRONMENT", "production")}
+
+# Mount frontend static files
+# We serve the frontend directory at /frontend
+frontend_dir = os.path.join(os.path.dirname(__file__), "../frontend")
+if os.path.exists(frontend_dir):
+    app.mount("/frontend", StaticFiles(directory=frontend_dir), name="frontend")
+else:
+    print(f"WARNING: Frontend directory not found at {frontend_dir}")
+
+# Serve the root index.html
+@app.get("/")
+async def read_root():
+    index_path = os.path.join(os.path.dirname(__file__), "../index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Backend API is running. Frontend not found."}
 
 app.include_router(tracker.router)
 app.include_router(public_forms.router)

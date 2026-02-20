@@ -92,8 +92,8 @@ function renderChart(chartData) {
 
     // Cores do Sistema de Design para Gráficos
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(61,123,255,0.2)');
-    gradient.addColorStop(1, 'rgba(61,123,255,0)');
+    gradient.addColorStop(0, 'rgba(37,99,235,0.2)');
+    gradient.addColorStop(1, 'rgba(37,99,235,0)');
 
     chartInstance = new Chart(ctx, {
         type: "line",
@@ -102,11 +102,11 @@ function renderChart(chartData) {
             datasets: [{
                 label: "Leads",
                 data: values,
-                borderColor: "#3D7BFF",
+                borderColor: "#2563EB",
                 backgroundColor: gradient,
                 borderWidth: 2,
                 pointBackgroundColor: "#0F1115",
-                pointBorderColor: "#3D7BFF",
+                pointBorderColor: "#2563EB",
                 pointBorderWidth: 2,
                 pointRadius: 4,
                 pointHoverRadius: 6,

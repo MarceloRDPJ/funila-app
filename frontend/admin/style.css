@@ -33,11 +33,11 @@
   --text-20:  #2E3A54;   /* ghost */
 
   /* Azul primário — o único que chama atenção */
-  --blue:        #3D7BFF;   /* CTA, links, ativo */
-  --blue-bright: #5B94FF;   /* hover */
-  --blue-dim:    #2456CC;   /* pressed */
-  --blue-glow:   rgba(61,123,255,0.20);
-  --blue-tint:   rgba(61,123,255,0.08);
+  --blue:        #2563EB;   /* CTA, links, ativo */
+  --blue-bright: #1D4ED8;   /* hover */
+  --blue-dim:    #1E40AF;   /* pressed */
+  --blue-glow:   rgba(37,99,235,0.20);
+  --blue-tint:   rgba(37,99,235,0.08);
 
   /* Status — cores funcionais, nunca decorativas */
   --hot:     #00D97E;   /* verde — aprovação, positivo, dinheiro */
@@ -70,7 +70,7 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-blue: 0 4px 24px rgba(61,123,255,0.3);
+  --shadow-blue: 0 4px 24px rgba(37,99,235,0.3);
   --shadow-hot:  0 4px 20px rgba(0,217,126,0.2);
 
   /* Transições */

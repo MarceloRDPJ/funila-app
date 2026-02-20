@@ -27,40 +27,78 @@ async def fetch_brasil_api_data(cpf: str) -> Optional[dict]:
         print(f"BrasilAPI Erro: {e}")
     return None
 
-def validate_whatsapp_background(lead_id: str, phone: str):
+def validate_whatsapp_background(lead_id: str, phone: str, client_id: str = None):
     """
-    Camada 2: Validação de WhatsApp (Background Task).
+    Camada 2: Validação de WhatsApp (Background Task) via Z-API.
 
-    Verifica se o número possui conta no WhatsApp.
-    - Integração: Evolution API / Z-API (Placeholder Mockado).
-    - Execução: Síncrona mas rodada em threadpool via BackgroundTasks do FastAPI.
-    - Ação: Atualiza a coluna `whatsapp_meta` no lead.
+    Verifica credenciais no nível do cliente (Enterprise) ou env vars globais.
     """
     supabase = get_supabase()
     clean_phone = "".join(filter(str.isdigit, phone))
 
-    # Lógica Mockada / Placeholder
-    # Em produção, substituir por chamada real à Evolution API
+    # 1. Obter credenciais Z-API
+    z_instance = os.getenv("ZAPI_INSTANCE")
+    z_token = os.getenv("ZAPI_TOKEN")
+
+    # Se cliente for Enterprise/Agência com instância própria, usar dela
+    if client_id:
+        try:
+            c_res = supabase.table("clients").select("zapi_instance, zapi_token").eq("id", client_id).single().execute()
+            if c_res.data and c_res.data.get("zapi_instance"):
+                z_instance = c_res.data["zapi_instance"]
+                z_token = c_res.data["zapi_token"]
+        except:
+            pass
+
+    if not z_instance or not z_token:
+        print("Z-API não configurada.")
+        return
+
     try:
-        # Simula latência de rede
-        time.sleep(1)
+        # 2. Chamada real à Z-API
+        # Endpoint: /phone-exists/{phone}
+        # Adicionar '55' se não tiver? Geralmente Z-API espera DDI+DDD+Num
+        if len(clean_phone) <= 11: clean_phone = "55" + clean_phone
 
-        # Mock: Números terminados em 00 são inválidos
-        is_valid = not clean_phone.endswith("00")
-        profile_pic = f"https://ui-avatars.com/api/?name={clean_phone}&background=25D366&color=fff" if is_valid else None
+        url = f"https://api.z-api.io/instances/{z_instance}/token/{z_token}/phone-exists/{clean_phone}"
 
-        whatsapp_meta = {
-            "valid": is_valid,
-            "profile_pic": profile_pic,
-            "verified_at": str(time.time()),
-            "provider": "evolution_api_mock"
-        }
+        # Como estamos em background task (threadpool ou async?), aqui é def sincrona.
+        # Devemos usar requests ou httpx.Client sincrono?
+        # Para evitar bloquear workers do FastAPI, melhor httpx async, mas a func é def.
+        # Vamos rodar sync mesmo, é BG task.
+        import requests
 
-        # Atualiza lead no banco
-        supabase.table("leads").update({"whatsapp_meta": whatsapp_meta}).eq("id", lead_id).execute()
+        resp = requests.get(url, timeout=10)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            # Z-API response: { "exists": true, "formattedPhone": "..." } or similar
+            is_valid = data.get("exists", False)
+
+            # Buscar foto se valido
+            profile_pic = None
+            if is_valid:
+                # /profile-picture?phone=...
+                pic_url = f"https://api.z-api.io/instances/{z_instance}/token/{z_token}/profile-picture?phone={clean_phone}"
+                try:
+                    p_resp = requests.get(pic_url, timeout=5)
+                    if p_resp.status_code == 200:
+                        p_data = p_resp.json()
+                        profile_pic = p_data.get("link")
+                except:
+                    pass
+
+            whatsapp_meta = {
+                "valid": is_valid,
+                "profile_pic": profile_pic,
+                "verified_at": str(time.time()),
+                "provider": "z-api"
+            }
+
+            supabase.table("leads").update({"whatsapp_meta": whatsapp_meta}).eq("id", lead_id).execute()
 
     except Exception as e:
-        print(f"Erro Validação WhatsApp Lead {lead_id}: {e}")
+        print(f"Erro Z-API Validação Lead {lead_id}: {e}")
 
 async def get_serasa_score(cpf: str, token: str) -> Optional[int]:
     """
@@ -146,4 +184,4 @@ async def enrich_lead_data(lead_id: str, cpf: str, client_id: str, background_ta
 
     # Camada 2: WhatsApp (Agenda Task Síncrona)
     if phone:
-        background_tasks.add_task(validate_whatsapp_background, lead_id, phone)
+        background_tasks.add_task(validate_whatsapp_background, lead_id, phone, client_id)

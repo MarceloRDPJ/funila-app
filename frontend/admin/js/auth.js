@@ -35,6 +35,9 @@ async function logout() {
 }
 
 async function getToken() {
+    const custom = sessionStorage.getItem('custom_access_token');
+    if(custom) return custom;
+
     const sb = getSupabase();
     const { data: { session } } = await sb.auth.getSession();
     return session?.access_token || null;

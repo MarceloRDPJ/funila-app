@@ -13,7 +13,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     Retorna o objeto usuário do Supabase Auth se válido.
     """
     token = credentials.credentials
-    supabase = get_supabase()
+    try:
+        supabase = get_supabase()
+    except RuntimeError:
+         # Log specifically that database is not configured
+         print("ERROR: Database credentials missing in get_current_user")
+         raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Serviço de banco de dados indisponível."
+        )
 
     # 1. Try Supabase Auth (GoTrue)
     try:
@@ -25,18 +33,21 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     # 2. Try Custom Impersonation Token (signed by backend)
     try:
-        payload = jwt.decode(token, os.getenv("ENCRYPTION_KEY"), algorithms=["HS256"])
-        # Return a mock user object compatible with what get_current_user_role expects
-        class MockUser:
-            id = payload.get("sub")
-            email = "impersonator@funila.com" # Placeholder
-
-        # We attach impersonation info to the mock user if needed, or rely on payload check in next step
-        # But get_current_user_role queries DB.
-        # If ID matches a real user in DB, it works.
-        # Impersonation token payload["sub"] SHOULD be the user_id of the client.
-        return MockUser()
+        encryption_key = os.getenv("ENCRYPTION_KEY")
+        if not encryption_key:
+             # Fallback key generated in utils/security.py might be needed here but we import os.getenv
+             # If strictly missing here, impersonation fails.
+             pass
+        else:
+            payload = jwt.decode(token, encryption_key, algorithms=["HS256"])
+            # Return a mock user object compatible with what get_current_user_role expects
+            class MockUser:
+                id = payload.get("sub")
+                email = "impersonator@funila.com" # Placeholder
+            return MockUser()
     except JWTError:
+        pass
+    except Exception:
         pass
 
     raise HTTPException(
@@ -50,16 +61,21 @@ def get_current_user_role(user=Depends(get_current_user)):
     Busca o perfil do usuário na tabela `public.users` para determinar role e client_id.
     Retorna um dicionário com: id, email, role, client_id.
     """
-    supabase = get_supabase()
+    try:
+        supabase = get_supabase()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Serviço de banco de dados indisponível."
+        )
+
     try:
         response = supabase.table("users").select("role, client_id").eq("id", user.id).single().execute()
+
+        # If response.data is None, user not found. supabase-py single() might raise error if no rows.
+        # But if it returns empty data:
         if not response.data:
-            # Fallback if impersonation used ID that is not in users table (e.g. client_id as user_id)
-            # We can check if 'user' object has special attributes from our mock?
-            # Or just trust the token?
-            # If we returned MockUser(id=client_id), query fails if client_id != user_id.
-            # Let's fix Impersonation logic to try to use Real User ID.
-            # If fail, we handle here?
+            print(f"User ID {user.id} not found in public.users table.")
             raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado.")
 
         return {
@@ -71,6 +87,12 @@ def get_current_user_role(user=Depends(get_current_user)):
     except HTTPException:
         raise
     except Exception as e:
+        # Check if it's a "Row not found" error from Supabase/Postgrest
+        error_str = str(e)
+        if "JSON object requested, multiple (or no) rows returned" in error_str or "Results contain 0 rows" in error_str:
+             print(f"User ID {user.id} not found in public.users table (Postgrest error).")
+             raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado.")
+
         print(f"Role Fetch Error: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao verificar permissões")
 

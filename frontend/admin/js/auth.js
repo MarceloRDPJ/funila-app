@@ -1,6 +1,6 @@
 const SUPABASE_URL = "https://qitbyswmidyakadrzatz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpdGJ5c3dtaWR5YWthZHJ6YXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MDQ3NzAsImV4cCI6MjA4NzA4MDc3MH0.FHUD9EuHNOnxv7UALkHNlLiEZv5Q7yYvT9GIz3QeSl0";
-const API_URL = "https://funila-app.onrender.com";
+const API_URL = window.location.origin; // Dynamically use current origin
 
 let supabaseClient = null;
 

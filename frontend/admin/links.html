@@ -3,11 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Funila — Links</title>
+    <title>Funila — Links de Campanha</title>
     <link rel="icon" href="/frontend/assets/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+        .mode-card {
+            border:1.5px solid var(--border-strong); border-radius:10px;
+            padding:14px 12px; cursor:pointer; transition:all .15s;
+            background:var(--bg-tertiary); text-align:center; user-select:none;
+        }
+        .mode-card:hover { border-color:rgba(59,110,248,.4); background:rgba(59,110,248,.05); }
+        .mode-card.selected {
+            border-color:var(--accent); background:rgba(59,110,248,.1);
+            box-shadow:0 0 0 3px rgba(59,110,248,.15);
+        }
+        .mode-icon  { font-size:1.6rem; margin-bottom:6px; }
+        .mode-label { font-size:.78rem; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+        .mode-desc  { font-size:.7rem; color:var(--text-muted); line-height:1.4; }
+
+        .field-conditional { display:none; }
+        .field-conditional.visible { display:block; }
+
+        .flow-visual {
+            display:flex; align-items:center; gap:6px;
+            background:rgba(59,110,248,.06); border:1px solid rgba(59,110,248,.15);
+            border-radius:8px; padding:10px 14px; margin-bottom:16px; flex-wrap:wrap;
+        }
+        .flow-node { font-size:.72rem; font-weight:600; padding:4px 10px; border-radius:99px; white-space:nowrap; }
+        .flow-node.ad      { background:rgba(245,158,11,.15);  color:#F59E0B; }
+        .flow-node.track   { background:rgba(59,110,248,.15);  color:#3B6EF8; }
+        .flow-node.mid     { background:rgba(167,139,250,.15); color:#A78BFA; }
+        .flow-node.dest    { background:rgba(34,197,94,.15);   color:#22C55E; }
+        .flow-arrow        { color:var(--text-muted); font-size:.8rem; }
+
+        .funnel-badge { display:inline-flex; align-items:center; gap:4px; font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:99px; }
+        .funnel-badge.form    { background:rgba(59,110,248,.12);  color:#3B6EF8; }
+        .funnel-badge.capture { background:rgba(167,139,250,.12); color:#A78BFA; }
+        .funnel-badge.landing { background:rgba(34,197,94,.12);   color:#22C55E; }
+
+        .help-text { font-size:.75rem; color:var(--text-muted); margin-top:4px; line-height:1.5; }
+        .modal-box { max-width:520px; }
+    </style>
 </head>
 <body>
 
@@ -53,23 +92,39 @@
     </div>
 
     <div class="page-body">
+        <!-- Fluxo visual explicativo -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:.75rem;color:var(--text-muted);font-weight:500;white-space:nowrap">Fluxo:</span>
+            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(245,158,11,.12);color:#F59E0B;font-weight:600">📢 Propaganda</span>
+            <span style="color:var(--text-muted);font-size:.9rem">→</span>
+            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(59,110,248,.12);color:#3B6EF8;font-weight:600">🔗 Link Funila</span>
+            <span style="color:var(--text-muted);font-size:.9rem">→</span>
+            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(167,139,250,.12);color:#A78BFA;font-weight:600">📋 Captura de dados</span>
+            <span style="color:var(--text-muted);font-size:.9rem">→</span>
+            <span style="font-size:.75rem;padding:3px 10px;border-radius:99px;background:rgba(34,197,94,.12);color:#22C55E;font-weight:600">✅ Destino final</span>
+            <span style="margin-left:auto;font-size:.72rem;color:var(--text-muted)">Rastreio ponta a ponta em cada etapa</span>
+        </div>
+
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Nome</th>
-                        <th>Link de rastreamento</th>
-                        <th>Destino</th>
-                        <th>UTM Source</th>
+                        <th>Modo de captura</th>
+                        <th>Link rastreável</th>
+                        <th>Destino final</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody id="links-body"></tbody>
+                <tbody id="links-body">
+                    <tr><td colspan="5"><div class="empty-state">Carregando...</div></td></tr>
+                </tbody>
             </table>
         </div>
     </div>
 </main>
 
+<!-- ── Modal ── -->
 <div class="modal-overlay" id="modal">
     <div class="modal-box">
         <div class="modal-header">
@@ -77,18 +132,74 @@
             <button class="modal-close" onclick="closeModal()">&#x2715;</button>
         </div>
         <form id="link-form" class="modal-form" onsubmit="createLink(event)">
+
             <div class="form-group">
                 <label>Nome da campanha</label>
                 <input type="text" id="link-name" required placeholder="Ex: Instagram Setor Oeste">
             </div>
+
             <div class="form-group">
-                <label>URL de destino (Squeeze Page)</label>
-                <input type="url" id="link-dest" required placeholder="https://app.funila.com.br/frontend/form/index.html">
+                <label style="margin-bottom:8px;display:block">Como quer capturar os leads?</label>
+                <div class="mode-grid">
+                    <div class="mode-card selected" data-mode="form" onclick="selectMode('form',this)">
+                        <div class="mode-icon">📋</div>
+                        <div class="mode-label">Formulário Funila</div>
+                        <div class="mode-desc">Perguntas rápidas em etapas. Score automático.</div>
+                    </div>
+                    <div class="mode-card" data-mode="landing" onclick="selectMode('landing',this)">
+                        <div class="mode-icon">🎯</div>
+                        <div class="mode-label">Página Padrão</div>
+                        <div class="mode-desc">Landing de alta conversão pronta pra usar.</div>
+                    </div>
+                    <div class="mode-card" data-mode="capture" onclick="selectMode('capture',this)">
+                        <div class="mode-icon">🔍</div>
+                        <div class="mode-label">Página Própria</div>
+                        <div class="mode-desc">Sua página existente com rastreio injetado.</div>
+                    </div>
+                </div>
+                <input type="hidden" id="link-funnel-type" value="form">
             </div>
+
+            <!-- Preview do fluxo dinâmico -->
+            <div class="flow-visual">
+                <span class="flow-node ad">📢 Anúncio</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node track">🔗 Link Funila</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node mid" id="flow-mid">📋 Formulário Funila</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-node dest" id="flow-dest-preview">✅ Destino final</span>
+            </div>
+
+            <!-- Só aparece no modo "capture" -->
+            <div class="form-group field-conditional" id="field-capture-url">
+                <label>URL da sua página de captura</label>
+                <input type="url" id="link-capture-url" placeholder="https://suapagina.com/landing">
+                <p class="help-text">
+                    O Funila acessa essa URL, faz uma cópia e injeta um script invisível de rastreio. Você troca só o link do anúncio — sua página não muda nada. A gente rastreia cliques, quais campos foram preenchidos e onde as pessoas desistem.
+                </p>
+            </div>
+
             <div class="form-group">
-                <label>UTM Source <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
-                <input type="text" id="link-utm" placeholder="instagram, google, facebook...">
+                <label>Destino final <span style="color:var(--text-muted);font-weight:400;font-size:.78rem">— após a captura</span></label>
+                <input type="url" id="link-dest" required placeholder="https://wa.me/5562999999999"
+                    oninput="updateDestPreview(this.value)">
+                <p class="help-text" id="dest-help">
+                    Para onde o lead vai depois de preencher o formulário. WhatsApp, site de obrigado, qualquer URL.
+                </p>
             </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-group">
+                    <label>UTM Source <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+                    <input type="text" id="link-utm-source" placeholder="instagram, google...">
+                </div>
+                <div class="form-group">
+                    <label>UTM Campaign <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+                    <input type="text" id="link-utm-campaign" placeholder="nome-campanha">
+                </div>
+            </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
                 <button type="submit" class="btn btn-primary" id="create-btn">Criar link</button>
@@ -99,111 +210,142 @@
 
 <script src="js/auth.js"></script>
 <script>
-    const TRACKER_BASE = "https://funila-app.onrender.com";
+const TRACKER_BASE = Auth.API_URL;
 
-    document.addEventListener("DOMContentLoaded", async () => {
-        const session = await Auth.checkAuth();
-        if (session) loadLinks();
-    });
+const modeConfig = {
+    form:    { midLabel:"📋 Formulário Funila",      destHelp:"Para onde o lead vai depois do formulário. WhatsApp, site, qualquer URL.", showCapture:false },
+    landing: { midLabel:"🎯 Página Padrão Funila",   destHelp:"Para onde o lead vai depois da landing page. Normalmente WhatsApp ou página de obrigado.", showCapture:false },
+    capture: { midLabel:"🔍 Sua Página (rastreada)", destHelp:"Para onde o lead vai depois de sair da sua página. O Funila detecta o submit e redireciona.", showCapture:true },
+};
 
-    function openModal()  { document.getElementById("modal").classList.add("open"); }
-    function closeModal() { document.getElementById("modal").classList.remove("open"); document.getElementById("link-form").reset(); }
+function selectMode(mode, el) {
+    document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("link-funnel-type").value = mode;
+    const cfg = modeConfig[mode];
+    document.getElementById("flow-mid").textContent   = cfg.midLabel;
+    document.getElementById("dest-help").textContent  = cfg.destHelp;
+    const capField = document.getElementById("field-capture-url");
+    capField.classList.toggle("visible", cfg.showCapture);
+    document.getElementById("link-capture-url").required = cfg.showCapture;
+}
 
-    async function loadLinks() {
-        const session = await Auth.checkAuth();
-        if (!session) return;
+function updateDestPreview(val) {
+    const el = document.getElementById("flow-dest-preview");
+    if (!val) { el.textContent = "✅ Destino final"; return; }
+    try {
+        if (val.includes("wa.me")) el.textContent = "💬 WhatsApp";
+        else el.textContent = "🌐 " + new URL(val).hostname;
+    } catch(e) { el.textContent = "✅ Destino final"; }
+}
 
-        const res = await fetch(`${Auth.API_URL}/links`, {
-            headers: { "Authorization": `Bearer ${session.access_token}` }
-        });
-        const links = await res.json();
+function openModal()  { document.getElementById("modal").classList.add("open"); }
+function closeModal() {
+    document.getElementById("modal").classList.remove("open");
+    document.getElementById("link-form").reset();
+    selectMode("form", document.querySelector(".mode-card[data-mode='form']"));
+    document.getElementById("flow-dest-preview").textContent = "✅ Destino final";
+}
 
-        const tbody = document.getElementById("links-body");
-        if (!links.length) {
-            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>Nenhum link criado ainda.</p></div></td></tr>`;
-            return;
-        }
+document.addEventListener("DOMContentLoaded", async () => {
+    const session = await Auth.checkAuth();
+    if (session) loadLinks();
+});
 
-        tbody.innerHTML = links.map(link => {
-            const shortUrl = `${TRACKER_BASE}/t/${link.slug}`;
-            return `
-                <tr>
-                    <td data-label="Nome"><span style="font-weight:500">${link.name}</span></td>
-                    <td data-label="Link">
-                        <span class="font-mono" style="color:var(--accent)">${link.slug}</span>
-                    </td>
-                    <td data-label="Destino"><span class="text-muted truncate">${link.destination}</span></td>
-                    <td data-label="UTM"><span class="text-muted">${link.utm_source || "—"}</span></td>
-                    <td data-label="Ações" style="display:flex;gap:6px">
-                        <button class="btn btn-outline" style="padding:5px 10px;font-size:.8rem"
-                            onclick="copyLink('${shortUrl}', this)">Copiar</button>
-                        <button class="btn btn-outline" style="padding:5px 10px;font-size:.8rem;color:var(--error);border-color:rgba(248,113,113,.3)"
-                            onclick="deleteLink('${link.id}')">Excluir</button>
-                    </td>
-                </tr>`;
-        }).join("");
+async function loadLinks() {
+    const session = await Auth.checkAuth();
+    if (!session) return;
+    const res   = await fetch(`${Auth.API_URL}/links`, { headers:{"Authorization":`Bearer ${session.access_token}`} });
+    const links = await res.json();
+    const tbody = document.getElementById("links-body");
+
+    if (!links.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>Nenhum link criado ainda.</p></div></td></tr>`;
+        return;
     }
 
-    async function createLink(e) {
-        e.preventDefault();
-        const session = await Auth.checkAuth();
-        if (!session) return;
+    const modeLabels = {
+        form:    '<span class="funnel-badge form">📋 Formulário</span>',
+        landing: '<span class="funnel-badge landing">🎯 Landing Page</span>',
+        capture: '<span class="funnel-badge capture">🔍 Página Própria</span>',
+    };
 
-        const btn = document.getElementById("create-btn");
-        btn.disabled = true;
-        btn.textContent = "Criando...";
+    tbody.innerHTML = links.map(link => {
+        const shortUrl  = `${TRACKER_BASE}/t/${link.slug}`;
+        const badge     = modeLabels[link.funnel_type || "form"] || modeLabels.form;
+        const destShort = link.destination.length > 35 ? link.destination.substring(0,35)+"…" : link.destination;
+        return `<tr>
+            <td data-label="Nome">
+                <span style="font-weight:600">${link.name}</span>
+                ${link.utm_source ? `<br><span class="text-muted" style="font-size:.72rem">UTM: ${link.utm_source}</span>` : ""}
+            </td>
+            <td data-label="Modo">${badge}</td>
+            <td data-label="Link">
+                <span class="font-mono" style="color:var(--accent);font-size:.78rem">/t/${link.slug}</span>
+            </td>
+            <td data-label="Destino">
+                <span class="text-muted" style="font-size:.8rem" title="${link.destination}">${destShort}</span>
+            </td>
+            <td data-label="Ações" style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-outline" style="padding:5px 10px;font-size:.78rem"
+                    onclick="copyLink('${shortUrl}',this)">Copiar</button>
+                <button class="btn btn-outline" style="padding:5px 10px;font-size:.78rem;color:var(--error);border-color:rgba(248,113,113,.3)"
+                    onclick="deleteLink('${link.id}')">Excluir</button>
+            </td>
+        </tr>`;
+    }).join("");
+}
 
-        const payload = {
-            name:        document.getElementById("link-name").value,
-            destination: document.getElementById("link-dest").value,
-            utm_source:  document.getElementById("link-utm").value || null
-        };
+async function createLink(e) {
+    e.preventDefault();
+    const session = await Auth.checkAuth();
+    if (!session) return;
+    const btn = document.getElementById("create-btn");
+    btn.disabled = true; btn.textContent = "Criando...";
 
+    const payload = {
+        name:         document.getElementById("link-name").value,
+        destination:  document.getElementById("link-dest").value,
+        funnel_type:  document.getElementById("link-funnel-type").value,
+        capture_url:  document.getElementById("link-capture-url").value || null,
+        utm_source:   document.getElementById("link-utm-source").value   || null,
+        utm_campaign: document.getElementById("link-utm-campaign").value || null,
+    };
+
+    try {
         const res = await fetch(`${Auth.API_URL}/links`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+            method:"POST",
+            headers:{"Authorization":`Bearer ${session.access_token}`,"Content-Type":"application/json"},
             body: JSON.stringify(payload)
         });
-
-        btn.disabled = false;
-        btn.textContent = "Criar link";
-
-        if (res.ok) {
-            closeModal();
-            loadLinks();
-        } else {
-            const err = await res.json().catch(() => ({}));
-            alert(err.detail || "Erro ao criar link.");
-        }
+        btn.disabled = false; btn.textContent = "Criar link";
+        if (res.ok) { closeModal(); loadLinks(); }
+        else { const err = await res.json().catch(()=>({})); alert(err.detail || "Erro ao criar link."); }
+    } catch(err) {
+        btn.disabled = false; btn.textContent = "Criar link";
+        alert("Erro de conexão.");
     }
+}
 
-    async function deleteLink(id) {
-        if (!confirm("Excluir este link? Cliques existentes serão mantidos.")) return;
-        const session = await Auth.checkAuth();
-        if (!session) return;
-        await fetch(`${Auth.API_URL}/links/${id}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${session.access_token}` }
-        });
-        loadLinks();
-    }
+async function deleteLink(id) {
+    if (!confirm("Excluir este link?")) return;
+    const session = await Auth.checkAuth();
+    if (!session) return;
+    await fetch(`${Auth.API_URL}/links/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${session.access_token}`}});
+    loadLinks();
+}
 
-    function copyLink(url, btn) {
-        navigator.clipboard.writeText(url).then(() => {
-            const original = btn.textContent;
-            btn.textContent = "Copiado!";
-            setTimeout(() => { btn.textContent = original; }, 1500);
-        });
-    }
+function copyLink(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = "✓ Copiado!";
+        btn.style.color = "var(--success)";
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ""; }, 1800);
+    });
+}
 
-    function openSidebar() {
-        document.getElementById("sidebar").classList.add("open");
-        document.getElementById("sidebar-overlay").classList.add("open");
-    }
-    function closeSidebar() {
-        document.getElementById("sidebar").classList.remove("open");
-        document.getElementById("sidebar-overlay").classList.remove("open");
-    }
+function openSidebar()  { document.getElementById("sidebar").classList.add("open"); document.getElementById("sidebar-overlay").classList.add("open"); }
+function closeSidebar() { document.getElementById("sidebar").classList.remove("open"); document.getElementById("sidebar-overlay").classList.remove("open"); }
 </script>
 </body>
 </html>

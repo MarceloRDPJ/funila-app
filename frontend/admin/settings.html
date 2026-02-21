@@ -222,13 +222,27 @@
         </div>
       </div>
 
-      <div class="anim-2" style="background:var(--layer-2);border:1px solid var(--border-ghost);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;min-height:200px;color:var(--text-40)">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-          <div style="font-size:0.9rem;font-weight:500">Configurações em desenvolvimento</div>
-          <p style="font-size:0.8rem;max-width:300px;text-align:center">Em breve você poderá alterar sua senha, nome, plano e muito mais por aqui.</p>
+      <div class="anim-2" style="background:var(--layer-2);border:1px solid var(--border-ghost);border-radius:var(--radius-lg);padding:32px;max-width:600px;margin:0 auto">
+          <form id="profile-form" onsubmit="updateProfile(event)">
+              <div class="form-group">
+                  <label for="p-name">Nome da Empresa / Usuário</label>
+                  <input type="text" id="p-name" placeholder="Seu nome ou da empresa">
+              </div>
+
+              <div class="form-group">
+                  <label for="p-whatsapp">WhatsApp (para notificações)</label>
+                  <input type="text" id="p-whatsapp" placeholder="(11) 99999-9999">
+              </div>
+
+              <div class="form-group">
+                  <label for="p-email">E-mail (Login)</label>
+                  <input type="email" id="p-email" disabled style="opacity:0.6;cursor:not-allowed">
+              </div>
+
+              <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:12px">
+                  <button type="submit" class="btn btn-primary" id="save-btn">Salvar Alterações</button>
+              </div>
+          </form>
       </div>
 
     </div>
@@ -255,8 +269,67 @@
 
   // Auth check
   document.addEventListener("DOMContentLoaded", async () => {
-    await Auth.checkAuth();
+    const session = await Auth.checkAuth();
+    if(session) loadProfile();
   });
+
+  async function loadProfile() {
+      const session = await Auth.checkAuth();
+      if(!session) return;
+
+      try {
+          const res = await fetch(`${Auth.API_URL}/auth/me`, {
+              headers: { "Authorization": `Bearer ${session.access_token}` }
+          });
+          if(res.ok) {
+              const data = await res.json();
+              document.getElementById("p-name").value = data.name || "";
+              document.getElementById("p-whatsapp").value = data.whatsapp || ""; // Needs backend support
+              document.getElementById("p-email").value = data.email || "";
+          }
+      } catch(e) {
+          console.error("Erro ao carregar perfil", e);
+      }
+  }
+
+  async function updateProfile(e) {
+      e.preventDefault();
+      const session = await Auth.checkAuth();
+      if(!session) return;
+
+      const btn = document.getElementById("save-btn");
+      btn.textContent = "Salvando...";
+      btn.disabled = true;
+
+      const payload = {
+          name: document.getElementById("p-name").value,
+          whatsapp: document.getElementById("p-whatsapp").value
+      };
+
+      try {
+          const res = await fetch(`${Auth.API_URL}/auth/me`, {
+              method: "PATCH",
+              headers: {
+                  "Authorization": `Bearer ${session.access_token}`,
+                  "Content-Type": "application/json"
+              },
+              body: JSON.stringify(payload)
+          });
+
+          if(res.ok) {
+              showToast("Perfil atualizado com sucesso!", "success");
+              // Refresh header info
+              Auth.checkAuth();
+          } else {
+              showToast("Erro ao atualizar perfil.", "error");
+          }
+      } catch(e) {
+          showToast("Erro de conexão.", "error");
+      } finally {
+          btn.textContent = "Salvar Alterações";
+          btn.disabled = false;
+      }
+  }
 </script>
 </body>
 </html>

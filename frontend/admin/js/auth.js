@@ -44,7 +44,30 @@ async function checkAuth() {
         }
         return null;
     }
+
+    // Atualiza interface com dados do usuário
+    updateUserProfile(session);
+
     return session;
+}
+
+async function updateUserProfile(session) {
+    try {
+        const token = getToken(session);
+        const res = await fetch(`${API_URL}/auth/me`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const user = await res.json();
+
+        // Update DOM elements
+        document.querySelectorAll(".client-name").forEach(el => el.textContent = user.name || "Usuário");
+        document.querySelectorAll(".client-plan, .plan-name").forEach(el => el.textContent = user.plan || "Free");
+        document.querySelectorAll(".client-avatar, .user-avatar").forEach(el => el.textContent = user.avatar_initials || "US");
+
+    } catch (e) {
+        console.error("Error updating user profile", e);
+    }
 }
 
 async function logout() {

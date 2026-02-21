@@ -4,26 +4,32 @@ from database import get_supabase
 from jose import jwt, JWTError
 import os
 
-# Instância de segurança Bearer Token
+# ─── MASTER EMAIL — defina aqui ou via variável de ambiente ───────────────────
+# Usuários com este email recebem role=master automaticamente se não
+# tiverem linha em public.users ainda.
+MASTER_EMAIL = os.getenv("MASTER_EMAIL", "marcelorodriguesd017@gmail.com")
+
 security = HTTPBearer()
+
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Verifica o token JWT enviado no header Authorization.
-    Retorna o objeto usuário do Supabase Auth se válido.
+    Tenta primeiro via Supabase Auth (GoTrue).
+    Fallback: token customizado de impersonação assinado pelo backend.
     """
     token = credentials.credentials
+
     try:
         supabase = get_supabase()
     except RuntimeError:
-         # Log specifically that database is not configured
-         print("ERROR: Database credentials missing in get_current_user")
-         raise HTTPException(
+        print("ERROR: Database credentials missing in get_current_user")
+        raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Serviço de banco de dados indisponível."
+            detail="Serviço de banco de dados indisponível.",
         )
 
-    # 1. Try Supabase Auth (GoTrue)
+    # 1. Tenta Supabase Auth (GoTrue) — caminho normal
     try:
         user_response = supabase.auth.get_user(token)
         if user_response and user_response.user:
@@ -31,19 +37,16 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     except Exception:
         pass
 
-    # 2. Try Custom Impersonation Token (signed by backend)
+    # 2. Fallback: token customizado de impersonação (assinado pelo backend)
     try:
         encryption_key = os.getenv("ENCRYPTION_KEY")
-        if not encryption_key:
-             # Fallback key generated in utils/security.py might be needed here but we import os.getenv
-             # If strictly missing here, impersonation fails.
-             pass
-        else:
+        if encryption_key:
             payload = jwt.decode(token, encryption_key, algorithms=["HS256"])
-            # Return a mock user object compatible with what get_current_user_role expects
+
             class MockUser:
-                id = payload.get("sub")
-                email = "impersonator@funila.com" # Placeholder
+                id    = payload.get("sub")
+                email = payload.get("email", "impersonator@funila.com")
+
             return MockUser()
     except JWTError:
         pass
@@ -56,94 +59,122 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+
 def get_current_user_role(user=Depends(get_current_user)):
     """
-    Busca o perfil do usuário na tabela `public.users` para determinar role e client_id.
-    Retorna um dicionário com: id, email, role, client_id.
+    Busca o perfil do usuário na tabela `public.users`.
+    Se não encontrar, auto-cria a linha com:
+      - role='master' se o email for o MASTER_EMAIL
+      - role='client' para qualquer outro
+    Isso resolve o erro 403 ao fazer login pela primeira vez
+    antes de rodar as migrations manualmente.
     """
     try:
         supabase = get_supabase()
     except RuntimeError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Serviço de banco de dados indisponível."
+            detail="Serviço de banco de dados indisponível.",
         )
 
     try:
-        # Fetch user role
-        response = supabase.table("users").select("role, client_id").eq("id", user.id).execute()
+        response = (
+            supabase.table("users")
+            .select("role, client_id, email")
+            .eq("id", user.id)
+            .single()
+            .execute()
+        )
 
-        # If response.data is None or empty list, user not found.
-        if not response.data:
-            print(f"User ID {user.id} ({user.email}) not found in public.users table. Attempting auto-fix...")
-
-            # Auto-fix: Insert the user into public.users
-            role = "client"
-            # Hardcoded check for known master email provided in prompt
-            if user.email == "marceloprego1223@gmail.com":
-                role = "master"
-
-            try:
-                # We need to create a dict for insertion.
-                # Note: 'id' must match the auth user id.
-                new_user_data = {
-                    "id": user.id,
-                    # We might need to fetch email from user object if it's there
-                    "email": getattr(user, 'email', None),
-                    "role": role,
-                    # client_id is optional/nullable in some schemas, let's assume valid.
-                }
-
-                # Perform insertion
-                insert_res = supabase.table("users").insert(new_user_data).execute()
-
-                if insert_res.data:
-                    print(f"Auto-fixed: Created user {user.id} in public.users with role {role}")
-                    return {
-                        "id": user.id,
-                        "email": new_user_data["email"],
-                        "role": role,
-                        "client_id": None
-                    }
-                else:
-                     raise Exception("Insert returned no data")
-            except Exception as insert_error:
-                print(f"Failed to auto-fix user {user.id}: {insert_error}")
-                raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado e falha ao criar.")
-
-        # Found user
-        user_data = response.data[0]
         return {
-            "id": user.id,
-            "email": user.email,
-            "role": user_data.get("role"),
-            "client_id": user_data.get("client_id")
+            "id":        user.id,
+            "email":     user.email,
+            "role":      response.data["role"],
+            "client_id": response.data.get("client_id"),
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"Role Fetch Error: {e}")
-        raise HTTPException(status_code=500, detail="Erro interno ao verificar permissões")
+        error_str = str(e)
 
-def require_master(user_profile=Depends(get_current_user_role)):
+        # ── Linha não existe em public.users ──────────────────────────────────
+        is_not_found = (
+            "JSON object requested, multiple (or no) rows returned" in error_str
+            or "Results contain 0 rows" in error_str
+            or "PGRST116" in error_str          # PostgREST "row not found" code
+        )
+
+        if is_not_found:
+            # Determina o role: master para o dono do sistema
+            user_email = getattr(user, "email", "") or ""
+            role = "master" if user_email == MASTER_EMAIL else "client"
+
+            print(
+                f"[Auth] Usuário {user.id} ({user_email}) não encontrado em public.users. "
+                f"Auto-criando com role='{role}'."
+            )
+
+            try:
+                supabase.table("users").upsert(
+                    {
+                        "id":        user.id,
+                        "email":     user_email,
+                        "role":      role,
+                        "client_id": None,
+                    },
+                    on_conflict="id",
+                ).execute()
+
+                return {
+                    "id":        user.id,
+                    "email":     user_email,
+                    "role":      role,
+                    "client_id": None,
+                }
+
+            except Exception as upsert_err:
+                print(f"[Auth] Erro ao auto-criar perfil: {upsert_err}")
+                raise HTTPException(
+                    status_code=403,
+                    detail="Perfil de usuário não encontrado e não foi possível criá-lo automaticamente.",
+                )
+
+        # ── Outro erro (conexão, permissão, etc.) ─────────────────────────────
+        print(f"[Auth] Role Fetch Error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao verificar permissões.",
+        )
+
+
+def require_master(user_profile: dict = Depends(get_current_user_role)):
     """
-    Dependência: Exige que o usuário tenha role='master'.
+    Dependência: exige role='master'.
     """
     if user_profile["role"] != "master":
-        raise HTTPException(status_code=403, detail="Acesso restrito ao administrador Master")
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso restrito ao administrador Master.",
+        )
     return user_profile
 
-def require_client(user_profile=Depends(get_current_user_role)):
-    """
-    Dependência: Exige que o usuário seja 'client' ou 'master'.
-    Garante que `client_id` esteja presente para operações tenant-scoped.
-    """
-    if user_profile["role"] not in ["client", "master"]:
-        raise HTTPException(status_code=403, detail="Acesso não autorizado para este perfil")
 
-    if not user_profile.get("client_id") and user_profile["role"] != "master":
-         # Clientes devem ter um client_id associado
-         raise HTTPException(status_code=403, detail="Usuário não vinculado a uma conta de cliente")
+def require_client(user_profile: dict = Depends(get_current_user_role)):
+    """
+    Dependência: exige role='client' ou 'master'.
+    Garante que client_id esteja presente para operações tenant-scoped
+    (masters em modo impersonação também passam).
+    """
+    if user_profile["role"] not in ("client", "master"):
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso não autorizado para este perfil.",
+        )
+
+    # Clientes comuns precisam ter client_id vinculado
+    if user_profile["role"] == "client" and not user_profile.get("client_id"):
+        raise HTTPException(
+            status_code=403,
+            detail="Usuário não vinculado a nenhuma conta de cliente.",
+        )
 
     return user_profile

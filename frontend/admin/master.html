@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Funila — Master</title>
-    <link rel="icon" href="/frontend/assets/favicon.png">
+    <link rel="icon" href="../assets/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -132,11 +132,11 @@
     .iw { background:var(--amber-bg); border:1px solid rgba(245,166,35,.2); border-radius:8px; padding:11px 13px; font-size:.81rem; color:var(--amber); margin-bottom:14px; line-height:1.5; }
 
     /* TOAST */
-    .toasts { position:fixed; bottom:22px; right:22px; z-index:999; display:flex; flex-direction:column; gap:7px; pointer-events:none; }
-    .toast { padding:9px 14px; border-radius:8px; font-size:.8rem; font-weight:500; display:flex; align-items:center; gap:7px; animation:tIn .2s ease; pointer-events:all; min-width:180px; max-width:320px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+    .toast-container { position:fixed; bottom:22px; right:22px; z-index:999; display:flex; flex-direction:column; gap:7px; pointer-events:none; }
+    .toast { padding:9px 14px; border-radius:8px; font-size:.8rem; font-weight:500; display:flex; align-items:center; gap:7px; animation:tIn .2s ease; pointer-events:all; min-width:180px; max-width:320px; box-shadow:0 8px 24px rgba(0,0,0,.4); background:var(--card); border:1px solid var(--border); }
     @keyframes tIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-    .t-ok  { background:var(--green-bg); border:1px solid rgba(0,201,126,.25); color:var(--green); }
-    .t-err { background:var(--red-bg);   border:1px solid rgba(239,68,68,.25);  color:var(--red); }
+    .toast.success { background:var(--green-bg); border:1px solid rgba(0,201,126,.25); color:var(--green); }
+    .toast.error { background:var(--red-bg); border:1px solid rgba(239,68,68,.25); color:var(--red); }
 
     /* MOBILE */
     .sbo { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:99; }
@@ -162,7 +162,7 @@
 <aside class="sidebar" id="sidebar">
     <div class="brand">
         <div class="bi" style="background: transparent;">
-        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+        <img src="../assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
     </div>
         <div><div class="bn">FUNILA</div><div class="bb">MASTER</div></div>
     </div>
@@ -298,7 +298,7 @@
     </div>
 </div>
 
-<div class="toasts" id="toasts"></div>
+<div class="toast-container" id="toast-container"></div>
 
 <script src="../admin/js/auth.js"></script>
 <script>
@@ -363,12 +363,18 @@ function rend(list) {
     tb.innerHTML=list.map(c=>{
         const dt=new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
         const nm=(c.name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-        const pb=pBg[c.plan]||'bg-s', pl=pLb[c.plan]||c.plan;
         const sb=c.active?'bg-on':'bg-of', sl=c.active?'● Ativo':'● Inativo';
         const wpp=c.whatsapp||`<span style="color:var(--t30)">—</span>`;
         return `<tr>
             <td><div class="tdn">${c.name}</div><div class="tde">${c.email}</div></td>
-            <td><span class="bg ${pb}">${pl}</span></td>
+            <td>
+                <select onchange="changePlan('${c.id}', this.value)" style="font-size:.72rem;background:var(--card);border:1px solid var(--border);color:var(--t60);border-radius:4px;padding:2px 6px;cursor:pointer">
+                    <option value="">Plano</option>
+                    <option value="solo" ${c.plan==='solo'?'selected':''}>Solo</option>
+                    <option value="pro" ${c.plan==='pro'?'selected':''}>Pro</option>
+                    <option value="agency" ${c.plan==='agency'?'selected':''}>Agency</option>
+                </select>
+            </td>
             <td><span class="bg ${sb}">${sl}</span></td>
             <td style="font-size:.77rem;color:var(--t60)">${wpp}</td>
             <td style="font-size:.77rem;color:var(--t60)">${dt}</td>
@@ -380,6 +386,23 @@ function rend(list) {
             </div></td>
         </tr>`;
     }).join('');
+}
+
+async function changePlan(id, plan) {
+    if (!plan) return;
+    const s = await Auth.checkAuth(); if (!s) return;
+    try {
+        const r = await fetch(`${API}/admin/master/clients/${id}`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${Auth.getToken(s)}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan })
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        toast('Plano atualizado com sucesso', 'ok');
+        await loadC();
+    } catch(e) {
+        toast('Erro ao alterar plano: ' + e.message, 'err');
+    }
 }
 
 function fil() {
@@ -459,15 +482,18 @@ async function doImp() {
 function openSb() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sbo').classList.add('open'); }
 function closeSb() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sbo').classList.remove('open'); }
 
-function toast(msg, t='ok') {
-    const w=document.getElementById('toasts');
-    const el=document.createElement('div');
-    const ic=t==='ok'
-        ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
-        :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
-    el.className=`toast t-${t==='ok'?'ok':'err'}`;
-    el.innerHTML=`${ic} ${msg}`; w.appendChild(el);
-    setTimeout(()=>el.remove(),4200);
+function toast(msg, t = 'ok') {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const el = document.createElement('div');
+    el.className = `toast ${t === 'ok' ? 'success' : 'error'}`;
+    el.innerHTML = `<span>${msg}</span>`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
 }
 
 document.addEventListener('keydown',e=>{

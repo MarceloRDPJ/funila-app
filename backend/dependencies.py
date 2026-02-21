@@ -43,9 +43,15 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         if encryption_key:
             payload = jwt.decode(token, encryption_key, algorithms=["HS256"])
 
+            # Verificar que é um token de impersonação válido
+            if payload.get("role") != "client" or not payload.get("client_id"):
+                raise JWTError("Token customizado inválido")
+
             class MockUser:
-                id    = payload.get("sub")
-                email = payload.get("email", "impersonator@funila.com")
+                id         = payload.get("sub")
+                email      = payload.get("email", "")
+                client_id  = payload.get("client_id")
+                role       = "client"
 
             return MockUser()
     except JWTError:
@@ -90,6 +96,11 @@ def get_current_user_role(user=Depends(get_current_user)):
         # Se o email for MASTER_EMAIL mas a role não for 'master', força o update.
         user_email = getattr(user, "email", "") or ""
         db_role = response.data.get("role")
+        db_client_id = response.data.get("client_id")
+
+        # Se é MockUser de impersonação, o client_id já vem no token
+        token_client_id = getattr(user, "client_id", None)
+        final_client_id = token_client_id or db_client_id
 
         if user_email in MASTER_EMAILS and db_role != "master":
             print(f"[Auth] Auto-promoting {user_email} to 'master'.")
@@ -100,7 +111,7 @@ def get_current_user_role(user=Depends(get_current_user)):
             "id":        user.id,
             "email":     user.email,
             "role":      db_role,
-            "client_id": response.data.get("client_id"),
+            "client_id": final_client_id,
         }
 
     except Exception as e:

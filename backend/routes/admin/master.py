@@ -164,70 +164,31 @@ def update_client(client_id: str, update: ClientUpdate, user_profile: dict = Dep
 
 @router.post("/impersonate/{client_id}")
 def impersonate_client(client_id: str, user_profile: dict = Depends(require_master)):
-    # 1. Verify client exists
     supabase = get_supabase()
-    res = supabase.table("clients").select("email").eq("id", client_id).single().execute()
-    if not res.data:
+
+    # Busca dados do cliente
+    client_res = supabase.table("clients").select("email, name").eq("id", client_id).single().execute()
+    if not client_res.data:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    # 2. Generate temporary token
-    # We create a custom JWT that mimics the structure Supabase Auth expects or uses?
-    # Actually, we rely on our `get_current_user_role` dependency.
-    # But `get_current_user` validates against Supabase Auth via `supabase.auth.get_user(token)`.
-    # We CANNOT easily forge a Supabase Auth token accepted by `get_user` without the service role signing key matching GoTrue's.
-    # However, if we use a custom dependency or if `supabase-py` allows creating tokens?
-    # Standard way: Use `supabase.auth.admin.generate_link` (magic link) or just return a token if we can sign it?
-    # `supabase.auth.get_user` calls GoTrue.
-    # If we want to impersonate, we might need to bypass `get_current_user` or have it accept our custom signed token.
+    client_email = client_res.data.get("email", "")
 
-    # Alternative: The frontend uses the token to call APIs.
-    # Our API `dependencies.py` uses `supabase.auth.get_user(token)`.
-    # GoTrue (Supabase Auth) tokens are signed with `SUPABASE_JWT_SECRET`.
-    # If we have that secret, we can sign a token.
-    # In Supabase projects, usually `SUPABASE_SERVICE_KEY` is not the JWT secret.
-    # Env var `SUPABASE_JWT_SECRET` is needed.
-
-    # If we don't have the JWT Secret, we can't forge a token that `get_user` accepts.
-    # BUT, we can use `supabase.auth.admin.sign_in_with_id_token`? No.
-
-    # Let's assume we have SUPABASE_JWT_SECRET or ENCRYPTION_KEY is used (unlikely for GoTrue).
-    # If we cannot generate a valid Auth token, we can't do true impersonation on frontend that calls `get_user`.
-
-    # HACK / WORKAROUND for "Impersonation":
-    # Since we are Master, we can just return a custom token signed by US (backend)
-    # and update `dependencies.py` to verify this custom token IF `get_user` fails.
-
-    # Let's use `ENCRYPTION_KEY` as secret for our custom impersonation token.
+    # Busca o user_id vinculado a este cliente
+    u_res = supabase.table("users").select("id").eq("client_id", client_id).limit(1).execute()
+    user_id = u_res.data[0]["id"] if u_res.data else client_id
 
     payload = {
         "client_id": client_id,
-        "role": "client", # Impersonated role
+        "role": "client",
         "impersonated_by": user_profile["id"],
-        "exp": datetime.utcnow() + timedelta(hours=1),
-        "aud": "authenticated", # Mimic Supabase
-        "sub": client_id # Usually user_id, but here client_id or we need to find the user_id of the client owner.
+        "exp": datetime.utcnow() + timedelta(hours=4),
+        "aud": "authenticated",
+        "sub": user_id,
+        "email": client_email,
     }
-
-    # Find user_id for this client (first user found)
-    u_res = supabase.table("users").select("id").eq("client_id", client_id).limit(1).execute()
-    if u_res.data:
-        payload["sub"] = u_res.data[0]["id"]
-    else:
-        # No user linked?
-        payload["sub"] = client_id # Fallback
 
     encoded_token = jwt.encode(payload, os.getenv("ENCRYPTION_KEY"), algorithm='HS256')
 
-    # Log Audit
     logger.info(f"Master {user_profile['id']} impersonating Client {client_id}")
-    supabase.table("events").insert({
-        "event_type": "impersonation_start",
-        "metadata": {"master_id": user_profile["id"], "target_client": client_id}
-    }).execute() # Assuming events table can hold system events or we add relation later. For now it works if leads FK is optional?
-    # Events table has lead_id FK. It might fail if lead_id is required.
-    # Schema: lead_id UUID REFERENCES leads...
-    # If lead_id is NOT NULL, we can't insert system event.
-    # Checked schema: lead_id UUID REFERENCES... (nullable by default in SQL unless NOT NULL specified).
-    # Schema says: lead_id UUID REFERENCES leads... (Implies nullable).
 
     return {"access_token": encoded_token, "redirect": "/frontend/admin/dashboard.html"}

@@ -178,10 +178,61 @@ function setupUI() {
     }
 }
 
+function renderEmptyState(containerId, icon, title, subtitle) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    padding:64px 24px;color:var(--text-40);text-align:center;min-height:200px">
+            <div style="font-size:2.5rem;margin-bottom:16px;opacity:0.6">${icon}</div>
+            <div style="font-size:0.9rem;color:var(--text-70);font-weight:500;margin-bottom:6px">${title}</div>
+            <div style="font-size:0.78rem;line-height:1.5">${subtitle}</div>
+        </div>`;
+}
+
+function exitImpersonation() {
+    sessionStorage.removeItem('custom_access_token');
+    const masterToken = sessionStorage.getItem('master_token_backup');
+    if (masterToken) {
+        window.location.href = '/frontend/master/index.html';
+    } else {
+        window.location.href = '/frontend/login/index.html';
+    }
+}
+
 // Initialize UI when DOM is ready
-document.addEventListener("DOMContentLoaded", setupUI);
+document.addEventListener("DOMContentLoaded", () => {
+    setupUI();
+
+    // Detecta impersonação ativa e exibe banner
+    const customToken = sessionStorage.getItem('custom_access_token');
+    if (customToken) {
+        const existing = document.getElementById('impersonation-banner');
+        if (existing) {
+            existing.style.display = 'flex';
+        } else {
+            const banner = document.createElement('div');
+            banner.id = 'impersonation-banner-fixed';
+            banner.style.cssText = `
+                position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+                background:var(--warm-bg);border:1px solid var(--warm);color:var(--warm);
+                padding:8px 16px;border-radius:20px;font-size:0.75rem;font-weight:600;
+                display:flex;align-items:center;gap:12px;z-index:9999;
+                box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap`;
+            banner.innerHTML = `
+                ⚠ Você está no painel de um cliente
+                <button onclick="exitImpersonation()" style="background:var(--warm);color:#000;border:none;
+                    border-radius:10px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer">
+                    Sair
+                </button>`;
+            document.body.appendChild(banner);
+        }
+    }
+});
 
 window.Auth = { checkAuth, logout, getSupabase, getToken, getTokenAsync, authHeaders, API_URL, showToast };
-window.showToast = showToast; // Expose globally for convenience
+window.showToast = showToast;
+window.renderEmptyState = renderEmptyState;
+window.exitImpersonation = exitImpersonation;
 window.openSidebar = openSidebar;
 window.closeSidebar = closeSidebar;

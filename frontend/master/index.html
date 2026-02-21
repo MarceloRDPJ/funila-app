@@ -177,6 +177,7 @@
                             <th>Cliente</th>
                             <th>Plano</th>
                             <th>Status</th>
+                            <th>Health (24h)</th>
                             <th>Acesso</th>
                             <th>Ações</th>
                         </tr>
@@ -294,6 +295,12 @@
         }
     }
 
+    function renderHealth(status, errors) {
+        if (status === 'critical') return `<span style="color:var(--dead);font-weight:600;font-size:0.75rem">⚠ Critical (${errors})</span>`;
+        if (status === 'warning') return `<span style="color:var(--warm);font-weight:600;font-size:0.75rem">⚠ Warning (${errors})</span>`;
+        return `<span style="color:var(--hot);font-weight:600;font-size:0.75rem">✓ Healthy</span>`;
+    }
+
     function renderClients(clients) {
         const tbody = document.getElementById("clients-body");
         const countEl = document.getElementById("total-clients-count");
@@ -327,6 +334,9 @@
                         <span class="status-pill ${c.active ? "pill-top" : "pill-bad"}">
                             ${c.active ? "Ativo" : "Inativo"}
                         </span>
+                    </td>
+                    <td>
+                        ${renderHealth(c.health_status, c.recent_errors)}
                     </td>
                     <td>
                         <button class="btn btn-ghost" style="padding:4px 8px;font-size:0.7rem;height:auto" onclick="impersonate('${c.id}')">

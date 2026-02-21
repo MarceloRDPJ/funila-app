@@ -19,6 +19,7 @@ from routes import analytics
 from routes import oauth
 from routes import creatives
 from routes import billing
+from routes import logs
 from services.meta_sync import sync_meta_account
 from database import get_supabase
 
@@ -109,3 +110,4 @@ app.include_router(analytics.router)
 app.include_router(oauth.router)
 app.include_router(creatives.router)
 app.include_router(billing.router)
+app.include_router(logs.router)

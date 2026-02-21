@@ -412,6 +412,27 @@ def get_lead_details(
     try:
         events_res = supabase.table("events").select("*").eq("lead_id", lead_id).order("created_at", desc=True).execute()
         timeline = events_res.data or []
+
+        # Fetch system logs related to this lead (errors, webhooks)
+        logs_res = supabase.table("logs").select("*").eq("lead_id", lead_id).order("created_at", desc=True).execute()
+        logs = logs_res.data or []
+
+        # Normalize logs to match event structure for the timeline
+        for log in logs:
+            timeline.append({
+                "event_type": f"log_{log['level']}", # e.g. log_error, log_info
+                "created_at": log["created_at"],
+                "metadata": {
+                    "source": log["source"],
+                    "message": log["message"],
+                    "details": log["metadata"]
+                },
+                "is_log": True # Flag to frontend
+            })
+
+        # Re-sort combined timeline
+        timeline.sort(key=lambda x: x["created_at"], reverse=True)
+
     except Exception as e:
         print(f"Erro ao buscar timeline do lead {lead_id}: {e}")
         timeline = []

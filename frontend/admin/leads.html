@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Funila — Leads CRM</title>
-<link rel="icon" href="/frontend/assets/favicon.png">
+<link rel="icon" href="../assets/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="kanban.css">
@@ -23,7 +23,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo" style="background: transparent; box-shadow: none;">
-        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+        <img src="../assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
       </div>
       <div class="brand-text">
         <div class="brand-name">FUNILA</div>
@@ -184,11 +184,19 @@
     </div>
 
     <!-- CONTENT -->
-    <div class="content" style="overflow-x:hidden;height:calc(100vh - 56px);display:flex;flex-direction:column;padding-bottom:0">
+    <div class="content" style="overflow:hidden;height:calc(100vh - 56px);display:flex;flex-direction:column;padding:0">
+
+        <div style="padding:10px 28px 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+            <span id="kanban-total" style="font-size:0.75rem;color:var(--text-40)">0 leads</span>
+            <span style="font-size:0.72rem;color:var(--text-20)">← arraste para mover →</span>
+        </div>
 
         <div id="kanban-board" class="kanban-board anim-1">
-            <!-- Kanban loaded by JS -->
-            <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--text-40)">Carregando...</div>
+            <div style="display:flex;gap:14px;padding:16px 28px 20px 28px;width:100%">
+                <div class="skeleton" style="width:240px;height:calc(100vh - 200px);border-radius:16px"></div>
+                <div class="skeleton" style="width:240px;height:calc(100vh - 200px);border-radius:16px;animation-delay:0.1s"></div>
+                <div class="skeleton" style="width:240px;height:calc(100vh - 200px);border-radius:16px;animation-delay:0.2s"></div>
+            </div>
         </div>
 
         <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:10px;margin-bottom:20px">
@@ -278,7 +286,7 @@
                 document.getElementById("kanban-board").innerHTML =
                     `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:200px;color:var(--dead);flex-direction:column;gap:8px">
                         <span>Acesso de Master</span>
-                        <small style="font-size:.8rem;opacity:.6">Para ver leads, entre no painel de um cliente via <a href="master.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
+                        <small style="font-size:.8rem;opacity:.6">Para ver leads, entre no painel de um cliente via <a href="/frontend/master/index.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
                     </div>`;
                 return;
             }

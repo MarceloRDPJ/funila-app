@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Funila — Links de Campanha</title>
-<link rel="icon" href="/frontend/assets/favicon.png">
+<link rel="icon" href="../assets/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -151,7 +151,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo" style="background: transparent; box-shadow: none;">
-        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+        <img src="../assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
       </div>
       <div class="brand-text">
         <div class="brand-name">FUNILA</div>
@@ -288,7 +288,7 @@
             <span style="margin-left:auto;font-size:.75rem;color:var(--text-40)">Rastreio ponta a ponta</span>
         </div>
 
-        <div class="table-container anim-3">
+        <div class="table-container anim-3" id="links-list">
             <table>
                 <thead>
                     <tr>
@@ -300,7 +300,13 @@
                     </tr>
                 </thead>
                 <tbody id="links-body">
-                    <tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--text-40)">Carregando...</div></td></tr>
+                    <tr><td colspan="5" style="padding:20px">
+                        <div style="display:flex;flex-direction:column;gap:10px">
+                            <div class="skeleton" style="height:40px;width:100%"></div>
+                            <div class="skeleton" style="height:40px;width:100%;animation-delay:0.1s"></div>
+                            <div class="skeleton" style="height:40px;width:100%;animation-delay:0.2s"></div>
+                        </div>
+                    </td></tr>
                 </tbody>
             </table>
         </div>
@@ -315,7 +321,7 @@
             <span class="modal-title">Novo Link de Campanha</span>
             <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <form id="link-form" class="modal-form" onsubmit="createLink(event)">
+        <div id="link-form" class="modal-form">
 
             <div class="form-group">
                 <label>Nome da campanha</label>
@@ -390,9 +396,9 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-                <button type="submit" class="btn btn-primary" id="create-btn">Criar link</button>
+                <button type="button" onclick="createLink()" class="btn btn-primary" id="create-btn">Criar link</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
@@ -432,7 +438,10 @@ function openModal() {
 }
 function closeModal() {
     document.getElementById("modal").classList.remove("open");
-    document.getElementById("link-form").reset();
+    ['link-name','link-dest','link-capture-url','link-headline','link-video-url','link-utm-source','link-utm-campaign'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+    });
     selectMode("form", document.querySelector(".mode-card[data-mode='form']"));
 }
 
@@ -454,7 +463,7 @@ async function loadLinks() {
         if (res.status === 400) {
             tbody.innerHTML = `<tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--text-40)">
                 <p style="font-size:.9rem;color:var(--text-60);margin-bottom:8px">Acesso de Master</p>
-                <small>Para gerenciar links, entre no painel de um cliente via <a href="master.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
+                <small>Para gerenciar links, entre no painel de um cliente via <a href="/frontend/master/index.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
             </div></td></tr>`;
             return;
         }
@@ -464,7 +473,7 @@ async function loadLinks() {
         const links = await res.json();
 
         if (!links.length) {
-            tbody.innerHTML = `<tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--text-40)">Nenhum link criado ainda.</div></td></tr>`;
+            if(window.renderEmptyState) window.renderEmptyState('links-list', '🔗', 'Nenhum link criado', 'Clique em "+ Novo Link" para rastrear seu primeiro anúncio');
             return;
         }
 
@@ -510,8 +519,7 @@ async function loadLinks() {
     }
 }
 
-async function createLink(e) {
-    e.preventDefault();
+async function createLink() {
     const session = await Auth.checkAuth();
     if (!session) return;
     const btn = document.getElementById("create-btn");

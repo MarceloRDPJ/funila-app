@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Funila — Configurar Formulário</title>
-<link rel="icon" href="/frontend/assets/favicon.png">
+<link rel="icon" href="../assets/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -165,7 +165,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo" style="background: transparent; box-shadow: none;">
-        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+        <img src="../assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
       </div>
       <div class="brand-text">
         <div class="brand-name">FUNILA</div>
@@ -298,9 +298,9 @@
 
         <!-- Drag & Drop Container -->
         <div id="fields-container" class="fields-grid anim-3" style="display:flex;flex-direction:column;gap:12px;max-width:600px">
-            <div class="empty-state" style="text-align:center; padding: 40px; color:var(--text-40)">
-                <p>Carregando configurações...</p>
-            </div>
+            <div class="skeleton" style="height:80px;width:100%"></div>
+            <div class="skeleton" style="height:80px;width:100%;animation-delay:0.1s"></div>
+            <div class="skeleton" style="height:80px;width:100%;animation-delay:0.2s"></div>
         </div>
     </div>
   </div>
@@ -345,16 +345,18 @@
                 headers: { "Authorization": `Bearer ${session.access_token}` }
             });
 
-            if (resFields.status === 400) {
-                // Master sem impersonação ativa
-                container.innerHTML = `<div class="empty-state" style="text-align:center;padding:40px;color:var(--text-40)">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-bottom:12px;opacity:.4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <p style="font-size:.9rem;color:var(--text-60);margin-bottom:8px">Acesso de Master</p>
-                    <small>Para editar formulários, entre no painel de um cliente via <a href="master.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
-                </div>`;
+            if (resFields.status === 403 || resFields.status === 400) {
+                container.innerHTML = `
+                    <div style="text-align:center;padding:64px 24px">
+                        <div style="font-size:2rem;margin-bottom:12px">🔒</div>
+                        <div style="font-size:0.9rem;color:var(--text-70);font-weight:500">Acesso restrito</div>
+                        <div style="font-size:0.78rem;color:var(--text-40);margin-top:8px;line-height:1.5">
+                            Sua conta não está vinculada a um cliente ainda.<br>
+                            Entre em contato com o administrador.
+                        </div>
+                    </div>`;
                 return;
             }
-
             if (!resFields.ok) throw new Error("Erro ao carregar campos (HTTP " + resFields.status + ")");
             configData = await resFields.json();
 
@@ -372,7 +374,7 @@
     function renderConfig() {
         const container = document.getElementById("fields-container");
         if(configData.length === 0) {
-             container.innerHTML = `<div class="empty-state" style="text-align:center; padding: 40px; color:var(--text-40)"><p>Nenhum campo configurável encontrado.</p></div>`;
+             if(window.renderEmptyState) window.renderEmptyState('fields-container', '📋', 'Configuração não encontrada', 'Entre em contato com o administrador para vincular seu formulário');
              return;
         }
 

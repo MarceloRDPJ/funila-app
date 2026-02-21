@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Funila — Master</title>
-<link rel="icon" href="/frontend/assets/favicon.png">
+<link rel="icon" href="../assets/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../admin/style.css">
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -95,7 +95,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo" style="background: transparent; box-shadow: none;">
-        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+        <img src="../assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
       </div>
       <div class="brand-text">
         <div class="brand-name">FUNILA</div>
@@ -316,7 +316,13 @@
                             <span class="client-row-email">${c.email}</span>
                         </div>
                     </td>
-                    <td><span class="status-pill pill-info">${planLabel[c.plan] || c.plan}</span></td>
+                    <td>
+                        <select onchange="changePlan('${c.id}', this.value)" style="font-size:0.75rem;background:var(--layer-1);border:1px solid var(--border-ghost);color:var(--text-100);border-radius:4px;padding:4px 8px;cursor:pointer">
+                            <option value="solo" ${c.plan==='solo'?'selected':''}>Solo</option>
+                            <option value="pro" ${c.plan==='pro'?'selected':''}>Pro</option>
+                            <option value="agency" ${c.plan==='agency'?'selected':''}>Agency</option>
+                        </select>
+                    </td>
                     <td>
                         <span class="status-pill ${c.active ? "pill-top" : "pill-bad"}">
                             ${c.active ? "Ativo" : "Inativo"}
@@ -337,6 +343,23 @@
                     </td>
                 </tr>`;
         }).join("");
+    }
+
+    async function changePlan(id, plan) {
+        if (!plan) return;
+        const session = await Auth.checkAuth(); if (!session) return;
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients/${id}`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan })
+            });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            showToast("Plano atualizado com sucesso", "success");
+            await loadClients();
+        } catch(e) {
+            showToast("Erro ao alterar plano: " + e.message, "error");
+        }
     }
 
     function filterClients() {

@@ -2,19 +2,31 @@
 
 .kanban-board {
     display: flex;
-    overflow-x: auto;
-    padding-bottom: 24px;
-    gap: 16px;
-    flex: 1; /* Fill remaining vertical space */
-    min-height: 0; /* Enable flex child scrolling */
+    flex-direction: row;
+    overflow-x: scroll;       /* SCROLL não auto — garante scrollbar sempre visível */
+    overflow-y: visible;
+    gap: 14px;
+    padding: 16px 28px 20px 28px;
     align-items: flex-start;
-
-    /* Ensure scrollbar works */
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    flex: 1;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+}
 
-    /* Better horizontal padding */
-    padding-right: 28px;
+.kanban-board::-webkit-scrollbar { height: 5px; }
+.kanban-board::-webkit-scrollbar-track { background: transparent; }
+.kanban-board::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.10);
+    border-radius: 3px;
+}
+.kanban-board::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.20);
 }
 
 .kanban-column {
@@ -22,14 +34,13 @@
     border: 1px solid var(--border-ghost);
     border-radius: var(--radius-lg);
     padding: 16px;
-    min-width: 300px;
-    max-width: 300px;
+    min-width: 240px;
+    max-width: 240px;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    max-height: 100%;
+    max-height: calc(100vh - 130px);
     flex-shrink: 0;
-    transition: box-shadow 0.2s;
+    transition: border-color 0.15s ease;
 }
 
 /* Highlight column on drag over (optional) */
@@ -183,20 +194,6 @@
 }
 
 @media (max-width: 1024px) {
-    .kanban-board {
-        scroll-snap-type: x mandatory;
-        padding-right: 24px;
-        /* Increase height on mobile if needed or rely on flex */
-    }
-    .kanban-column {
-        min-width: 280px;  /* Fixed width is better than vw usually */
-        max-width: 280px;
-        scroll-snap-align: start; /* Snap to start feels more natural for lists */
-        margin-right: 8px;
-    }
-
-    /* Adjust card padding for touch targets */
-    .kanban-card {
-        padding: 14px;
-    }
+    .kanban-board { padding: 12px 16px 16px; gap: 10px; }
+    .kanban-column { min-width: 220px; max-width: 220px; max-height: calc(100vh - 110px); }
 }

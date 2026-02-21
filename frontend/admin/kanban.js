@@ -22,6 +22,14 @@ const STATUS_COLORS = {
 function renderKanbanBoard(leads) {
     const board = document.getElementById("kanban-board");
     if (!board) return;
+
+    if (!leads || leads.length === 0) {
+        if (window.renderEmptyState) {
+             window.renderEmptyState('kanban-board', '📭', 'Nenhum lead ainda', 'Crie um link de rastreamento e compartilhe nos seus anúncios');
+             return;
+        }
+    }
+
     board.innerHTML = "";
 
     // Cria as colunas
@@ -122,6 +130,10 @@ function renderKanbanBoard(leads) {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // Atualiza contador total
+    const totalEl = document.getElementById('kanban-total');
+    if (totalEl) totalEl.textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''}`;
 }
 
 function createKanbanCard(lead) {

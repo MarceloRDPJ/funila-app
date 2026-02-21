@@ -206,18 +206,18 @@
 
       <!-- Actions -->
       <div class="topbar-actions">
-        <button class="topbar-btn" id="btn-theme">
+        <button class="topbar-btn" onclick="window.location.href='settings.html'" title="Configurações">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1v2M7 11v2M1 7h2M11 7h2M3 3l1.5 1.5M9.5 9.5L11 11M11 3L9.5 4.5M4.5 9.5L3 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
         </button>
-        <button class="topbar-btn" style="position:relative" id="btn-notifs">
+        <button class="topbar-btn" style="position:relative" onclick="if(window.showToast) showToast('Nenhuma notificação nova', 'info'); else alert('Nenhuma notificação nova');" title="Notificações">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1.5c-2.485 0-4.5 1.79-4.5 4v2.5L1 10h12l-1.5-2V5.5c0-2.21-2.015-4-4.5-4zM5.5 10v.5a1.5 1.5 0 003 0V10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <div class="notif-dot"></div>
         </button>
-        <div class="user-avatar" id="btn-profile">..</div>
+        <div class="user-avatar" onclick="window.location.href='settings.html'">..</div>
       </div>
     </div>
 

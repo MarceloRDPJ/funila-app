@@ -1380,7 +1380,7 @@ svg { display: block; flex-shrink: 0; }
 /* ══════════════════════════════════════════
    MOBILE RESPONSIVENESS
 ══════════════════════════════════════════ */
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
     .sidebar {
         transform: translateX(-100%);
     }

@@ -3,29 +3,10 @@ import time
 import os
 from database import get_supabase
 from typing import Optional
+from services.external import fetch_brasil_api_data
 
 # Configuração de APIs Externas
-BRASIL_API_URL = "https://brasilapi.com.br/api/cpf/v1"
 SERASA_API_URL = "https://api.soawebservices.com.br/serasa"
-
-async def fetch_brasil_api_data(cpf: str) -> Optional[dict]:
-    """
-    Camada 1: Enriquecimento via BrasilAPI (Gratuito).
-
-    Busca dados públicos vinculados ao CPF.
-    - URL: https://brasilapi.com.br/api/cpf/v1/{cpf}
-    - Timeout: 5 segundos
-    - Retorno: JSON com dados ou None em caso de erro/404.
-    """
-    clean_cpf = "".join(filter(str.isdigit, cpf))
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{BRASIL_API_URL}/{clean_cpf}")
-            if response.status_code == 200:
-                return response.json()
-    except Exception as e:
-        print(f"BrasilAPI Erro: {e}")
-    return None
 
 def validate_whatsapp_background(lead_id: str, phone: str, client_id: str = None):
     """

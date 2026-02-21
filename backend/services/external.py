@@ -1,19 +1,38 @@
 import httpx
 import os
+from typing import Optional
 
-async def validate_cpf(cpf: str) -> bool:
+BRASIL_API_URL = "https://brasilapi.com.br/api/cpf/v1"
+
+async def fetch_brasil_api_data(cpf: str) -> Optional[dict]:
+    """
+    Camada 1: Enriquecimento via BrasilAPI (Gratuito).
+
+    Busca dados públicos vinculados ao CPF.
+    - URL: https://brasilapi.com.br/api/cpf/v1/{cpf}
+    - Timeout: 5 segundos
+    - Retorno: JSON com dados ou None em caso de erro/404.
+    """
     if not cpf:
-        return False
-    clean = "".join(filter(str.isdigit, cpf))
-    if len(clean) != 11:
-        return False
+        return None
+
+    clean_cpf = "".join(filter(str.isdigit, cpf))
+
+    if len(clean_cpf) != 11:
+        return None
+
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.get(f"https://brasilapi.com.br/api/cpf/v1/{clean}")
-            return r.status_code == 200
+            response = await client.get(f"{BRASIL_API_URL}/{clean_cpf}")
+            if response.status_code == 200:
+                return response.json()
     except Exception as e:
-        print(f"BrasilAPI CPF erro: {e}")
-        return False
+        print(f"BrasilAPI Erro: {e}")
+    return None
+
+async def validate_cpf(cpf: str) -> bool:
+    data = await fetch_brasil_api_data(cpf)
+    return data is not None
 
 async def get_serasa_score(cpf: str) -> int | None:
     token = os.getenv("SOAWS_TOKEN", "")

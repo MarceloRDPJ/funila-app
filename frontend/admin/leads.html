@@ -20,7 +20,7 @@
   <!-- ════════════════════════════════════
        SIDEBAR
   ════════════════════════════════════ -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-logo" style="background: transparent; box-shadow: none;">
         <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
@@ -145,6 +145,10 @@
 
     <!-- TOPBAR -->
     <div class="topbar">
+      <button class="mobile-menu-btn" onclick="openSidebar()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
       <div class="breadcrumb">
         <span>Funila</span>
         <span class="breadcrumb-sep">/</span>
@@ -172,7 +176,7 @@
               <path d="M4 4l-3 3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </button>
-        <div class="user-avatar">..</div>
+        <div class="user-avatar" id="btn-profile">..</div>
       </div>
     </div>
 
@@ -217,6 +221,8 @@
 </div>
 
 <div class="toast-container" id="toast-container"></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <script src="js/auth.js"></script>
 <script src="kanban.js"></script>

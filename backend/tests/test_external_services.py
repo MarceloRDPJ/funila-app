@@ -34,8 +34,6 @@ async def test_validate_cpf_mocked():
 
         # Mock failure response
         mock_response.status_code = 404
-        # We need to reset the mock if needed, or just update the response object
-        # Since we are returning the same response object, updating status_code is enough
         result = await validate_cpf("12345678909")
         assert result is False
 
@@ -50,17 +48,18 @@ async def test_fetch_brasil_api_data_mocked():
         mock_instance = MockClient.return_value
         mock_instance.__aenter__.return_value = mock_instance
 
-        # Mock success response with data
-        expected_data = {"name": "Test User", "cpf": "12345678909"}
+        # Configure the get method
+        mock_instance.get = AsyncMock()
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = expected_data
 
-        mock_instance.get = AsyncMock()
+        # IMPORTANT: .json() is a synchronous method on the response object
+        mock_response.json.return_value = {"name": "Test User", "cpf": "12345678909"}
+
         mock_instance.get.return_value = mock_response
 
         result = await fetch_brasil_api_data("12345678909")
-        assert result == expected_data
+        assert result == {"name": "Test User", "cpf": "12345678909"}
 
         # Mock failure response
         mock_response.status_code = 404

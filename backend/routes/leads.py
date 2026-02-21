@@ -14,18 +14,9 @@ from dependencies import require_client
 from services.enrichment import enrich_lead_data
 from services.webhooks import trigger_webhooks
 from services.meta_capi import send_conversion_event
-from ua_parser import user_agent_parser
+from utils.device import parse_device
 
 router = APIRouter(tags=["Leads"])
-
-def _parse_device(ua_string: str) -> str:
-    """Retorna 'mobile' ou 'desktop'"""
-    if not ua_string: return "desktop"
-    parsed = user_agent_parser.Parse(ua_string)
-    family = parsed["device"]["family"]
-    if family in ("iPhone", "Android", "iPad"):
-        return "mobile"
-    return "desktop"
 
 class LeadSubmit(BaseModel):
     client_id: str
@@ -76,7 +67,7 @@ async def submit_lead_partial(payload: LeadPartialSubmit, background_tasks: Back
 
     # Captura dispositivo
     ua_str = request.headers.get("user-agent", "")
-    device_type = _parse_device(ua_str)
+    device_type, _ = parse_device(ua_str)
 
     # Prepara dados para inserção/atualização
     lead_data = {
@@ -170,7 +161,7 @@ async def submit_lead(payload: LeadSubmit, background_tasks: BackgroundTasks, re
 
     # Captura dispositivo
     ua_str = request.headers.get("user-agent", "")
-    device_type = _parse_device(ua_str)
+    device_type, _ = parse_device(ua_str)
 
     client_res = supabase.table("clients").select("plan, email, whatsapp").eq("id", payload.client_id).single().execute()
     if not client_res.data:

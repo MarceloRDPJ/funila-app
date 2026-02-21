@@ -48,21 +48,29 @@ def create_link(link: LinkCreate, user_profile: dict = Depends(require_client)):
     if link.funnel_type == "capture" and not link.capture_url:
         raise HTTPException(status_code=400, detail="Modo 'Página própria' exige a URL da página de captura")
 
-    # Gera slug se não informado
+    # Gera slug se não informado (Retry logic)
     slug = link.slug
     if not slug:
         base = link.name.lower().replace(" ", "-")
-        # Ensure only alphanumeric and dashes
         base = "".join(c for c in base if c.isalnum() or c == "-")
-        # Handle empty base if name is all special chars
-        if not base:
-            base = "link"
-        slug = f"{base}-{str(uuid.uuid4())[:4]}"
+        if not base: base = "link"
 
-    # Check for slug uniqueness
-    existing = supabase.table("links").select("id").eq("slug", slug).execute()
-    if existing.data:
-        raise HTTPException(status_code=400, detail="Slug já existe")
+        # Retry up to 3 times for collision
+        for i in range(3):
+            suffix = str(uuid.uuid4())[:4] if i == 0 else str(uuid.uuid4())[:6]
+            candidate = f"{base}-{suffix}"
+            existing = supabase.table("links").select("id").eq("slug", candidate).execute()
+            if not existing.data:
+                slug = candidate
+                break
+
+        if not slug:
+             raise HTTPException(status_code=500, detail="Erro ao gerar link único. Tente novamente.")
+    else:
+        # Check for slug uniqueness (Manual slug)
+        existing = supabase.table("links").select("id").eq("slug", slug).execute()
+        if existing.data:
+            raise HTTPException(status_code=400, detail="Slug já existe")
 
     data = link.dict()
     data["slug"]      = slug
@@ -78,11 +86,12 @@ def create_link(link: LinkCreate, user_profile: dict = Depends(require_client)):
     try:
         res = supabase.table("links").insert(data).execute()
         if not res.data:
-             raise HTTPException(status_code=500, detail="Erro ao criar link no banco de dados")
+             raise HTTPException(status_code=500, detail="Erro interno ao criar link.")
         return res.data[0]
     except Exception as e:
         print(f"Erro criando link: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Hide internal DB errors
+        raise HTTPException(status_code=500, detail="Erro interno ao criar link.")
 
 
 @router.patch("/links/{link_id}")

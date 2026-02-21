@@ -8,7 +8,9 @@ from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 from database import get_supabase
-from ua_parser import user_agent_parser
+from utils.device import parse_device
+import ipaddress
+from urllib.parse import urlparse
 
 router = APIRouter(tags=["Tracker"])
 
@@ -31,18 +33,30 @@ class FunnelEvent(BaseModel):
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
-def _parse_device(ua_string: str) -> tuple[str, str]:
-    """Retorna (device_type, os_family)"""
-    parsed = user_agent_parser.Parse(ua_string)
-    family = parsed["device"]["family"]
-    if family in ("iPhone", "Android", "iPad"):
-        device = "mobile"
-    elif family == "Other":
-        device = "desktop"
-    else:
-        device = "mobile"
-    return device, parsed["os"]["family"]
+def _is_safe_url(url: str) -> bool:
+    """Valida se a URL é segura para proxy (evita SSRF)"""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
 
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Check IP address
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                return False
+        except ValueError:
+            # Not an IP, check localhost
+            if hostname in ('localhost', '127.0.0.1', '::1'):
+                return False
+
+        return True
+    except Exception:
+        return False
 
 def _build_params(link: dict, extra: dict = {}) -> str:
     params = {
@@ -78,7 +92,7 @@ def track_and_redirect(slug: str, request: Request):
 
     # Parse dispositivo
     ua_str = request.headers.get("user-agent", "")
-    device_type, os_family = _parse_device(ua_str)
+    device_type, os_family = parse_device(ua_str)
     referrer = request.headers.get("referer", "")
 
     # Gera session_id para rastreio ponta a ponta
@@ -183,8 +197,12 @@ async def proxy_capture_page(slug: str, request: Request):
 
     link        = res.data
     capture_url = link.get("capture_url")
+
     if not capture_url:
         raise HTTPException(status_code=400, detail="URL de captura não configurada")
+
+    if not _is_safe_url(capture_url):
+        raise HTTPException(status_code=400, detail="URL de captura inválida ou não permitida")
 
     # Parâmetros passados pela URL (session_id, link_id, etc.)
     link_id    = request.query_params.get("l", link["id"])

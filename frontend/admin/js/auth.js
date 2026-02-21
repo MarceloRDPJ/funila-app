@@ -140,5 +140,48 @@ function showToast(message, type = "success") {
     }, 3000);
 }
 
+// ══════════════════════════════════════════
+// SHARED UI LOGIC (Sidebar, Header Buttons)
+// ══════════════════════════════════════════
+
+function openSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (sidebar) sidebar.classList.add("open");
+    if (overlay) overlay.classList.add("open");
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (sidebar) sidebar.classList.remove("open");
+    if (overlay) overlay.classList.remove("open");
+}
+
+function setupUI() {
+    // Theme Toggle
+    const btnTheme = document.getElementById("btn-theme");
+    if (btnTheme) {
+        btnTheme.onclick = () => showToast("Tema claro disponível em breve", "info");
+    }
+
+    // Notifications
+    const btnNotifs = document.getElementById("btn-notifs");
+    if (btnNotifs) {
+        btnNotifs.onclick = () => showToast("Você não tem novas notificações", "info");
+    }
+
+    // Profile
+    const btnProfile = document.getElementById("btn-profile");
+    if (btnProfile) {
+        btnProfile.onclick = () => window.location.href = "settings.html";
+    }
+}
+
+// Initialize UI when DOM is ready
+document.addEventListener("DOMContentLoaded", setupUI);
+
 window.Auth = { checkAuth, logout, getSupabase, getToken, getTokenAsync, authHeaders, API_URL, showToast };
 window.showToast = showToast; // Expose globally for convenience
+window.openSidebar = openSidebar;
+window.closeSidebar = closeSidebar;

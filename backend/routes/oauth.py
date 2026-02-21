@@ -111,7 +111,9 @@ async def meta_callback(code: str, state: str, background_tasks: BackgroundTasks
     }, on_conflict='client_id, platform, account_id').execute() # Need unique constraint or just client_id if 1:1
 
     background_tasks.add_task(sync_meta_account, client_id)
-    return RedirectResponse('https://funila-app.onrender.com/frontend/admin/integrations.html?status=connected')
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://app.funila.com.br")
+    return RedirectResponse(f"{frontend_url}/admin/integrations.html?status=connected")
 
 @router.get('/oauth/google/connect')
 def google_connect(user=Depends(require_client)):
@@ -122,7 +124,8 @@ def google_connect(user=Depends(require_client)):
 @router.get('/oauth/google/callback')
 async def google_callback(code: str, state: str):
     # Placeholder
-    return RedirectResponse('https://funila-app.onrender.com/frontend/admin/integrations.html?status=google_connected')
+    frontend_url = os.getenv("FRONTEND_URL", "https://app.funila.com.br")
+    return RedirectResponse(f"{frontend_url}/admin/integrations.html?status=google_connected")
 
 @router.get('/integrations/status')
 def get_integrations_status(user=Depends(require_client)):

@@ -86,10 +86,20 @@ def get_current_user_role(user=Depends(get_current_user)):
             .execute()
         )
 
+        # ─── AUTO-CORRECTION FOR MASTER ───
+        # Se o email for MASTER_EMAIL mas a role não for 'master', força o update.
+        user_email = getattr(user, "email", "") or ""
+        db_role = response.data.get("role")
+
+        if user_email == MASTER_EMAIL and db_role != "master":
+            print(f"[Auth] Auto-promoting {user_email} to 'master'.")
+            supabase.table("users").update({"role": "master"}).eq("id", user.id).execute()
+            db_role = "master"
+
         return {
             "id":        user.id,
             "email":     user.email,
-            "role":      response.data["role"],
+            "role":      db_role,
             "client_id": response.data.get("client_id"),
         }
 

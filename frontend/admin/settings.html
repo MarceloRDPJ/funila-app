@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Funila — Dashboard</title>
+<title>Funila — Configurações</title>
 <link rel="icon" href="/frontend/assets/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <!-- Iconografia -->
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
 
@@ -51,7 +50,7 @@
 
       <div class="nav-label">Principal</div>
 
-      <a href="dashboard.html" class="nav-item active">
+      <a href="dashboard.html" class="nav-item">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
           <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
           <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
@@ -125,7 +124,7 @@
         Integrações
       </a>
 
-      <a href="settings.html" class="nav-item">
+      <a href="settings.html" class="nav-item active">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
           <path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/>
           <path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -154,6 +153,9 @@
 
   </aside>
 
+  <!-- OVERLAY (Mobile) -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- ════════════════════════════════════
        MAIN WRAPPER
   ════════════════════════════════════ -->
@@ -161,14 +163,19 @@
 
     <!-- TOPBAR -->
     <div class="topbar">
-      <button class="mobile-menu-btn" onclick="openSidebar()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      <!-- Mobile Toggle -->
+      <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
       </button>
 
       <div class="breadcrumb">
         <span>Funila</span>
         <span class="breadcrumb-sep">/</span>
-        <strong>Dashboard</strong>
+        <strong>Configurações</strong>
       </div>
 
       <!-- Impersonation Banner (Injected if active) -->
@@ -185,15 +192,6 @@
         </svg>
         <input placeholder="Buscar lead, campanha...">
         <span style="font-size:0.65rem;color:var(--text-20);background:var(--layer-3);padding:2px 5px;border-radius:3px;border:1px solid var(--border-ghost);">⌘K</span>
-      </div>
-
-      <!-- Period tabs -->
-      <div class="period-tabs">
-        <select id="period-filter" onchange="loadDashboard()" style="background:none;border:none;color:var(--text-40);font-size:0.72rem;font-weight:500;padding:4px 10px;cursor:pointer;outline:none">
-            <option value="today">Hoje</option>
-            <option value="week" selected>7 dias</option>
-            <option value="month">30 dias</option>
-        </select>
       </div>
 
       <!-- Actions -->
@@ -219,168 +217,18 @@
       <!-- Page header -->
       <div class="page-header anim-1">
         <div class="page-title-block">
-          <div class="page-title">Dashboard</div>
-          <div class="page-subtitle">Visão geral dos últimos 7 dias · Última atualização há 3 minutos</div>
-        </div>
-        <div class="page-actions">
-          <button class="btn btn-ghost">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Exportar
-          </button>
-          <button class="btn btn-primary" onclick="window.location.href='links.html'">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-            </svg>
-            Novo Link
-          </button>
+          <div class="page-title">Configurações da Conta</div>
+          <div class="page-subtitle">Gerencie suas preferências e dados pessoais.</div>
         </div>
       </div>
 
-      <!-- ── METRIC CARDS ── -->
-      <div class="metrics-grid anim-2">
-
-        <div class="metric-card c-blue">
-          <div class="glow"></div>
-          <div class="metric-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 12L5.5 8 8.5 10 12 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="14" cy="3" r="1.5" fill="currentColor"/>
-            </svg>
-          </div>
-          <div class="metric-label">Cliques únicos</div>
-          <div class="metric-value" id="val-clicks">—</div>
-          <span class="metric-change up">↑ 18% vs semana anterior</span>
-        </div>
-
-        <div class="metric-card c-warm">
-          <div class="glow"></div>
-          <div class="metric-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 10V6M6 10V3M9 10V7M12 10V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="metric-label">Leads capturados</div>
-          <div class="metric-value" id="val-leads">—</div>
-          <span class="metric-change up">↑ 24% vs semana anterior</span>
-        </div>
-
-        <div class="metric-card c-hot">
-          <div class="glow"></div>
-          <div class="metric-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2c0 3-4 4-4 7a4 4 0 008 0c0-3-4-4-4-7z" stroke="currentColor" stroke-width="1.3"/>
-              <circle cx="8" cy="11" r="1.5" fill="currentColor"/>
-            </svg>
-          </div>
-          <div class="metric-label">Leads quentes 🔥</div>
-          <div class="metric-value" id="val-hot">—</div>
-          <span class="metric-change up">↑ 31% vs semana anterior</span>
-        </div>
-
-        <div class="metric-card c-cold">
-          <div class="glow"></div>
-          <div class="metric-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2v12M2 8h12M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity="0.4"/>
-              <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/>
-            </svg>
-          </div>
-          <div class="metric-label">Abandono</div>
-          <div class="metric-value" id="val-abandon">—%</div>
-          <span class="metric-change down" style="color:var(--text-40);background:var(--layer-3)">vs média do funil</span>
-        </div>
-
-        <div class="metric-card c-purple">
-          <div class="glow"></div>
-          <div class="metric-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="metric-label">Taxa Conversão</div>
-          <div class="metric-value" id="val-conv">—%</div>
-          <span class="metric-change up">Meta 5%</span>
-        </div>
-
-      </div>
-
-      <!-- ── FUNIL ── -->
-      <div class="funnel-card anim-3">
-        <div class="card-title-row">
-          <div class="card-title">
-            <div class="card-title-dot"></div>
-            Funil de Conversão
-          </div>
-          <div class="card-meta">Leads por etapa</div>
-        </div>
-
-        <div class="funnel-bars" id="funnel-container">
-          <div class="funnel-row">
-            <div class="funnel-row-label">Cliques</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar b1" id="f-bar0" style="width:100%">Total</div></div>
-            <div class="funnel-row-stat" id="f-step0">—</div>
-            <div class="funnel-row-drop"></div>
-          </div>
-          <div class="funnel-row">
-            <div class="funnel-row-label">Etapa 1</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar b2" id="f-bar1">Visitantes</div></div>
-            <div class="funnel-row-stat" id="f-step1">—</div>
-            <div class="funnel-row-drop" id="f-rate1"></div>
-          </div>
-          <div class="funnel-row">
-            <div class="funnel-row-label">Etapa 2</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar b3" id="f-bar2">Perfil</div></div>
-            <div class="funnel-row-stat" id="f-step2">—</div>
-            <div class="funnel-row-drop" id="f-rate2"></div>
-          </div>
-          <div class="funnel-row">
-            <div class="funnel-row-label">Etapa 3</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar b4" id="f-bar3">Dados</div></div>
-            <div class="funnel-row-stat" id="f-step3">—</div>
-            <div class="funnel-row-drop" id="f-rate3"></div>
-          </div>
-          <div class="funnel-row">
-            <div class="funnel-row-label">Convertidos</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar b5" id="f-bar4">Sucesso</div></div>
-            <div class="funnel-row-stat" id="f-conv">—</div>
-            <div class="funnel-row-drop" id="f-rate4"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── CHART + BREAKDOWN ── -->
-      <div class="grid-2 anim-4">
-
-        <!-- Chart de leads por dia -->
-        <div class="chart-card">
-          <div class="card-title-row">
-            <div class="card-title">
-              <div class="card-title-dot"></div>
-              Leads por dia
-            </div>
-            <div class="card-meta" id="chart-subtitle">Analyzing...</div>
-          </div>
-          <div class="chart-area" style="position:relative;height:240px">
-            <canvas id="leadsChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Breakdown por status -->
-        <div class="breakdown-card">
-          <div class="card-title-row">
-            <div class="card-title">
-              <div class="card-title-dot"></div>
-              Distribuição
-            </div>
-          </div>
-          <div class="breakdown-list" id="breakdown-list">
-             <!-- Populated by JS -->
-          </div>
-          <div id="summary-list" style="margin-top:20px;display:flex;flex-direction:column;gap:12px"></div>
-        </div>
-
+      <div class="anim-2" style="background:var(--layer-2);border:1px solid var(--border-ghost);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;gap:16px;align-items:center;justify-content:center;min-height:200px;color:var(--text-40)">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <div style="font-size:0.9rem;font-weight:500">Configurações em desenvolvimento</div>
+          <p style="font-size:0.8rem;max-width:300px;text-align:center">Em breve você poderá alterar sua senha, nome, plano e muito mais por aqui.</p>
       </div>
 
     </div>
@@ -388,22 +236,11 @@
 
 </div>
 
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
 <script src="js/auth.js"></script>
-<script src="js/dashboard.js"></script>
 <script>
   // Inicialização de Ícones
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
-  }
-
-  // Lógica de Ativação do Menu
-  function setActive(element) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.remove('active');
-    });
-    element.classList.add('active');
   }
 
   // Check Impersonation
@@ -413,15 +250,13 @@
 
   function exitImpersonation() {
       sessionStorage.removeItem('custom_access_token');
-      // Restore master if saved? Or just logout/redirect
-      const master = sessionStorage.getItem('master_token_backup');
-      if(master) {
-          // Ideally restore session, but we can just redirect to master page
-          // Auth.checkAuth will check supabase session which is still master (if not cleared)
-          // or we just cleared custom token so it falls back to supabase session.
-      }
       window.location.href = 'master.html';
   }
+
+  // Auth check
+  document.addEventListener("DOMContentLoaded", async () => {
+    await Auth.checkAuth();
+  });
 </script>
 </body>
 </html>

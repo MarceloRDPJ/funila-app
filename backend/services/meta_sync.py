@@ -33,13 +33,13 @@ async def sync_meta_account(client_id: str):
                 campaigns = await fetch_campaigns(account['id'], token, client)
                 for camp in campaigns:
                     # Upsert Campaign
-                    upsert_campaign(client_id, acc['id'], camp, supabase)
+                    camp_uuid = upsert_campaign(client_id, acc['id'], camp, supabase)
 
                     # 4. Fetch Creatives (Ads)
                     ads = await fetch_ads(account['id'], camp['id'], token, client)
 
                     for ad in ads:
-                        upsert_creative(client_id, camp['id'], ad, supabase)
+                        upsert_creative(client_id, camp_uuid, ad, supabase)
 
 async def fetch_campaigns(account_id, token, client):
     r = await client.get(f'https://graph.facebook.com/v19.0/{account_id}/campaigns',
@@ -47,7 +47,7 @@ async def fetch_campaigns(account_id, token, client):
     return r.json().get('data', [])
 
 def upsert_campaign(client_id, ad_account_uuid, camp_data, supabase):
-    supabase.table('campaigns').upsert({
+    res = supabase.table('campaigns').upsert({
         'external_id': camp_data['id'],
         'client_id': client_id,
         'ad_account_id': ad_account_uuid,
@@ -56,6 +56,13 @@ def upsert_campaign(client_id, ad_account_uuid, camp_data, supabase):
         'objective': camp_data.get('objective'),
         'daily_budget_cents': int(camp_data.get('daily_budget', 0)) if camp_data.get('daily_budget') else 0
     }, on_conflict='external_id').execute()
+
+    if res.data and len(res.data) > 0:
+        return res.data[0]['id']
+
+    # Fallback in case representation was not returned
+    fallback = supabase.table('campaigns').select('id').eq('external_id', camp_data['id']).single().execute()
+    return fallback.data['id'] if fallback.data else None
 
 async def fetch_ads(account_id, campaign_id, token, client):
     # fields: name, creative{thumbnail_url,title,body}, insights{spend,clicks,impressions,ctr}
@@ -66,13 +73,9 @@ async def fetch_ads(account_id, campaign_id, token, client):
         params={'access_token': token, 'fields': fields})
     return r.json().get('data', [])
 
-def upsert_creative(client_id, campaign_external_id, ad_data, supabase):
-    # Get campaign UUID
-    camp_res = supabase.table('campaigns').select('id').eq('external_id', campaign_external_id).single().execute()
-    if not camp_res.data:
+def upsert_creative(client_id, camp_uuid, ad_data, supabase):
+    if not camp_uuid:
         return
-
-    camp_uuid = camp_res.data['id']
 
     insights_data = ad_data.get('insights', {})
     if isinstance(insights_data, dict) and 'data' in insights_data:

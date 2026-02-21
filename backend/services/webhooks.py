@@ -1,4 +1,5 @@
 import httpx
+import asyncio
 from database import get_supabase
 from typing import Dict, Any
 
@@ -42,7 +43,6 @@ async def trigger_webhooks(event_type: str, lead_data: Dict[str, Any], client_id
 
     # Send to all webhooks
     # We can run them concurrently
-    import asyncio
     tasks = [send_webhook(wh["url"], payload) for wh in webhooks]
     if tasks:
         await asyncio.gather(*tasks)

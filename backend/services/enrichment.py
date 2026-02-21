@@ -66,9 +66,8 @@ def validate_whatsapp_background(lead_id: str, phone: str, client_id: str = None
         # Devemos usar requests ou httpx.Client sincrono?
         # Para evitar bloquear workers do FastAPI, melhor httpx async, mas a func é def.
         # Vamos rodar sync mesmo, é BG task.
-        import requests
 
-        resp = requests.get(url, timeout=10)
+        resp = httpx.get(url, timeout=10)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -81,7 +80,7 @@ def validate_whatsapp_background(lead_id: str, phone: str, client_id: str = None
                 # /profile-picture?phone=...
                 pic_url = f"https://api.z-api.io/instances/{z_instance}/token/{z_token}/profile-picture?phone={clean_phone}"
                 try:
-                    p_resp = requests.get(pic_url, timeout=5)
+                    p_resp = httpx.get(pic_url, timeout=5)
                     if p_resp.status_code == 200:
                         p_data = p_resp.json()
                         profile_pic = p_data.get("link")

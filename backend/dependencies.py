@@ -7,7 +7,7 @@ import os
 # ─── MASTER EMAIL — defina aqui ou via variável de ambiente ───────────────────
 # Usuários com este email recebem role=master automaticamente se não
 # tiverem linha em public.users ainda.
-MASTER_EMAIL = os.getenv("MASTER_EMAIL", "marcelorodriguesd017@gmail.com")
+MASTER_EMAIL = os.getenv("MASTER_EMAIL", "marceloprego1223@gmail.com")
 
 security = HTTPBearer()
 

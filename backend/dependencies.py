@@ -70,29 +70,59 @@ def get_current_user_role(user=Depends(get_current_user)):
         )
 
     try:
-        response = supabase.table("users").select("role, client_id").eq("id", user.id).single().execute()
+        # Fetch user role
+        response = supabase.table("users").select("role, client_id").eq("id", user.id).execute()
 
-        # If response.data is None, user not found. supabase-py single() might raise error if no rows.
-        # But if it returns empty data:
+        # If response.data is None or empty list, user not found.
         if not response.data:
-            print(f"User ID {user.id} not found in public.users table.")
-            raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado.")
+            print(f"User ID {user.id} ({user.email}) not found in public.users table. Attempting auto-fix...")
 
+            # Auto-fix: Insert the user into public.users
+            role = "client"
+            # Hardcoded check for known master email provided in prompt
+            if user.email == "marceloprego1223@gmail.com":
+                role = "master"
+
+            try:
+                # We need to create a dict for insertion.
+                # Note: 'id' must match the auth user id.
+                new_user_data = {
+                    "id": user.id,
+                    # We might need to fetch email from user object if it's there
+                    "email": getattr(user, 'email', None),
+                    "role": role,
+                    # client_id is optional/nullable in some schemas, let's assume valid.
+                }
+
+                # Perform insertion
+                insert_res = supabase.table("users").insert(new_user_data).execute()
+
+                if insert_res.data:
+                    print(f"Auto-fixed: Created user {user.id} in public.users with role {role}")
+                    return {
+                        "id": user.id,
+                        "email": new_user_data["email"],
+                        "role": role,
+                        "client_id": None
+                    }
+                else:
+                     raise Exception("Insert returned no data")
+            except Exception as insert_error:
+                print(f"Failed to auto-fix user {user.id}: {insert_error}")
+                raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado e falha ao criar.")
+
+        # Found user
+        user_data = response.data[0]
         return {
             "id": user.id,
             "email": user.email,
-            "role": response.data["role"],
-            "client_id": response.data.get("client_id")
+            "role": user_data.get("role"),
+            "client_id": user_data.get("client_id")
         }
+
     except HTTPException:
         raise
     except Exception as e:
-        # Check if it's a "Row not found" error from Supabase/Postgrest
-        error_str = str(e)
-        if "JSON object requested, multiple (or no) rows returned" in error_str or "Results contain 0 rows" in error_str:
-             print(f"User ID {user.id} not found in public.users table (Postgrest error).")
-             raise HTTPException(status_code=403, detail="Perfil de usuário não encontrado.")
-
         print(f"Role Fetch Error: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao verificar permissões")
 

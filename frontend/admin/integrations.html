@@ -148,6 +148,13 @@
   <div class="main">
     <!-- TOPBAR -->
     <div class="topbar">
+      <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <div class="breadcrumb">
         <span>Funila</span>
         <span class="breadcrumb-sep">/</span>
@@ -217,10 +224,21 @@
   </div>
 </div>
 
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 <div class="toast-container" id="toast-container"></div>
 
 <script src="js/auth.js"></script>
 <script>
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+
     const API_URL = Auth.API_URL;
 
     document.addEventListener("DOMContentLoaded", async () => {

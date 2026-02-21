@@ -230,4 +230,4 @@ def impersonate_client(client_id: str, user_profile: dict = Depends(require_mast
     # Checked schema: lead_id UUID REFERENCES... (nullable by default in SQL unless NOT NULL specified).
     # Schema says: lead_id UUID REFERENCES leads... (Implies nullable).
 
-    return {"token": encoded_token, "redirect": "/frontend/admin/dashboard.html"}
+    return {"access_token": encoded_token, "redirect": "/frontend/admin/dashboard.html"}

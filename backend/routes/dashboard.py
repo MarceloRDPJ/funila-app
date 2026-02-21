@@ -39,19 +39,41 @@ def get_dashboard_metrics(
         clicks_query = clicks_query.gte("created_at", start_date.isoformat())
         leads_query  = leads_query.gte("created_at", start_date.isoformat())
 
-    clicks = clicks_query.execute().data
-    leads  = leads_query.execute().data
+    # Performance Optimization: Use DB-side counting instead of fetching all rows
+    # Note: Supabase/PostgREST count='exact' allows counting without data transfer if head=True
 
-    total_clicks    = len(clicks)
-    total_leads     = len(leads)
-    hot_leads       = sum(1 for l in leads if l["status"] == "hot")
-    warm_leads      = sum(1 for l in leads if l["status"] == "warm")
-    cold_leads      = sum(1 for l in leads if l["status"] == "cold")
-    converted       = sum(1 for l in leads if l["status"] == "converted")
+    # Total Clicks
+    clicks_res = clicks_query.select("id", count="exact").execute()
+    total_clicks = clicks_res.count or 0
+
+    # Total Leads
+    leads_res = leads_query.select("id", count="exact").execute()
+    total_leads = leads_res.count or 0
+
+    # Status Breakdown (Aggregated Query Simulation via multiple counts - usually better with RPC or GroupBy)
+    # Since PostgREST group_by support in supabase-py client is limited without RPC,
+    # and if lead count is huge, we should use RPC.
+    # For now, if we want to avoid fetching 10k rows, we make separate count queries.
+    # OR we use the existing logic BUT limit the columns to minimal.
+    # The previous query selected "id, status, created_at, link_id". This is lighter, but still O(N) transfer.
+
+    # Let's check volume assumption. If < 5000 leads, fetching is acceptable for MVP.
+    # For Enterprise audit, we recommend RPC.
+    # Ideally: supabase.rpc('get_dashboard_stats', {client_id: ...})
+
+    # FALLBACK: Fetch only necessary fields for chart (created_at) and status
+    # We stick to fetching for now but document the limit.
+
+    leads_data = leads_query.select("status, created_at").execute().data # Lightweight
+
+    hot_leads       = sum(1 for l in leads_data if l["status"] == "hot")
+    warm_leads      = sum(1 for l in leads_data if l["status"] == "warm")
+    cold_leads      = sum(1 for l in leads_data if l["status"] == "cold")
+    converted       = sum(1 for l in leads_data if l["status"] == "converted")
     conversion_rate = round((total_leads / total_clicks) * 100, 2) if total_clicks > 0 else 0
 
     daily_leads = {}
-    for l in leads:
+    for l in leads_data:
         date_str = l["created_at"][:10]
         daily_leads[date_str] = daily_leads.get(date_str, 0) + 1
 

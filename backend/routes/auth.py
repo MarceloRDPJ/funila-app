@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from dependencies import get_current_user_role
 from database import get_supabase
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -43,7 +46,7 @@ def get_me(user_profile: dict = Depends(get_current_user_role)):
                     else:
                         response["avatar_initials"] = "CL"
             except Exception as e:
-                print(f"Error fetching client profile: {e}")
+                logger.error(f"Error fetching client profile: {e}")
                 # Fallback to default
                 pass
 

@@ -126,6 +126,7 @@ body::before {
   top: 0; left: 0; bottom: 0;
   z-index: 100;
   overflow: hidden;
+  transition: transform var(--t-med) var(--ease);
 }
 
 /* Reflexo sutil no topo da sidebar */
@@ -382,6 +383,7 @@ body::before {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left var(--t-med) var(--ease);
 }
 
 /* ══════════════════════════════════════════
@@ -508,6 +510,25 @@ body::before {
 
 .user-avatar:hover { box-shadow: 0 0 0 2px var(--blue); }
 
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    display: none;
+    width: 32px; height: 32px;
+    align-items: center; justify-content: center;
+    background: transparent; border: none; color: var(--text-100);
+    cursor: pointer;
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
+    z-index: 90;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+}
+
 /* ══════════════════════════════════════════
    CONTENT AREA
 ══════════════════════════════════════════ */
@@ -522,6 +543,7 @@ body::before {
 .page-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 28px;
+  flex-wrap: wrap; gap: 16px;
 }
 
 .page-title-block {}
@@ -1114,6 +1136,7 @@ body::before {
   z-index: 201;
   display: flex; flex-direction: column;
   box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+  max-width: 90vw;
 }
 
 .drawer.open { transform: translateX(0); }
@@ -1352,3 +1375,54 @@ body::before {
 
 /* ── SVG icons inline ── */
 svg { display: block; flex-shrink: 0; }
+
+
+/* ══════════════════════════════════════════
+   MOBILE RESPONSIVENESS
+══════════════════════════════════════════ */
+@media (max-width: 640px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    }
+    .sidebar-overlay.open {
+        opacity: 1; pointer-events: auto;
+    }
+
+    .main { margin-left: 0; }
+
+    .topbar { padding: 0 16px; gap: 12px; }
+
+    .mobile-menu-btn { display: flex; }
+
+    /* Search expands on focus */
+    .topbar-search {
+        max-width: 40px; padding: 0; background: transparent; border: none; justify-content: center;
+    }
+    .topbar-search input { display: none; }
+    .topbar-search:focus-within {
+        position: absolute; left: 16px; right: 16px; top: 8px; bottom: 8px;
+        background: var(--layer-2); border: 1px solid var(--blue);
+        z-index: 60; max-width: none; padding: 0 12px;
+        justify-content: flex-start;
+    }
+    .topbar-search:focus-within input { display: block; }
+
+    /* Metrics grid vertical */
+    .metrics-grid { grid-template-columns: 1fr; }
+
+    /* Grid 2 stack */
+    .grid-2 { grid-template-columns: 1fr; }
+
+    /* Kanban grid */
+    .kanban-preview { grid-template-columns: 1fr; }
+
+    .page-header { flex-direction: column; gap: 16px; }
+    .page-actions { width: 100%; justify-content: space-between; }
+
+    /* Hide some details on mobile */
+    .period-tabs { display: none; } /* Or make it scrollable */
+}

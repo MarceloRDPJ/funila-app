@@ -1,70 +1,209 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Funila — Master</title>
-    <link rel="icon" href="/frontend/assets/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../admin/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Master</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../admin/style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    /* Custom styles for Master specific elements */
+    .master-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .master-table th {
+        text-align: left;
+        padding: 12px 16px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-40);
+        border-bottom: 1px solid var(--border-ghost);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .master-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-ghost);
+        font-size: 0.85rem;
+        color: var(--text-70);
+        vertical-align: middle;
+    }
+    .master-table tr:last-child td { border-bottom: none; }
+    .master-table tr:hover td { background: var(--layer-3); }
+
+    .client-row-info { display: flex; flex-direction: column; gap: 2px; }
+    .client-row-name { font-weight: 600; color: var(--text-100); }
+    .client-row-email { font-size: 0.75rem; color: var(--text-40); }
+
+    /* Modal overrides */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 1000;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .modal-box {
+        background: var(--layer-2);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-lg);
+        width: 100%; max-width: 480px;
+        padding: 24px;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(20px);
+        transition: transform 0.3s var(--ease);
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--text-100); }
+    .modal-close { background: none; border: none; color: var(--text-40); cursor: pointer; font-size: 1.2rem; }
+    .modal-close:hover { color: var(--text-100); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.75rem; color: var(--text-70); margin-bottom: 6px; font-weight: 500; }
+    .form-group input, .form-group select {
+        width: 100%;
+        background: var(--layer-1);
+        border: 1px solid var(--border-ghost);
+        color: var(--text-100);
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+
+    .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; }
+</style>
 </head>
 <body>
 
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo" style="background: linear-gradient(135deg, #7C3AED, #DB2777);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Master Control</div>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Gerenciamento</div>
+      <a href="index.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clientes
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair do Master
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <!-- Mobile Toggle -->
+        <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
+        <div class="breadcrumb">
+            <span>Funila</span>
+            <span class="breadcrumb-sep">/</span>
+            <strong>Master</strong>
+        </div>
+
+        <div class="topbar-search">
+             <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+             <input placeholder="Buscar cliente..." id="client-search" onkeyup="filterClients()">
+        </div>
+
+        <div class="topbar-actions">
+             <div class="user-avatar" style="background: linear-gradient(135deg, #7C3AED, #DB2777);">M</div>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="page-header anim-1">
+            <div class="page-title-block">
+                <div class="page-title">Gestão de Clientes</div>
+                <div class="page-subtitle">Administre contas, planos e acessos.</div>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openModal()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    Novo Cliente
+                </button>
+            </div>
+        </div>
+
+        <!-- Clients Table Card -->
+        <div class="creatives-card anim-2">
+            <div class="creatives-header">
+                <div style="font-size:0.9rem;font-weight:600;color:var(--text-100)">Base de Clientes</div>
+                <div style="font-size:0.75rem;color:var(--text-40)" id="total-clients-count">Loading...</div>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="master-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Plano</th>
+                            <th>Status</th>
+                            <th>Acesso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-body">
+                        <!-- JS injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Sidebar Overlay -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-<aside class="sidebar" id="sidebar">
-    <div class="brand">FUNILA <span>MASTER</span></div>
-    <ul class="nav-links">
-        <li class="nav-item"><a href="index.html" class="active">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Clientes
-        </a></li>
-    </ul>
-    <div class="user-info">
-        <button class="logout-btn" onclick="Auth.logout()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Sair
-        </button>
-    </div>
-</aside>
-
-<main class="main-content">
-    <div class="page-header">
-        <div style="display:flex;align-items:center;gap:12px">
-            <button class="mobile-menu-btn" onclick="openSidebar()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            </button>
-            <h1 class="page-title">Gestão de Clientes</h1>
-        </div>
-        <button class="btn btn-primary" onclick="openModal()">+ Novo Cliente</button>
-    </div>
-
-    <div class="page-body">
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Plano</th>
-                        <th>Status</th>
-                        <th>Criado em</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="clients-body"></tbody>
-            </table>
-        </div>
-    </div>
-</main>
-
+<!-- Modal Novo Cliente -->
 <div class="modal-overlay" id="modal">
     <div class="modal-box">
         <div class="modal-header">
             <span class="modal-title">Novo Cliente</span>
-            <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+            <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <form id="client-form" class="modal-form" onsubmit="createClient(event)">
+        <form id="client-form" onsubmit="createClient(event)">
             <div class="form-group">
                 <label>Nome da empresa / corretor</label>
                 <input type="text" id="c-name" required placeholder="Ex: João Corretor">
@@ -78,7 +217,7 @@
                 <input type="text" id="c-password" required minlength="8" placeholder="Mínimo 8 caracteres">
             </div>
             <div class="form-group">
-                <label>WhatsApp <span style="color:var(--text-muted);font-weight:400">(opcional — usado na mensagem do lead)</span></label>
+                <label>WhatsApp <span style="color:var(--text-40);font-weight:400">(opcional)</span></label>
                 <input type="text" id="c-whatsapp" placeholder="(62) 99999-9999">
             </div>
             <div class="form-group">
@@ -90,7 +229,7 @@
                 </select>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
                 <button type="submit" class="btn btn-primary" id="create-btn">Criar cliente</button>
             </div>
         </form>
@@ -99,6 +238,10 @@
 
 <script src="../admin/js/auth.js"></script>
 <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    let allClients = [];
+
     document.addEventListener("DOMContentLoaded", async () => {
         const session = await Auth.checkAuth();
         if (!session) return;
@@ -124,11 +267,16 @@
         const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
             headers: { "Authorization": `Bearer ${session.access_token}` }
         });
-        const clients = await res.json();
+        allClients = await res.json();
+        renderClients(allClients);
+    }
+
+    function renderClients(clients) {
         const tbody = document.getElementById("clients-body");
+        document.getElementById("total-clients-count").textContent = `${clients.length} registros`;
 
         if (!clients.length) {
-            tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>Nenhum cliente cadastrado.</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-40)">Nenhum cliente encontrado.</td></tr>`;
             return;
         }
 
@@ -138,23 +286,42 @@
             const date = new Date(c.created_at).toLocaleDateString("pt-BR");
             return `
                 <tr>
-                    <td data-label="Cliente">
-                        <div style="font-weight:500">${c.name}</div>
-                        <div class="text-muted">${c.email}</div>
+                    <td>
+                        <div class="client-row-info">
+                            <span class="client-row-name">${c.name}</span>
+                            <span class="client-row-email">${c.email}</span>
+                        </div>
                     </td>
-                    <td data-label="Plano"><span class="status-badge status-warm">${planLabel[c.plan] || c.plan}</span></td>
-                    <td data-label="Status">
-                        <span class="status-badge ${c.active ? "status-hot" : "status-cold"}">${c.active ? "Ativo" : "Inativo"}</span>
+                    <td><span class="status-pill pill-info">${planLabel[c.plan] || c.plan}</span></td>
+                    <td>
+                        <span class="status-pill ${c.active ? "pill-top" : "pill-bad"}">
+                            ${c.active ? "Ativo" : "Inativo"}
+                        </span>
                     </td>
-                    <td data-label="Criado em"><span class="text-muted">${date}</span></td>
-                    <td data-label="Ações">
-                        <button class="btn btn-outline" style="padding:5px 10px;font-size:.8rem"
-                            onclick="toggleActive('${c.id}', ${c.active})">
-                            ${c.active ? "Desativar" : "Ativar"}
+                    <td>
+                        <button class="btn btn-ghost" style="padding:4px 8px;font-size:0.7rem;height:auto" onclick="impersonate('${c.id}')">
+                            Acessar Painel
                         </button>
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-ghost" style="padding:4px 8px;font-size:0.7rem;height:auto;color:${c.active ? 'var(--dead)' : 'var(--hot)'}"
+                                onclick="toggleActive('${c.id}', ${c.active})">
+                                ${c.active ? "Bloquear" : "Ativar"}
+                            </button>
+                        </div>
                     </td>
                 </tr>`;
         }).join("");
+    }
+
+    function filterClients() {
+        const term = document.getElementById("client-search").value.toLowerCase();
+        const filtered = allClients.filter(c =>
+            c.name.toLowerCase().includes(term) ||
+            c.email.toLowerCase().includes(term)
+        );
+        renderClients(filtered);
     }
 
     async function createClient(e) {
@@ -193,6 +360,8 @@
     }
 
     async function toggleActive(id, currentlyActive) {
+        if(!confirm(`Tem certeza que deseja ${currentlyActive ? 'bloquear' : 'ativar'} este cliente?`)) return;
+
         const session = await Auth.checkAuth();
         if (!session) return;
         await fetch(`${Auth.API_URL}/admin/master/clients/${id}`, {
@@ -201,6 +370,30 @@
             body: JSON.stringify({ active: !currentlyActive })
         });
         loadClients();
+    }
+
+    async function impersonate(clientId) {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        // Salva token master para poder voltar depois (opcional)
+        // sessionStorage.setItem('master_token_backup', session.access_token);
+        // A lógica de "exitImpersonation" pode ser implementada depois
+
+        const res = await fetch(`${Auth.API_URL}/admin/master/impersonate/${clientId}`, {
+             method: "POST",
+             headers: { "Authorization": `Bearer ${session.access_token}` }
+        });
+
+        if(res.ok) {
+            const data = await res.json();
+            // Salva token de impersonação
+            sessionStorage.setItem('custom_access_token', data.access_token);
+            // Redireciona para o dashboard do cliente
+            window.location.href = "../admin/dashboard.html";
+        } else {
+            alert("Erro ao acessar conta do cliente.");
+        }
     }
 
     function openSidebar() {

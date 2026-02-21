@@ -1,8 +1,9 @@
 import hashlib
 import os
 import uuid
+import httpx
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 from database import get_supabase
@@ -173,9 +174,6 @@ async def proxy_capture_page(slug: str, request: Request):
     Serve a página de captura do cliente com script de rastreio injetado.
     Clona a URL configurada em links.capture_url e injeta o tracker JS.
     """
-    import httpx
-    from fastapi.responses import HTMLResponse
-
     supabase = get_supabase()
 
     res = supabase.table("links").select("*").eq("slug", slug).eq("active", True).single().execute()

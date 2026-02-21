@@ -190,11 +190,9 @@ function renderForm(config) {
         logoEl.src = config.brand_logo_url;
     }
 
-    const header = document.querySelector(".header");
-    header.innerHTML = `
-        <h1>Finalize sua Qualificação</h1>
-        <p class="headline">Responda rápido para agilizar seu atendimento</p>
-    `;
+    // Header content is already static in HTML, no need to overwrite it and destroy the logo.
+    // const header = document.querySelector(".header");
+    // header.innerHTML = ...
 
     document.title = `${config.client_name} - Qualificação`;
 

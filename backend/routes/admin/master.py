@@ -71,9 +71,46 @@ def get_master_metrics(user_profile: dict = Depends(require_master)):
 @router.get("/clients")
 def list_clients(user_profile: dict = Depends(require_master)):
     supabase = get_supabase()
-    # Also fetch total leads count per client? Might be heavy.
-    # Just basic client list for now.
-    return supabase.table("clients").select("*").order("created_at", desc=True).execute().data
+    clients = supabase.table("clients").select("*").order("created_at", desc=True).execute().data
+
+    # Calculate health score for each client (last 24h errors)
+    # This is an N+1 query, optimization: fetch all error logs in last 24h grouped by client
+    # For now, simplistic approach or just fetch counts
+
+    twenty_four_hours_ago = (datetime.utcnow() - timedelta(hours=24)).isoformat()
+
+    try:
+        # Fetch error counts per client in one go if possible, or loop (simple for now)
+        # Supabase doesn't support easy GROUP BY via JS/Python client without RPC
+        # We will do a lightweight loop for now, assuming < 100 clients.
+        # Production: Use RPC function `get_client_health_metrics`
+
+        for client in clients:
+            # Check recent errors
+            err_res = supabase.table("logs")\
+                .select("id", count="exact")\
+                .eq("client_id", client["id"])\
+                .eq("level", "error")\
+                .gte("created_at", twenty_four_hours_ago)\
+                .execute()
+
+            client["recent_errors"] = err_res.count or 0
+
+            # Determine status
+            if client["recent_errors"] > 10:
+                client["health_status"] = "critical"
+            elif client["recent_errors"] > 0:
+                client["health_status"] = "warning"
+            else:
+                client["health_status"] = "healthy"
+
+    except Exception as e:
+        print(f"Health check error: {e}")
+        for client in clients:
+            client["health_status"] = "unknown"
+            client["recent_errors"] = 0
+
+    return clients
 
 @router.post("/clients")
 def create_client(client: ClientCreate, user_profile: dict = Depends(require_master)):

@@ -1,10 +1,12 @@
 import httpx
 import os
+import time
 from typing import Optional
+from services.logger import log_system_event
 
 BRASIL_API_URL = "https://brasilapi.com.br/api/cpf/v1"
 
-async def fetch_brasil_api_data(cpf: str) -> Optional[dict]:
+async def fetch_brasil_api_data(cpf: str, client_id: str = None, lead_id: str = None) -> Optional[dict]:
     """
     Camada 1: Enriquecimento via BrasilAPI (Gratuito).
 
@@ -22,11 +24,36 @@ async def fetch_brasil_api_data(cpf: str) -> Optional[dict]:
         return None
 
     try:
+        start_time = time.time()
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"{BRASIL_API_URL}/{clean_cpf}")
+
+            # Log success/failure only if client_id is provided (context exists)
+            if client_id:
+                duration = round((time.time() - start_time) * 1000, 2)
+                level = "info" if response.status_code == 200 else "warning"
+
+                await log_system_event(
+                    client_id=client_id,
+                    level=level,
+                    source="brasil_api",
+                    message=f"BrasilAPI {response.status_code}",
+                    lead_id=lead_id,
+                    metadata={"cpf_prefix": clean_cpf[:3], "status": response.status_code, "duration_ms": duration}
+                )
+
             if response.status_code == 200:
                 return response.json()
     except Exception as e:
+        if client_id:
+            await log_system_event(
+                client_id=client_id,
+                level="error",
+                source="brasil_api",
+                message=f"BrasilAPI Error: {str(e)}",
+                lead_id=lead_id,
+                metadata={"error": str(e)}
+            )
         print(f"BrasilAPI Erro: {e}")
     return None
 

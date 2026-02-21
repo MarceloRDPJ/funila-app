@@ -451,15 +451,30 @@
                     ${timeline.map(t => {
                         const date = new Date(t.created_at).toLocaleString("pt-BR", { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
                         let dotClass = "active"; // Default
+                        let icon = "";
+                        let title = t.event_type;
+
                         if(t.event_type === 'form_submit' || t.event_type === 'converted') dotClass = "done";
+
+                        // Handle System Logs injected into timeline
+                        if (t.is_log) {
+                            title = t.metadata.message || title;
+                            if (t.event_type.includes('error')) {
+                                dotClass = "error"; // Needs CSS
+                                icon = "⚠️";
+                            } else {
+                                dotClass = "info";
+                                icon = "ℹ️";
+                            }
+                        }
 
                         return `
                         <div class="timeline-item">
-                            <div class="timeline-dot ${dotClass}"></div>
+                            <div class="timeline-dot ${dotClass}" style="${t.is_log ? 'border-radius:4px' : ''}">${icon}</div>
                             <div class="timeline-content">
-                                <div class="timeline-text">${t.event_type}</div>
+                                <div class="timeline-text" style="${t.is_log && dotClass==='error' ? 'color:var(--dead)' : ''}">${title}</div>
                                 <div class="timeline-ts">${date}</div>
-                                ${t.metadata ? `<div style="font-size:0.6rem;color:var(--text-40);margin-top:2px;font-family:monospace">${JSON.stringify(t.metadata).slice(0, 50)}...</div>` : ''}
+                                ${t.metadata ? `<div style="font-size:0.6rem;color:var(--text-40);margin-top:2px;font-family:monospace;white-space:pre-wrap">${JSON.stringify(t.metadata).slice(0, 100)}...</div>` : ''}
                             </div>
                         </div>`;
                     }).join("")}

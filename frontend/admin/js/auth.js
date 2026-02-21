@@ -100,14 +100,12 @@ async function authHeaders(session) {
 }
 
 // Global Toast System
-function showToast(message, type = "success") {
+function showToast(message, type = "success", action = null) {
     let container = document.getElementById("toast-container");
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
         container.className = "toast-container";
-        // Ensure styles are somewhat present if CSS fails, but usually relying on style.css
-        // Styles are in style.css (.toast-container)
         document.body.appendChild(container);
     }
 
@@ -123,21 +121,25 @@ function showToast(message, type = "success") {
         icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
     }
 
-    toast.innerHTML = `${icon} <span>${message}</span>`;
+    let actionBtn = "";
+    if (action) {
+        // Safe closure handling
+        const btnId = `toast-action-${Date.now()}`;
+        setTimeout(() => {
+            const btn = document.getElementById(btnId);
+            if(btn) btn.onclick = action.callback;
+        }, 0);
+        actionBtn = `<button id="${btnId}" style="margin-left:auto;background:none;border:none;color:inherit;text-decoration:underline;font-size:0.75rem;cursor:pointer;font-weight:600">${action.label}</button>`;
+    }
+
+    toast.innerHTML = `${icon} <span style="flex:1">${message}</span> ${actionBtn}`;
     container.appendChild(toast);
 
-    // Animation entry
-    // CSS handles transform translate. We need to trigger it?
-    // style.css has .toast { transform: translateX(0); transition: transform 0.3s ... }
-    // If we want slide-in, we might need initial state off-screen.
-    // Assuming style.css handles it, or just simple appearance.
-
-    // Auto remove
     setTimeout(() => {
         toast.style.opacity = "0";
         toast.style.transform = "translateX(100%)";
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, 5000); // 5 seconds for actionable toasts
 }
 
 // ══════════════════════════════════════════

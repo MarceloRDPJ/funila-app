@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Links de Campanha</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+    /* Custom styles for links page */
+    .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+    .mode-card {
+        border:1px solid var(--border-ghost); border-radius:var(--radius-md);
+        padding:16px; cursor:pointer; transition:all var(--t-fast);
+        background:var(--layer-2); text-align:center; user-select:none;
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .mode-card:hover { border-color:var(--blue-tint); background:var(--layer-3); }
+    .mode-card.selected {
+        border-color:var(--blue); background:var(--blue-tint);
+        box-shadow:0 0 0 2px var(--blue-glow);
+    }
+    .mode-icon {
+        width: 32px; height: 32px;
+        color: var(--text-40);
+        margin-bottom: 4px;
+    }
+    .mode-card.selected .mode-icon { color: var(--blue); }
+
+    .mode-label { font-size:.85rem; font-weight:600; color:var(--text-100); }
+    .mode-desc  { font-size:.75rem; color:var(--text-40); line-height:1.4; }
+
+    .field-conditional { display:none; }
+    .field-conditional.visible { display:block; }
+
+    .flow-visual {
+        display:flex; align-items:center; gap:8px;
+        background:var(--layer-2); border:1px solid var(--border-ghost);
+        border-radius:var(--radius-md); padding:16px; margin-bottom:24px; flex-wrap:wrap;
+    }
+    .flow-node {
+        font-size:.75rem; font-weight:600; padding:6px 12px; border-radius:99px;
+        white-space:nowrap; display: flex; align-items: center; gap: 6px;
+    }
+    .flow-node svg { width: 14px; height: 14px; }
+
+    .flow-node.ad      { background:var(--warm-bg);  color:var(--warm); }
+    .flow-node.track   { background:var(--blue-tint);  color:var(--blue); }
+    .flow-node.mid     { background:var(--purple-bg); color:var(--purple); }
+    .flow-node.dest    { background:var(--hot-bg);   color:var(--hot); }
+    .flow-arrow        { color:var(--text-40); font-size:.8rem; }
+
+    .funnel-badge { display:inline-flex; align-items:center; gap:6px; font-size:.7rem; font-weight:600; padding:4px 10px; border-radius:99px; }
+    .funnel-badge svg { width: 12px; height: 12px; }
+    .funnel-badge.form    { background:var(--blue-tint);  color:var(--blue); }
+    .funnel-badge.landing { background:var(--purple-bg); color:var(--purple); }
+    .funnel-badge.capture { background:var(--hot-bg);   color:var(--hot); }
+
+    .help-text { font-size:.8rem; color:var(--text-40); margin-top:6px; line-height:1.5; }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+        z-index: 200;
+        display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+        background: var(--layer-1);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-lg);
+        width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+        box-shadow: var(--shadow-lg);
+        display: flex; flex-direction: column;
+    }
+
+    .modal-header {
+        padding: 20px 24px; border-bottom: 1px solid var(--border-ghost);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--text-100); }
+    .modal-close { background: none; border: none; color: var(--text-40); cursor: pointer; font-size: 1.2rem; }
+    .modal-close:hover { color: var(--text-100); }
+
+    .modal-form { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label { font-size: 0.8rem; font-weight: 500; color: var(--text-70); }
+    .form-group input {
+        background: var(--layer-2); border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-sm); padding: 10px 12px;
+        color: var(--text-100); font-family: var(--font-body); font-size: 0.9rem;
+        outline: none; transition: border-color var(--t-fast);
+    }
+    .form-group input:focus { border-color: var(--blue); }
+
+    .modal-footer {
+        padding: 20px 24px; border-top: 1px solid var(--border-ghost);
+        display: flex; justify-content: flex-end; gap: 12px;
+        background: var(--layer-2);
+    }
+
+    /* Table Styles */
+    .table-container {
+        background: var(--layer-2); border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-lg); overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+        text-align: left; padding: 12px 24px;
+        font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--text-40); background: var(--layer-1);
+        border-bottom: 1px solid var(--border-ghost);
+    }
+    td {
+        padding: 16px 24px; border-bottom: 1px solid var(--border-ghost);
+        font-size: 0.85rem; color: var(--text-70);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--layer-3); }
+
+    /* Toast */
+    .toast-container {
+        position: fixed; bottom: 24px; right: 24px;
+        z-index: 1000; display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+        background: var(--layer-2);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        display: flex; align-items: center; gap: 12px;
+        box-shadow: var(--shadow-lg);
+        transform: translateX(0);
+        transition: transform 0.3s var(--ease);
+        font-size: 0.85rem; color: var(--text-100);
+    }
+    .toast.success { border-left: 3px solid var(--hot); }
+    .toast.error   { border-left: 3px solid var(--dead); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo" style="background: transparent; box-shadow: none;">
+        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Inteligência Comercial</div>
+      </div>
+    </div>
+
+    <div class="client-info">
+      <div class="client-avatar">..</div>
+      <div>
+        <div class="client-name">...</div>
+        <div class="client-plan">...</div>
+      </div>
+      <div class="client-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Dashboard
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 13.5C2 11.015 4.686 9 8 9s6 2.015 6 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Pipeline CRM <span class="nav-badge hot">4</span>
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M3 4h10M3 12h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Leads <span class="nav-badge">127</span>
+      </a>
+
+      <div class="nav-label">Rastreamento</div>
+      <a href="links.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8.5C2 5.462 4.462 3 7.5 3 10.538 3 13 5.462 13 8.5c0 1.38-.503 2.64-1.33 3.607" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7.5 6.5V9l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="13" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+        Smart Links
+      </a>
+      <a href="forms.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 4V3M11 4V3M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Formulários
+      </a>
+
+      <div class="nav-label">Inteligência</div>
+      <a href="creatives.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/></svg>
+        Criativos
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Analytics
+      </a>
+
+      <div class="nav-label">Conta</div>
+      <a href="integrations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1112 0A6 6 0 012 8z" stroke="currentColor" stroke-width="1.3"/><path d="M6 8a2 2 0 104 0 2 2 0 00-4 0z" stroke="currentColor" stroke-width="1.3"/></svg>
+        Integrações
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/><path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div>
+          <div class="plan-name">...</div>
+          <div class="plan-detail">247 créditos restantes</div>
+        </div>
+        <button class="btn-upgrade">Upgrade</button>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="mobile-menu-btn" onclick="openSidebar()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+
+      <div class="breadcrumb">
+        <span>Funila</span>
+        <span class="breadcrumb-sep">/</span>
+        <strong>Links</strong>
+      </div>
+      <div class="topbar-search">
+        <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <input placeholder="Buscar link...">
+      </div>
+      <div class="topbar-actions">
+        <div class="user-avatar" id="btn-profile">..</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <div class="page-header anim-1">
+            <div class="page-title-block">
+                <div class="page-title">Links de Campanha</div>
+                <div class="page-subtitle">Gerencie seus links de rastreamento e conversão</div>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openModal()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    Novo Link
+                </button>
+            </div>
+        </div>
+
+        <!-- Fluxo visual explicativo -->
+        <div class="anim-2" style="background:var(--layer-2);border:1px solid var(--border-ghost);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:.8rem;color:var(--text-40);font-weight:600;white-space:nowrap;margin-right:8px;text-transform:uppercase;letter-spacing:0.05em">Fluxo:</span>
+
+            <div class="flow-node ad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 1 8 8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a8 8 0 0 1 8-8z"/><path d="M12 18v4"/><path d="M8 22h8"/></svg> Propaganda</div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="flow-arrow"><path d="M8 2l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+            <div class="flow-node track"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Link Funila</div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="flow-arrow"><path d="M8 2l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+            <div class="flow-node mid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Captura</div>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="flow-arrow"><path d="M8 2l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+            <div class="flow-node dest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Destino</div>
+
+            <span style="margin-left:auto;font-size:.75rem;color:var(--text-40)">Rastreio ponta a ponta</span>
+        </div>
+
+        <div class="table-container anim-3">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Modo de captura</th>
+                        <th>Link rastreável</th>
+                        <th>Destino final</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="links-body">
+                    <tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--text-40)">Carregando...</div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal ── -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">Novo Link de Campanha</span>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <form id="link-form" class="modal-form" onsubmit="createLink(event)">
+
+            <div class="form-group">
+                <label>Nome da campanha</label>
+                <input type="text" id="link-name" required placeholder="Ex: Instagram Setor Oeste">
+            </div>
+
+            <div class="form-group">
+                <label style="margin-bottom:8px;display:block">Como quer capturar os leads?</label>
+                <div class="mode-grid">
+                    <div class="mode-card selected" data-mode="form" onclick="selectMode('form',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mode-icon"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+                        <div class="mode-label">Formulário</div>
+                        <div class="mode-desc">Perguntas em etapas.</div>
+                    </div>
+                    <div class="mode-card" data-mode="landing" onclick="selectMode('landing',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mode-icon"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        <div class="mode-label">Página Padrão</div>
+                        <div class="mode-desc">Landing de alta conversão.</div>
+                    </div>
+                    <div class="mode-card" data-mode="capture" onclick="selectMode('capture',this)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mode-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <div class="mode-label">Página Própria</div>
+                        <div class="mode-desc">Sua página existente.</div>
+                    </div>
+                </div>
+                <input type="hidden" id="link-funnel-type" value="form">
+            </div>
+
+            <!-- Só aparece no modo "capture" -->
+            <div class="form-group field-conditional" id="field-capture-url">
+                <label>URL da sua página de captura</label>
+                <input type="url" id="link-capture-url" placeholder="https://suapagina.com/landing">
+                <p class="help-text">
+                    O Funila injeta rastreio invisível nesta página.
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label>Destino final <span style="color:var(--text-40);font-weight:400;font-size:.7rem">— após a captura</span></label>
+                <input type="url" id="link-dest" required placeholder="https://wa.me/5562999999999"
+                    oninput="updateDestPreview(this.value)">
+                <p class="help-text" id="dest-help">
+                    Para onde o lead vai depois de preencher o formulário.
+                </p>
+            </div>
+
+            <!-- New Section: Page Appearance -->
+            <div class="form-group" style="margin-top:24px;border-top:1px solid var(--border-ghost);padding-top:24px">
+                <h4 style="font-size:.9rem;font-weight:600;margin-bottom:16px;color:var(--text-100)">Aparência da Página de Captura</h4>
+
+                <div class="form-group">
+                    <label>Título Principal (Headline)</label>
+                    <input type="text" id="link-headline" placeholder="Ex: Descubra como financiar seu imóvel">
+                </div>
+
+                <div class="form-group">
+                    <label>URL do Vídeo (YouTube/Vimeo)</label>
+                    <input type="url" id="link-video-url" placeholder="https://youtube.com/watch?v=...">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;border-top:1px solid var(--border-ghost);padding-top:24px">
+                <div class="form-group">
+                    <label>UTM Source</label>
+                    <input type="text" id="link-utm-source" placeholder="instagram">
+                </div>
+                <div class="form-group">
+                    <label>UTM Campaign</label>
+                    <input type="text" id="link-utm-campaign" placeholder="verao-2024">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="create-btn">Criar link</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<script src="js/auth.js"></script>
+<script>
+const TRACKER_BASE = Auth.API_URL;
+
+const modeConfig = {
+    form:    { midLabel:"Formulário", icon: "clipboard-list", destHelp:"Para onde o lead vai depois do formulário.", showCapture:false },
+    landing: { midLabel:"Página Padrão", icon: "target", destHelp:"Para onde o lead vai depois da landing page.", showCapture:false },
+    capture: { midLabel:"Sua Página", icon: "search", destHelp:"Para onde o lead vai depois de sair da sua página.", showCapture:true },
+};
+
+function selectMode(mode, el) {
+    document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("selected"));
+    el.classList.add("selected");
+    document.getElementById("link-funnel-type").value = mode;
+
+    const cfg = modeConfig[mode];
+
+    document.getElementById("dest-help").textContent  = cfg.destHelp;
+    const capField = document.getElementById("field-capture-url");
+    capField.classList.toggle("visible", cfg.showCapture);
+    document.getElementById("link-capture-url").required = cfg.showCapture;
+}
+
+function updateDestPreview(val) {
+    // Optional preview logic could go here
+}
+
+function openModal() {
+    document.getElementById("modal").classList.add("open");
+}
+function closeModal() {
+    document.getElementById("modal").classList.remove("open");
+    document.getElementById("link-form").reset();
+    selectMode("form", document.querySelector(".mode-card[data-mode='form']"));
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    const session = await Auth.checkAuth();
+    if (session) loadLinks();
+});
+
+async function loadLinks() {
+    const session = await Auth.checkAuth();
+    if (!session) return;
+
+    const tbody = document.getElementById("links-body");
+
+    try {
+        const res = await fetch(`${Auth.API_URL}/links`, { headers:{"Authorization":`Bearer ${session.access_token}`} });
+
+        if (res.status === 400) {
+            tbody.innerHTML = `<tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--text-40)">
+                <p style="font-size:.9rem;color:var(--text-60);margin-bottom:8px">Acesso de Master</p>
+                <small>Para gerenciar links, entre no painel de um cliente via <a href="master.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
+            </div></td></tr>`;
+            return;
+        }
+
+        if(!res.ok) throw new Error("Falha ao carregar (HTTP " + res.status + ")");
+
+        const links = await res.json();
+
+        if (!links.length) {
+            tbody.innerHTML = `<tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--text-40)">Nenhum link criado ainda.</div></td></tr>`;
+            return;
+        }
+
+        const modeLabels = {
+            form:    { label: "Formulário", cls: "form", icon: "clipboard-list" },
+            landing: { label: "Landing Page", cls: "landing", icon: "target" },
+            capture: { label: "Página Própria", cls: "capture", icon: "search" },
+        };
+
+        tbody.innerHTML = links.map(link => {
+            const shortUrl  = `${TRACKER_BASE}/t/${link.slug}`;
+            const m = modeLabels[link.funnel_type || "form"] || modeLabels.form;
+            const destShort = link.destination.length > 35 ? link.destination.substring(0,35)+"…" : link.destination;
+
+            return `<tr>
+                <td>
+                    <span style="font-weight:600;color:var(--text-100)">${link.name}</span>
+                    ${link.utm_source ? `<br><span style="font-size:.75rem;color:var(--text-40)">UTM: ${link.utm_source}</span>` : ""}
+                </td>
+                <td>
+                    <span class="funnel-badge ${m.cls}">
+                        ${m.label}
+                    </span>
+                </td>
+                <td>
+                    <span style="color:var(--blue);font-family:monospace;font-size:.85rem">/t/${link.slug}</span>
+                </td>
+                <td>
+                    <span style="color:var(--text-40);font-size:.85rem" title="${link.destination}">${destShort}</span>
+                </td>
+                <td style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-ghost" style="padding:6px 10px;font-size:.8rem"
+                        onclick="copyLink('${shortUrl}',this)">Copiar</button>
+                    <button class="btn btn-ghost" style="padding:6px 10px;font-size:.8rem;color:var(--dead);border-color:rgba(239,68,68,0.3)"
+                        onclick="deleteLink('${link.id}')">Excluir</button>
+                </td>
+            </tr>`;
+        }).join("");
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch(e) {
+        document.getElementById("links-body").innerHTML = `<tr><td colspan="5"><div style="text-align:center;padding:40px;color:var(--dead)">Erro ao carregar links.</div></td></tr>`;
+    }
+}
+
+async function createLink(e) {
+    e.preventDefault();
+    const session = await Auth.checkAuth();
+    if (!session) return;
+    const btn = document.getElementById("create-btn");
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `Criando...`;
+
+    const payload = {
+        name:         document.getElementById("link-name").value,
+        destination:  document.getElementById("link-dest").value,
+        funnel_type:  document.getElementById("link-funnel-type").value,
+        capture_url:  document.getElementById("link-capture-url").value || null,
+        utm_source:   document.getElementById("link-utm-source").value   || null,
+        utm_campaign: document.getElementById("link-utm-campaign").value || null,
+        metadata: {
+            headline:  document.getElementById("link-headline").value || null,
+            video_url: document.getElementById("link-video-url").value || null
+        }
+    };
+
+    try {
+        const res = await fetch(`${Auth.API_URL}/links`, {
+            method:"POST",
+            headers:{"Authorization":`Bearer ${session.access_token}`,"Content-Type":"application/json"},
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            closeModal();
+            loadLinks();
+            showToast("Link criado com sucesso!");
+        } else {
+            const err = await res.json().catch(()=>({}));
+            showToast(err.detail || "Erro ao criar link.", "error");
+        }
+    } catch(err) {
+        showToast("Erro de conexão.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    }
+}
+
+async function deleteLink(id) {
+    if (!confirm("Excluir este link?")) return;
+    const session = await Auth.checkAuth();
+    if (!session) return;
+
+    try {
+        const res = await fetch(`${Auth.API_URL}/links/${id}`,{method:"DELETE",headers:{"Authorization":`Bearer ${session.access_token}`}});
+        if(res.ok) {
+            loadLinks();
+            showToast("Link excluído.");
+        } else {
+            showToast("Erro ao excluir.", "error");
+        }
+    } catch(e) {
+        showToast("Erro de conexão.", "error");
+    }
+}
+
+function copyLink(url, btn) {
+    navigator.clipboard.writeText(url).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = "✓";
+        btn.style.color = "var(--hot)";
+        setTimeout(() => {
+            btn.innerText = orig;
+            btn.style.color = "";
+        }, 1500);
+        showToast("Link copiado!");
+    });
+}
+
+function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    const icon = type === 'error' ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>` : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+</script>
+</body>
+</html>

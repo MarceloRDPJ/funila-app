@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Master</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../admin/style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    /* Custom styles for Master specific elements */
+    .master-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .master-table th {
+        text-align: left;
+        padding: 12px 16px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-40);
+        border-bottom: 1px solid var(--border-ghost);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .master-table td {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-ghost);
+        font-size: 0.85rem;
+        color: var(--text-70);
+        vertical-align: middle;
+    }
+    .master-table tr:last-child td { border-bottom: none; }
+    .master-table tr:hover td { background: var(--layer-3); }
+
+    .client-row-info { display: flex; flex-direction: column; gap: 2px; }
+    .client-row-name { font-weight: 600; color: var(--text-100); }
+    .client-row-email { font-size: 0.75rem; color: var(--text-40); }
+
+    /* Modal overrides */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 1000;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .modal-box {
+        background: var(--layer-2);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-lg);
+        width: 100%; max-width: 480px;
+        padding: 24px;
+        box-shadow: var(--shadow-lg);
+        transform: translateY(20px);
+        transition: transform 0.3s var(--ease);
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--text-100); }
+    .modal-close { background: none; border: none; color: var(--text-40); cursor: pointer; font-size: 1.2rem; }
+    .modal-close:hover { color: var(--text-100); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.75rem; color: var(--text-70); margin-bottom: 6px; font-weight: 500; }
+    .form-group input, .form-group select {
+        width: 100%;
+        background: var(--layer-1);
+        border: 1px solid var(--border-ghost);
+        color: var(--text-100);
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+
+    .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo" style="background: transparent; box-shadow: none;">
+        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Master Control</div>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Gerenciamento</div>
+      <a href="index.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clientes
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair do Master
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <!-- Mobile Toggle -->
+        <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
+        <div class="breadcrumb">
+            <span>Funila</span>
+            <span class="breadcrumb-sep">/</span>
+            <strong>Master</strong>
+        </div>
+
+        <div class="topbar-search">
+             <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+             <input placeholder="Buscar cliente..." id="client-search" onkeyup="filterClients()">
+        </div>
+
+        <div class="topbar-actions">
+             <div class="user-avatar" style="background: linear-gradient(135deg, #7C3AED, #DB2777);">M</div>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="page-header anim-1">
+            <div class="page-title-block">
+                <div class="page-title">Gestão de Clientes</div>
+                <div class="page-subtitle">Administre contas, planos e acessos.</div>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openModal()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                    Novo Cliente
+                </button>
+            </div>
+        </div>
+
+        <!-- Clients Table Card -->
+        <div class="creatives-card anim-2">
+            <div class="creatives-header">
+                <div style="font-size:0.9rem;font-weight:600;color:var(--text-100)">Base de Clientes</div>
+                <div style="font-size:0.75rem;color:var(--text-40)" id="total-clients-count">Loading...</div>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="master-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Plano</th>
+                            <th>Status</th>
+                            <th>Acesso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-body">
+                        <!-- JS injected -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- Modal Novo Cliente -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title">Novo Cliente</span>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <form id="client-form" onsubmit="createClient(event)">
+            <div class="form-group">
+                <label>Nome da empresa / corretor</label>
+                <input type="text" id="c-name" required placeholder="Ex: Nome do Cliente">
+            </div>
+            <div class="form-group">
+                <label>E-mail (login)</label>
+                <input type="email" id="c-email" required placeholder="cliente@email.com">
+            </div>
+            <div class="form-group">
+                <label>Senha provisória</label>
+                <input type="text" id="c-password" required minlength="8" placeholder="Mínimo 8 caracteres">
+            </div>
+            <div class="form-group">
+                <label>WhatsApp <span style="color:var(--text-40);font-weight:400">(opcional)</span></label>
+                <input type="text" id="c-whatsapp" placeholder="(62) 99999-9999">
+            </div>
+            <div class="form-group">
+                <label>Plano</label>
+                <select id="c-plan">
+                    <option value="solo">Solo — R$ 147/mês</option>
+                    <option value="pro">Pro — R$ 247/mês</option>
+                    <option value="agency">Agency — R$ 497/mês</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="create-btn">Criar cliente</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../admin/js/auth.js"></script>
+<script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    let allClients = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        // Verifica se é master
+        const res = await fetch(`${Auth.API_URL}/auth/me`, {
+            headers: { "Authorization": `Bearer ${session.access_token}` }
+        });
+        if (!res.ok) { window.location.href = "../admin/dashboard.html"; return; }
+        const profile = await res.json();
+        if (profile.role !== "master") { window.location.href = "../admin/dashboard.html"; return; }
+
+        loadClients();
+    });
+
+    function openModal()  { document.getElementById("modal").classList.add("open"); }
+    function closeModal() { document.getElementById("modal").classList.remove("open"); document.getElementById("client-form").reset(); }
+
+    async function loadClients() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                console.error("Erro ao buscar clientes:", err);
+                if (res.status === 403) {
+                    showToast("Acesso negado: Você não tem permissão de Master.", "error");
+                } else {
+                    showToast("Erro ao carregar lista de clientes.", "error");
+                }
+                renderClients([]); // Render empty state
+                return;
+            }
+
+            allClients = await res.json();
+            if (!Array.isArray(allClients)) {
+                console.error("Formato inválido de resposta:", allClients);
+                allClients = [];
+            }
+            renderClients(allClients);
+        } catch (e) {
+            console.error("Erro de conexão:", e);
+            showToast("Erro de conexão ao buscar clientes.", "error");
+            renderClients([]);
+        }
+    }
+
+    function renderClients(clients) {
+        const tbody = document.getElementById("clients-body");
+        const countEl = document.getElementById("total-clients-count");
+        if(countEl) countEl.textContent = `${clients ? clients.length : 0} registros`;
+
+        if (!clients || !clients.length) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-40)">Nenhum cliente encontrado.</td></tr>`;
+            return;
+        }
+
+        const planLabel = { solo: "Solo", pro: "Pro", agency: "Agency" };
+
+        tbody.innerHTML = clients.map(c => {
+            const date = new Date(c.created_at).toLocaleDateString("pt-BR");
+            return `
+                <tr>
+                    <td>
+                        <div class="client-row-info">
+                            <span class="client-row-name">${c.name}</span>
+                            <span class="client-row-email">${c.email}</span>
+                        </div>
+                    </td>
+                    <td><span class="status-pill pill-info">${planLabel[c.plan] || c.plan}</span></td>
+                    <td>
+                        <span class="status-pill ${c.active ? "pill-top" : "pill-bad"}">
+                            ${c.active ? "Ativo" : "Inativo"}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-ghost" style="padding:4px 8px;font-size:0.7rem;height:auto" onclick="impersonate('${c.id}')">
+                            Acessar Painel
+                        </button>
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn btn-ghost" style="padding:4px 8px;font-size:0.7rem;height:auto;color:${c.active ? 'var(--dead)' : 'var(--hot)'}"
+                                onclick="toggleActive('${c.id}', ${c.active})">
+                                ${c.active ? "Bloquear" : "Ativar"}
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        }).join("");
+    }
+
+    function filterClients() {
+        const term = document.getElementById("client-search").value.toLowerCase();
+        const filtered = allClients.filter(c =>
+            c.name.toLowerCase().includes(term) ||
+            c.email.toLowerCase().includes(term)
+        );
+        renderClients(filtered);
+    }
+
+    async function createClient(e) {
+        e.preventDefault();
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const btn = document.getElementById("create-btn");
+        btn.disabled = true;
+        btn.textContent = "Criando...";
+
+        const payload = {
+            name:      document.getElementById("c-name").value,
+            email:     document.getElementById("c-email").value,
+            password:  document.getElementById("c-password").value,
+            whatsapp:  document.getElementById("c-whatsapp").value || null,
+            plan:      document.getElementById("c-plan").value
+        };
+
+        const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        btn.disabled = false;
+        btn.textContent = "Criar cliente";
+
+        if (res.ok) {
+            closeModal();
+            loadClients();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert("Erro: " + (err.detail || "Tente novamente."));
+        }
+    }
+
+    async function toggleActive(id, currentlyActive) {
+        if(!confirm(`Tem certeza que deseja ${currentlyActive ? 'bloquear' : 'ativar'} este cliente?`)) return;
+
+        const session = await Auth.checkAuth();
+        if (!session) return;
+        await fetch(`${Auth.API_URL}/admin/master/clients/${id}`, {
+            method: "PATCH",
+            headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ active: !currentlyActive })
+        });
+        loadClients();
+    }
+
+    async function impersonate(clientId) {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        // Salva token master para poder voltar depois (opcional)
+        // sessionStorage.setItem('master_token_backup', session.access_token);
+
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/impersonate/${clientId}`, {
+                 method: "POST",
+                 headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+
+            if(res.ok) {
+                const data = await res.json();
+                if (data.access_token) {
+                    // Salva token de impersonação
+                    sessionStorage.setItem('custom_access_token', data.access_token);
+                    // Redireciona para o dashboard do cliente
+                    window.location.href = "../admin/dashboard.html";
+                } else {
+                    showToast("Erro: Token de acesso não recebido.", "error");
+                }
+            } else {
+                const err = await res.json().catch(() => ({}));
+                showToast(err.detail || "Erro ao acessar conta do cliente.", "error");
+            }
+        } catch (e) {
+            console.error("Erro impersonate:", e);
+            showToast("Erro de conexão ao tentar acessar conta.", "error");
+        }
+    }
+
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+</script>
+</body>
+</html>

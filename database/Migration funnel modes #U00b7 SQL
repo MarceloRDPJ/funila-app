@@ -1,0 +1,82 @@
+-- ============================================================
+-- FUNILA — Migration: Modos de Funil
+-- Execute no SQL Editor do Supabase
+-- ============================================================
+
+-- Adiciona modo do funil na tabela links
+-- funnel_type:
+--   'form'     → Formulário nativo Funila (padrão atual)
+--   'capture'  → Página de captura própria do cliente (clonador/proxy)
+--   'landing'  → Página padrão Funila (neuromarketing, alta conversão)
+
+ALTER TABLE links
+    ADD COLUMN IF NOT EXISTS funnel_type  TEXT NOT NULL DEFAULT 'form'
+        CHECK (funnel_type IN ('form', 'capture', 'landing')),
+    ADD COLUMN IF NOT EXISTS capture_url  TEXT,          -- URL original pra clonar (modo capture)
+    ADD COLUMN IF NOT EXISTS utm_medium   TEXT,          -- complementa utm_source
+    ADD COLUMN IF NOT EXISTS utm_content  TEXT;          -- complementa utm_campaign
+
+-- Rastreio granular de abandono por campo/etapa
+-- Cada linha = um evento de interação do visitante
+-- Permite saber EXATAMENTE onde as pessoas param
+CREATE TABLE IF NOT EXISTS funnel_events (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    link_id     UUID REFERENCES links(id) ON DELETE CASCADE,
+    session_id  TEXT NOT NULL,          -- ID de sessão anonimizado (gerado no frontend)
+    event_type  TEXT NOT NULL,          -- page_view | step_start | field_focus | field_blur
+                                        -- step_complete | form_abandon | form_submit
+                                        -- capture_interact | capture_exit
+    step        INTEGER,                -- qual etapa (1, 2, 3...)
+    field_key   TEXT,                   -- qual campo (full_name, phone, etc.)
+    metadata    JSONB,                  -- dados extras (tempo no campo, valor parcial, etc.)
+    created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fevents_link    ON funnel_events(link_id);
+CREATE INDEX IF NOT EXISTS idx_fevents_session ON funnel_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_fevents_type    ON funnel_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_fevents_date    ON funnel_events(created_at);
+
+-- Sessões de visitantes (agrupa eventos de uma visita)
+-- Permite calcular: tempo total, taxa de abandono, funil de conversão
+CREATE TABLE IF NOT EXISTS visitor_sessions (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id   TEXT UNIQUE NOT NULL,
+    link_id      UUID REFERENCES links(id) ON DELETE CASCADE,
+    ip_hash      TEXT,
+    device_type  TEXT,
+    os           TEXT,
+    referrer     TEXT,
+    utm_source   TEXT,
+    utm_campaign TEXT,
+    started_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    converted    BOOLEAN DEFAULT false,   -- true se chegou ao submit
+    lead_id      UUID REFERENCES leads(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_vsessions_link    ON visitor_sessions(link_id);
+CREATE INDEX IF NOT EXISTS idx_vsessions_session ON visitor_sessions(session_id);
+
+-- RLS nas novas tabelas
+ALTER TABLE funnel_events    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visitor_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Política: eventos visíveis pelo dono do link
+CREATE POLICY "client_funnel_events" ON funnel_events FOR ALL
+    USING (
+        link_id IN (
+            SELECT id FROM links WHERE client_id = (
+                SELECT client_id FROM public.users WHERE id = auth.uid()
+            )
+        )
+    );
+
+CREATE POLICY "client_visitor_sessions" ON visitor_sessions FOR ALL
+    USING (
+        link_id IN (
+            SELECT id FROM links WHERE client_id = (
+                SELECT client_id FROM public.users WHERE id = auth.uid()
+            )
+        )
+    );

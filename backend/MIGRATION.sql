@@ -1,0 +1,6 @@
+ALTER TABLE public.links ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+
+-- Sprint 1 Updates
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS step_reached INTEGER DEFAULT 0;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS leads_status_idx ON leads(status);

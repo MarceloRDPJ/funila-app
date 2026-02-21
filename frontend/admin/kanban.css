@@ -1,0 +1,202 @@
+/* Kanban CRM Styles - Apple Tier */
+
+.kanban-board {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 24px;
+    gap: 16px;
+    flex: 1; /* Fill remaining vertical space */
+    min-height: 0; /* Enable flex child scrolling */
+    align-items: flex-start;
+
+    /* Ensure scrollbar works */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+
+    /* Better horizontal padding */
+    padding-right: 28px;
+}
+
+.kanban-column {
+    background: var(--layer-2);
+    border: 1px solid var(--border-ghost);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    min-width: 300px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    flex-shrink: 0;
+    transition: box-shadow 0.2s;
+}
+
+/* Highlight column on drag over (optional) */
+.kanban-column.drag-over {
+    border-color: var(--blue);
+    background: var(--layer-3);
+}
+
+.kanban-column-header {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-ghost);
+}
+
+.kanban-column-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-70);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kanban-count {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-40);
+    background: var(--layer-3);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.kanban-cards-container {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+}
+
+/* Custom Scrollbar */
+.kanban-cards-container::-webkit-scrollbar { width: 4px; }
+.kanban-cards-container::-webkit-scrollbar-thumb { background: var(--layer-4); border-radius: 2px; }
+
+.kanban-card {
+    background: var(--layer-3);
+    border: 1px solid var(--border-ghost);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    box-shadow: var(--shadow-sm);
+    cursor: grab;
+    transition: all 0.2s var(--ease);
+    user-select: none;
+    position: relative;
+}
+
+.kanban-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-med);
+    transform: translateY(-2px);
+}
+
+.kanban-card:active {
+    cursor: grabbing;
+}
+
+.kanban-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.kanban-card-title {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-100);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
+.kanban-card-score {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--blue);
+    background: var(--blue-tint);
+}
+
+.kanban-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.kanban-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-ghost);
+}
+
+.kanban-date {
+    font-size: 0.62rem;
+    color: var(--text-40);
+}
+
+.btn-whatsapp-mini {
+    background: #075E54;
+    color: #fff;
+    border-radius: 5px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+}
+.btn-whatsapp-mini:hover { background: #128C7E; }
+
+/* Sortable Ghost */
+.kanban-ghost {
+    background: var(--layer-2);
+    border: 1px dashed var(--border-med);
+    opacity: 0.5;
+}
+
+/* Confetti */
+.confetti {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background-color: var(--hot);
+    animation: confetti-fall 3s linear forwards;
+    z-index: 9999;
+}
+
+@media (max-width: 1024px) {
+    .kanban-board {
+        scroll-snap-type: x mandatory;
+        padding-right: 24px;
+        /* Increase height on mobile if needed or rely on flex */
+    }
+    .kanban-column {
+        min-width: 280px;  /* Fixed width is better than vw usually */
+        max-width: 280px;
+        scroll-snap-align: start; /* Snap to start feels more natural for lists */
+        margin-right: 8px;
+    }
+
+    /* Adjust card padding for touch targets */
+    .kanban-card {
+        padding: 14px;
+    }
+}

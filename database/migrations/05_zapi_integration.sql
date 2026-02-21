@@ -1,0 +1,2 @@
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS zapi_instance TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS zapi_token TEXT;

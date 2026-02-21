@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Analytics</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo" style="background: transparent; box-shadow: none;">
+        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Inteligência Comercial</div>
+      </div>
+    </div>
+
+    <div class="client-info">
+      <div class="client-avatar">..</div>
+      <div>
+        <div class="client-name">...</div>
+        <div class="client-plan">...</div>
+      </div>
+      <div class="client-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Dashboard
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 13.5C2 11.015 4.686 9 8 9s6 2.015 6 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Pipeline CRM <span class="nav-badge hot">4</span>
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M3 4h10M3 12h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Leads <span class="nav-badge">127</span>
+      </a>
+
+      <div class="nav-label">Rastreamento</div>
+      <a href="links.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8.5C2 5.462 4.462 3 7.5 3 10.538 3 13 5.462 13 8.5c0 1.38-.503 2.64-1.33 3.607" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7.5 6.5V9l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="13" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+        Smart Links
+      </a>
+      <a href="forms.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 4V3M11 4V3M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Formulários
+      </a>
+
+      <div class="nav-label">Inteligência</div>
+      <a href="creatives.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/></svg>
+        Criativos
+      </a>
+      <a href="analytics.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Analytics
+      </a>
+
+      <div class="nav-label">Conta</div>
+      <a href="integrations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1112 0A6 6 0 012 8z" stroke="currentColor" stroke-width="1.3"/><path d="M6 8a2 2 0 104 0 2 2 0 00-4 0z" stroke="currentColor" stroke-width="1.3"/></svg>
+        Integrações
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/><path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div>
+          <div class="plan-name">...</div>
+          <div class="plan-detail">247 créditos restantes</div>
+        </div>
+        <button class="btn-upgrade">Upgrade</button>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="breadcrumb">
+        <span>Funila</span>
+        <span class="breadcrumb-sep">/</span>
+        <strong>Analytics</strong>
+      </div>
+      <div class="topbar-search"></div>
+      <div class="topbar-actions">
+        <div class="user-avatar" id="btn-profile">..</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <div class="page-header anim-1">
+            <div class="page-title-block">
+                <div class="page-title">Analytics Avançado</div>
+                <div class="page-subtitle">Inteligência de dados para escalar suas campanhas</div>
+            </div>
+        </div>
+
+        <div class="grid-2 anim-2">
+            <!-- Funnel Chart -->
+            <div class="chart-card">
+                <div class="card-title-row">
+                    <div class="card-title">Funil de Conversão Global</div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="funnelChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Abandono -->
+            <div class="breakdown-card">
+                <div class="card-title-row">
+                    <div class="card-title">Abandono por Dispositivo</div>
+                </div>
+                <div class="breakdown-list" id="abandon-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2 anim-3" style="margin-top:24px">
+             <!-- Platform Comparison -->
+             <div class="breakdown-card">
+                <div class="card-title-row">
+                    <div class="card-title">Meta Ads vs Google Ads</div>
+                </div>
+                <div class="chart-area">
+                    <canvas id="platformChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<script src="js/auth.js"></script>
+<script>
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        const session = await Auth.checkAuth();
+        if (session) loadAnalytics();
+    });
+
+    async function loadAnalytics() {
+        const session = await Auth.checkAuth();
+        try {
+            const res = await fetch(`${Auth.API_URL}/analytics/full`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            const data = await res.json();
+            renderCharts(data);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderCharts(data) {
+        // Funnel
+        const ctxFunnel = document.getElementById("funnelChart").getContext("2d");
+        new Chart(ctxFunnel, {
+            type: 'bar',
+            data: {
+                labels: ['Cliques', 'Etapa 1', 'Etapa 2', 'Etapa 3', 'Convertido'],
+                datasets: [{
+                    label: 'Leads',
+                    data: [
+                        data.funnel_data.clicks,
+                        data.funnel_data.step_1,
+                        data.funnel_data.step_2,
+                        data.funnel_data.step_3,
+                        data.funnel_data.converted
+                    ],
+                    backgroundColor: ['#3D7BFF', '#6366F1', '#F5A623', '#EF4444', '#A78BFA'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#2A3242' }, ticks: { color: '#9CA3AF' } },
+                    y: { grid: { display: false }, ticks: { color: '#F3F4F6' } }
+                }
+            }
+        });
+
+        // Abandonment List
+        const ab = data.abandonment_by_device;
+        const totalAb = ab.mobile + ab.desktop || 1;
+        const list = document.getElementById("abandon-list");
+        list.innerHTML = `
+            <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="color:var(--text-70)">Mobile</span>
+                    <span style="color:var(--dead)">${ab.mobile}</span>
+                </div>
+                <div style="background:var(--layer-3);height:6px;border-radius:99px">
+                    <div style="width:${ab.mobile/totalAb*100}%;height:100%;background:var(--dead);border-radius:99px"></div>
+                </div>
+            </div>
+            <div style="margin-top:16px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="color:var(--text-70)">Desktop</span>
+                    <span style="color:var(--dead)">${ab.desktop}</span>
+                </div>
+                <div style="background:var(--layer-3);height:6px;border-radius:99px">
+                    <div style="width:${ab.desktop/totalAb*100}%;height:100%;background:var(--dead);border-radius:99px"></div>
+                </div>
+            </div>
+        `;
+
+        // Platform Chart
+        const ctxPlat = document.getElementById("platformChart").getContext("2d");
+        new Chart(ctxPlat, {
+            type: 'doughnut',
+            data: {
+                labels: ['Meta Ads', 'Google Ads'],
+                datasets: [{
+                    data: [data.platform_comparison.meta, data.platform_comparison.google],
+                    backgroundColor: ['#1877F2', '#4285F4'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#9CA3AF' } }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

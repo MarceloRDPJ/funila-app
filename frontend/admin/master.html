@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funila — Master</title>
+    <link rel="icon" href="/frontend/assets/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    :root {
+        --bg:#07090D; --surface:#0D1017; --card:#111520; --hover:#161B26;
+        --border:rgba(255,255,255,0.07); --border-med:rgba(255,255,255,0.12);
+        --t100:#EDF0F7; --t60:#8A94A8; --t30:#404859;
+        --blue:#2563EB; --blue-h:#1D4ED8;
+        --blue-tint:rgba(37,99,235,0.10); --blue-glow:rgba(37,99,235,0.18);
+        --green:#00C97E; --green-bg:rgba(0,201,126,0.08);
+        --amber:#F5A623; --amber-bg:rgba(245,166,35,0.08);
+        --red:#EF4444;   --red-bg:rgba(239,68,68,0.08);
+        --purple:#8B5CF6;--purple-bg:rgba(139,92,246,0.08);
+        --sw:240px; --th:60px; --r:10px;
+    }
+    .app { display:flex; height:100vh; background:var(--bg); color:var(--t100); overflow:hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+        width:var(--sw); min-height:100vh; background:var(--surface);
+        border-right:1px solid var(--border); display:flex; flex-direction:column;
+        position:fixed; left:0; top:0; bottom:0; z-index:100; transition:transform .25s;
+    }
+    .brand { padding:20px 18px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+    .bi { width:30px; height:30px; background:var(--blue); border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .bi svg { width:15px; height:15px; fill:white; }
+    .bn { font-size:.8rem; font-weight:700; letter-spacing:.1em; }
+    .bb { font-size:.6rem; font-weight:700; color:var(--blue); background:var(--blue-tint); padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block; }
+    .nav { padding:10px 8px; flex:1; display:flex; flex-direction:column; gap:2px; }
+    .nl { font-size:.6rem; font-weight:600; color:var(--t30); letter-spacing:.1em; text-transform:uppercase; padding:10px 10px 4px; margin-top:4px; }
+    .ni {
+        display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:7px;
+        color:var(--t60); font-family:inherit; font-size:.82rem; font-weight:500;
+        transition:all .15s; cursor:pointer; border:none; background:none; width:100%; text-align:left;
+    }
+    .ni:hover { background:var(--hover); color:var(--t100); }
+    .ni.active { background:var(--blue-tint); color:var(--blue); }
+    .ni svg { width:14px; height:14px; flex-shrink:0; opacity:.7; }
+    .ni.active svg { opacity:1; }
+    .nc { margin-left:auto; font-size:.67rem; font-weight:600; background:var(--blue-tint); color:var(--blue); padding:1px 6px; border-radius:4px; }
+    .sf { padding:12px 14px; border-top:1px solid var(--border); }
+    .ur { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+    .uav { width:28px; height:28px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; color:white; flex-shrink:0; }
+    .unm { font-size:.78rem; font-weight:600; }
+    .uro { font-size:.67rem; color:var(--t30); }
+    .blo { width:100%; padding:7px 12px; background:none; border:1px solid var(--border); border-radius:7px; color:var(--t60); font-family:inherit; font-size:.77rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all .15s; }
+    .blo:hover { border-color:var(--red); color:var(--red); background:var(--red-bg); }
+
+    /* MAIN */
+    .main { margin-left:var(--sw); flex:1; display:flex; flex-direction:column; min-height:100vh; overflow:auto; }
+    .topbar { height:var(--th); background:var(--surface); border-bottom:1px solid var(--border); padding:0 26px; display:flex; align-items:center; gap:14px; position:sticky; top:0; z-index:50; }
+    .pt { font-size:.95rem; font-weight:600; flex:1; }
+    .content { padding:26px; flex:1; }
+
+    /* METRICS */
+    .mr { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+    .mc { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:16px 18px; }
+    .mcl { font-size:.73rem; color:var(--t60); margin-bottom:6px; }
+    .mcv { font-size:1.7rem; font-weight:700; line-height:1; margin-bottom:3px; }
+    .mcs { font-size:.7rem; color:var(--t30); }
+
+    /* TABLE */
+    .tc { background:var(--card); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; }
+    .tt { display:flex; align-items:center; gap:10px; padding:12px 18px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+    .sr { display:flex; align-items:center; gap:7px; background:var(--bg); border:1px solid var(--border); border-radius:7px; padding:6px 11px; flex:1; min-width:160px; max-width:260px; }
+    .sr svg { width:12px; height:12px; color:var(--t30); flex-shrink:0; }
+    .sr input { background:none; border:none; outline:none; color:var(--t100); font-family:inherit; font-size:.8rem; width:100%; }
+    .sr input::placeholder { color:var(--t30); }
+    .flt { background:var(--bg); border:1px solid var(--border); border-radius:7px; color:var(--t60); font-family:inherit; font-size:.78rem; padding:6px 10px; outline:none; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; }
+    thead th { padding:9px 18px; font-size:.68rem; font-weight:600; color:var(--t30); letter-spacing:.07em; text-transform:uppercase; text-align:left; border-bottom:1px solid var(--border); background:var(--surface); }
+    tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--hover); }
+    td { padding:12px 18px; font-size:.82rem; vertical-align:middle; }
+    .tdn { font-weight:500; }
+    .tde { font-size:.73rem; color:var(--t60); margin-top:2px; }
+    .tda { display:flex; gap:7px; justify-content:flex-end; }
+
+    /* BADGES */
+    .bg { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:5px; font-size:.7rem; font-weight:600; }
+    .bg-s  { background:var(--blue-tint); color:var(--blue); }
+    .bg-p  { background:var(--purple-bg); color:var(--purple); }
+    .bg-a  { background:var(--amber-bg);  color:var(--amber); }
+    .bg-e  { background:var(--green-bg);  color:var(--green); }
+    .bg-on { background:var(--green-bg);  color:var(--green); }
+    .bg-of { background:var(--red-bg);    color:var(--red); }
+
+    /* BUTTONS */
+    .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:7px; font-family:inherit; font-size:.8rem; font-weight:600; cursor:pointer; transition:all .15s; border:none; }
+    .btn-p { background:var(--blue); color:white; }
+    .btn-p:hover { background:var(--blue-h); }
+    .btn-p:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-g { background:none; border:1px solid var(--border); color:var(--t60); }
+    .btn-g:hover { border-color:var(--border-med); color:var(--t100); background:var(--hover); }
+    .btn-sm { padding:5px 10px; font-size:.74rem; }
+
+    /* EMPTY */
+    .empty { text-align:center; padding:52px 20px; color:var(--t30); }
+    .empty svg { margin-bottom:12px; opacity:.25; }
+    .empty p { font-size:.86rem; color:var(--t60); margin-bottom:4px; }
+    .empty small { font-size:.76rem; }
+
+    /* MODAL */
+    .mo { position:fixed; inset:0; background:rgba(0,0,0,.72); backdrop-filter:blur(4px); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
+    .mo.open { display:flex; }
+    .mo-box { background:var(--card); border:1px solid var(--border-med); border-radius:14px; width:100%; max-width:480px; box-shadow:0 32px 80px rgba(0,0,0,.6); animation:mIn .2s ease; }
+    @keyframes mIn { from{opacity:0;transform:translateY(10px) scale(.98)} to{opacity:1;transform:none} }
+    .mh { display:flex; align-items:center; justify-content:space-between; padding:18px 22px 0; }
+    .mt { font-size:.95rem; font-weight:600; }
+    .mcl-btn { background:none; border:none; cursor:pointer; color:var(--t60); width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.9rem; transition:all .15s; }
+    .mcl-btn:hover { background:var(--hover); color:var(--t100); }
+    .mb { padding:18px 22px; }
+    .mf { display:flex; justify-content:flex-end; gap:9px; padding:0 22px 18px; border-top:1px solid var(--border); padding-top:14px; margin-top:4px; }
+    .field { margin-bottom:13px; }
+    .field label { display:block; font-size:.76rem; font-weight:500; color:var(--t60); margin-bottom:5px; }
+    .field input, .field select { width:100%; background:var(--bg); border:1px solid var(--border-med); border-radius:7px; color:var(--t100); font-family:inherit; font-size:.86rem; padding:8px 12px; outline:none; transition:border-color .15s, box-shadow .15s; }
+    .field input::placeholder { color:var(--t30); }
+    .field input:focus, .field select:focus { border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-glow); }
+    .field select option { background:var(--card); }
+    .fr { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+    .fh { font-size:.7rem; color:var(--t30); margin-top:3px; }
+    .iw { background:var(--amber-bg); border:1px solid rgba(245,166,35,.2); border-radius:8px; padding:11px 13px; font-size:.81rem; color:var(--amber); margin-bottom:14px; line-height:1.5; }
+
+    /* TOAST */
+    .toasts { position:fixed; bottom:22px; right:22px; z-index:999; display:flex; flex-direction:column; gap:7px; pointer-events:none; }
+    .toast { padding:9px 14px; border-radius:8px; font-size:.8rem; font-weight:500; display:flex; align-items:center; gap:7px; animation:tIn .2s ease; pointer-events:all; min-width:180px; max-width:320px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+    @keyframes tIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+    .t-ok  { background:var(--green-bg); border:1px solid rgba(0,201,126,.25); color:var(--green); }
+    .t-err { background:var(--red-bg);   border:1px solid rgba(239,68,68,.25);  color:var(--red); }
+
+    /* MOBILE */
+    .sbo { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:99; }
+    .mbb { display:none; align-items:center; justify-content:center; background:none; border:none; color:var(--t60); cursor:pointer; width:30px; height:30px; border-radius:6px; transition:all .15s; }
+    .mbb:hover { background:var(--hover); color:var(--t100); }
+    @media(max-width:768px) {
+        .sidebar { transform:translateX(-100%); }
+        .sidebar.open { transform:none; }
+        .sbo.open { display:block; }
+        .main { margin-left:0; }
+        .mr { grid-template-columns:repeat(2,1fr); }
+        .topbar { padding:0 14px; }
+        .content { padding:14px; }
+        .mbb { display:flex !important; }
+    }
+    </style>
+</head>
+<body>
+<div class="sbo" id="sbo" onclick="closeSb()"></div>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+    <div class="brand">
+        <div class="bi" style="background: transparent;">
+        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+    </div>
+        <div><div class="bn">FUNILA</div><div class="bb">MASTER</div></div>
+    </div>
+    <nav class="nav">
+        <div class="nl">Gestão</div>
+        <button class="ni active" id="ni-c" onclick="showV('clients',this)">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M11 14v-1.5A2.5 2.5 0 0 0 8.5 10h-5A2.5 2.5 0 0 0 1 12.5V14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="6" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M13 5v4M11 7h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            Clientes
+            <span class="nc" id="nc-b" style="display:none"></span>
+        </button>
+        <button class="ni" id="ni-m" onclick="showV('metrics',this)">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M2 12L5.5 8 8.5 10 12 5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="3.5" r="1.5" fill="currentColor"/></svg>
+            Métricas SaaS
+        </button>
+    </nav>
+    <div class="sf">
+        <div class="ur">
+            <div class="uav" id="uav">M</div>
+            <div><div class="unm" id="unm">Master</div><div class="uro">Administrador</div></div>
+        </div>
+        <button class="blo" onclick="Auth.logout()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair da conta
+        </button>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+    <div class="topbar">
+        <button class="mbb" onclick="openSb()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="pt" id="pg-t">Gestão de Clientes</span>
+        <div style="display:flex;gap:9px">
+            <button class="btn btn-p" id="btn-new" onclick="openMo()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo Cliente
+            </button>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- VIEW CLIENTS -->
+        <div id="vc">
+            <div class="tc">
+                <div class="tt">
+                    <div class="sr">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="si" placeholder="Buscar nome ou e-mail..." oninput="fil()">
+                    </div>
+                    <select class="flt" id="fp2" onchange="fil()">
+                        <option value="">Todos os planos</option>
+                        <option value="solo">Solo</option><option value="pro">Pro</option>
+                        <option value="agency">Agency</option><option value="enterprise">Enterprise</option>
+                    </select>
+                    <select class="flt" id="fs2" onchange="fil()">
+                        <option value="">Todos</option>
+                        <option value="active">Ativos</option><option value="inactive">Inativos</option>
+                    </select>
+                    <button class="btn btn-g btn-sm" onclick="loadC()" style="margin-left:auto">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Atualizar
+                    </button>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th>Cliente</th><th>Plano</th><th>Status</th>
+                        <th>WhatsApp</th><th>Criado em</th><th style="text-align:right">Ações</th>
+                    </tr></thead>
+                    <tbody id="ctb">
+                        <tr><td colspan="6" style="padding:44px;text-align:center;color:var(--t30);font-size:.8rem">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VIEW METRICS -->
+        <div id="vm" style="display:none">
+            <div class="mr">
+                <div class="mc"><div class="mcl">MRR</div><div class="mcv" id="m1">—</div><div class="mcs">Receita mensal recorrente</div></div>
+                <div class="mc"><div class="mcl">ARR</div><div class="mcv" id="m2">—</div><div class="mcs">Receita anual projetada</div></div>
+                <div class="mc"><div class="mcl">Clientes ativos</div><div class="mcv" id="m3">—</div><div class="mcs">Total de contas</div></div>
+                <div class="mc"><div class="mcl">Churn (30d)</div><div class="mcv" id="m4">—</div><div class="mcs">Taxa de cancelamento</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- MODAL NOVO CLIENTE -->
+<div class="mo" id="mo-n" onclick="if(event.target===this)closeMo()">
+    <div class="mo-box">
+        <div class="mh"><span class="mt">Novo cliente</span><button class="mcl-btn" onclick="closeMo()">✕</button></div>
+        <div class="mb">
+            <div class="fr">
+                <div class="field"><label>Nome *</label><input type="text" id="fn" placeholder="Ex: Nome do Cliente" autocomplete="off"></div>
+                <div class="field"><label>Plano *</label>
+                    <select id="fpl">
+                        <option value="solo">Solo — R$ 147/mês</option>
+                        <option value="pro">Pro — R$ 247/mês</option>
+                        <option value="agency">Agency — R$ 497/mês</option>
+                        <option value="enterprise">Enterprise</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field"><label>E-mail *</label><input type="email" id="fe" placeholder="cliente@email.com" autocomplete="off"></div>
+            <div class="field"><label>Senha provisória *</label><input type="text" id="fw" placeholder="Mínimo 8 caracteres" autocomplete="off"><div class="fh">O cliente poderá trocar após o primeiro login.</div></div>
+            <div class="field"><label>WhatsApp <span style="color:var(--t30);font-weight:400">(opcional)</span></label><input type="text" id="fz" placeholder="(62) 99999-9999"><div class="fh">Usado nas mensagens pré-preenchidas para o lead.</div></div>
+        </div>
+        <div class="mf">
+            <button class="btn btn-g" onclick="closeMo()">Cancelar</button>
+            <button class="btn btn-p" id="bc" onclick="createC()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Criar cliente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL IMPERSONAR -->
+<div class="mo" id="mo-i" onclick="if(event.target===this)closeIm()">
+    <div class="mo-box" style="max-width:380px">
+        <div class="mh"><span class="mt">Acessar como cliente</span><button class="mcl-btn" onclick="closeIm()">✕</button></div>
+        <div class="mb">
+            <div class="iw">⚠ Você entrará no painel como <strong id="inm"></strong>.<br>Todas as ações serão feitas em nome deste cliente.</div>
+            <p style="font-size:.81rem;color:var(--t60);line-height:1.5">Para sair, use o botão <strong>Sair da impersonação</strong> no painel do cliente.</p>
+        </div>
+        <div class="mf">
+            <button class="btn btn-g" onclick="closeIm()">Cancelar</button>
+            <button class="btn btn-p" id="bi" onclick="doImp()">Acessar painel</button>
+        </div>
+    </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="../admin/js/auth.js"></script>
+<script>
+const API = (typeof Auth !== "undefined" && Auth.API_URL) ? Auth.API_URL : window.location.origin;
+let allC = [], impT = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const s = await Auth.checkAuth();
+    if (!s) return;
+    try {
+        const r = await fetch(`${API}/auth/me`, { headers:{ Authorization:`Bearer ${Auth.getToken(s)}` } });
+        if (!r.ok) throw 0;
+        const p = await r.json();
+        if (p.role !== 'master') { location.href='/frontend/admin/dashboard.html'; return; }
+        const em = p.email || s.user?.email || 'master';
+        document.getElementById('uav').textContent = em.substring(0,2).toUpperCase();
+        document.getElementById('unm').textContent = em.split('@')[0];
+    } catch { location.href='/frontend/login/index.html'; return; }
+    loadC();
+});
+
+function showV(v, el) {
+    document.getElementById('vc').style.display = v==='clients'?'':'none';
+    document.getElementById('vm').style.display = v==='metrics'?'':'none';
+    document.getElementById('btn-new').style.display = v==='clients'?'flex':'none';
+    document.getElementById('pg-t').textContent = v==='clients'?'Gestão de Clientes':'Métricas SaaS';
+    document.querySelectorAll('.ni').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+    if (v==='metrics') loadM();
+}
+
+async function loadC() {
+    const s = await Auth.checkAuth(); if (!s) return;
+    const tb = document.getElementById('ctb');
+    tb.innerHTML = `<tr><td colspan="6" style="padding:44px;text-align:center;color:var(--t30);font-size:.8rem">Carregando...</td></tr>`;
+    try {
+        const r = await fetch(`${API}/admin/master/clients`, { headers:{ Authorization:`Bearer ${Auth.getToken(s)}` } });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        allC = await r.json();
+        const b = document.getElementById('nc-b');
+        b.textContent=allC.length; b.style.display=allC.length?'inline':'none';
+        rend(allC);
+    } catch(e) {
+        tb.innerHTML = `<tr><td colspan="6"><div class="empty">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>Erro ao carregar clientes</p><small>${e.message}</small>
+        </div></td></tr>`;
+    }
+}
+
+const pBg={solo:'bg-s',pro:'bg-p',agency:'bg-a',enterprise:'bg-e'};
+const pLb={solo:'Solo',pro:'Pro',agency:'Agency',enterprise:'Enterprise'};
+
+function rend(list) {
+    const tb = document.getElementById('ctb');
+    if (!list.length) {
+        tb.innerHTML=`<tr><td colspan="6"><div class="empty">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p>Nenhum cliente cadastrado.</p><small>Clique em "+ Novo Cliente" para começar.</small>
+        </div></td></tr>`; return;
+    }
+    tb.innerHTML=list.map(c=>{
+        const dt=new Date(c.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+        const nm=(c.name||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        const pb=pBg[c.plan]||'bg-s', pl=pLb[c.plan]||c.plan;
+        const sb=c.active?'bg-on':'bg-of', sl=c.active?'● Ativo':'● Inativo';
+        const wpp=c.whatsapp||`<span style="color:var(--t30)">—</span>`;
+        return `<tr>
+            <td><div class="tdn">${c.name}</div><div class="tde">${c.email}</div></td>
+            <td><span class="bg ${pb}">${pl}</span></td>
+            <td><span class="bg ${sb}">${sl}</span></td>
+            <td style="font-size:.77rem;color:var(--t60)">${wpp}</td>
+            <td style="font-size:.77rem;color:var(--t60)">${dt}</td>
+            <td><div class="tda">
+                <button class="btn btn-g btn-sm" onclick="openIm('${c.id}','${nm}')">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Entrar
+                </button>
+                <button class="btn btn-g btn-sm" onclick="togA('${c.id}',${c.active})">${c.active?'Desativar':'Ativar'}</button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+function fil() {
+    const q=document.getElementById('si').value.toLowerCase();
+    const pl=document.getElementById('fp2').value;
+    const st=document.getElementById('fs2').value;
+    rend(allC.filter(c=>
+        (!q||c.name.toLowerCase().includes(q)||c.email.toLowerCase().includes(q))&&
+        (!pl||c.plan===pl)&&
+        (!st||(st==='active'?c.active:!c.active))
+    ));
+}
+
+async function loadM() {
+    const s=await Auth.checkAuth(); if(!s) return;
+    try {
+        const r=await fetch(`${API}/admin/master/metrics`,{headers:{Authorization:`Bearer ${Auth.getToken(s)}`}});
+        const d=await r.json();
+        const fmt=v=>`R$ ${(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+        document.getElementById('m1').textContent=fmt(d.mrr);
+        document.getElementById('m2').textContent=fmt(d.arr);
+        document.getElementById('m3').textContent=d.total_clients||'0';
+        document.getElementById('m4').textContent=`${(d.churn_rate||0).toFixed(1)}%`;
+    } catch {}
+}
+
+function openMo() { document.getElementById('mo-n').classList.add('open'); setTimeout(()=>document.getElementById('fn').focus(),80); }
+function closeMo() {
+    document.getElementById('mo-n').classList.remove('open');
+    ['fn','fe','fw','fz'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fpl').value='solo'; resetBC();
+}
+function resetBC() { const b=document.getElementById('bc'); b.disabled=false; b.innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Criar cliente`; }
+
+async function createC() {
+    const name=document.getElementById('fn').value.trim();
+    const email=document.getElementById('fe').value.trim();
+    const pass=document.getElementById('fw').value.trim();
+    const wpp=document.getElementById('fz').value.trim()||null;
+    const plan=document.getElementById('fpl').value;
+    if (!name||!email||!pass) { toast('Preencha nome, e-mail e senha.','err'); return; }
+    if (pass.length<8) { toast('Senha mínima 8 caracteres.','err'); return; }
+    const b=document.getElementById('bc'); b.disabled=true; b.textContent='Criando...';
+    const s=await Auth.checkAuth(); if(!s) return;
+    try {
+        const r=await fetch(`${API}/admin/master/clients`,{method:'POST',headers:{Authorization:`Bearer ${Auth.getToken(s)}`,'Content-Type':'application/json'},body:JSON.stringify({name,email,password:pass,whatsapp:wpp,plan})});
+        const d=await r.json();
+        if (!r.ok) throw new Error(d.detail||'Erro desconhecido');
+        closeMo(); loadC(); toast(`Cliente "${name}" criado!`,'ok');
+    } catch(e) { toast(`Erro: ${e.message}`,'err'); resetBC(); }
+}
+
+async function togA(id,cur) {
+    const s=await Auth.checkAuth(); if(!s) return;
+    try {
+        await fetch(`${API}/admin/master/clients/${id}`,{method:'PATCH',headers:{Authorization:`Bearer ${Auth.getToken(s)}`,'Content-Type':'application/json'},body:JSON.stringify({active:!cur})});
+        loadC(); toast(cur?'Cliente desativado.':'Cliente ativado.','ok');
+    } catch { toast('Erro ao atualizar.','err'); }
+}
+
+function openIm(id,nm) { impT=id; document.getElementById('inm').textContent=nm; document.getElementById('mo-i').classList.add('open'); }
+function closeIm() { document.getElementById('mo-i').classList.remove('open'); impT=null; const b=document.getElementById('bi'); b.disabled=false; b.textContent='Acessar painel'; }
+async function doImp() {
+    if(!impT) return;
+    const b=document.getElementById('bi'); b.disabled=true; b.textContent='Entrando...';
+    const s=await Auth.checkAuth(); if(!s) return;
+    try {
+        const r=await fetch(`${API}/admin/master/impersonate/${impT}`,{method:'POST',headers:{Authorization:`Bearer ${Auth.getToken(s)}`}});
+        if(!r.ok) throw 0;
+        const d=await r.json();
+        sessionStorage.setItem('custom_access_token',d.access_token);
+        sessionStorage.setItem('master_token_backup',Auth.getToken(s));
+        location.href='/frontend/admin/dashboard.html';
+    } catch { toast('Erro ao iniciar impersonação.','err'); b.disabled=false; b.textContent='Acessar painel'; }
+}
+
+function openSb() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sbo').classList.add('open'); }
+function closeSb() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sbo').classList.remove('open'); }
+
+function toast(msg, t='ok') {
+    const w=document.getElementById('toasts');
+    const el=document.createElement('div');
+    const ic=t==='ok'
+        ?`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+        :`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+    el.className=`toast t-${t==='ok'?'ok':'err'}`;
+    el.innerHTML=`${ic} ${msg}`; w.appendChild(el);
+    setTimeout(()=>el.remove(),4200);
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closeMo();closeIm();}
+    if(e.key==='Enter'&&document.getElementById('mo-n').classList.contains('open')) createC();
+});
+</script>
+</body>
+</html>

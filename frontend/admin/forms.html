@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Configurar Formulário</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    /* Custom styles for form editor using new variables */
+    .conversion-tip-banner {
+        background: linear-gradient(90deg, var(--layer-2) 0%, var(--layer-1) 100%);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex; align-items: center; gap: 16px;
+        box-shadow: var(--shadow-sm);
+    }
+    .tip-badge {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22C55E;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.05em;
+        display: flex; align-items: center; gap: 6px;
+        flex-shrink: 0;
+    }
+    .tip-text {
+        color: var(--text-70);
+        font-size: 0.85rem; line-height: 1.5;
+        flex: 1;
+    }
+    .tip-text strong { color: var(--text-100); font-weight: 600; }
+
+    .fields-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 16px;
+    }
+
+    .field-card {
+        background: var(--layer-2);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        display: flex; flex-direction: column; gap: 20px;
+        transition: all var(--t-fast) var(--ease);
+        position: relative; overflow: hidden;
+    }
+    .field-card:hover {
+        border-color: var(--border-med);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .field-header { display: flex; justify-content: space-between; align-items: center; }
+
+    .field-key-badge {
+        font-family: var(--font-body);
+        font-size: 0.7rem; color: var(--text-40);
+        background: var(--layer-3);
+        padding: 4px 8px; border-radius: 4px;
+        border: 1px solid var(--border-ghost);
+        font-family: monospace;
+    }
+
+    .field-input-wrapper { position: relative; }
+
+    .field-input-label {
+        position: absolute; top: -10px; left: 10px;
+        background: var(--layer-2);
+        padding: 0 6px;
+        font-size: 0.7rem; color: var(--text-40); font-weight: 500;
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    .field-label-input {
+        width: 100%;
+        background: var(--layer-1);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        color: var(--text-100);
+        font-size: 0.9rem;
+        transition: all var(--t-fast);
+        outline: none;
+    }
+    .field-label-input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px var(--blue-tint);
+    }
+
+    .field-actions {
+        display: flex; justify-content: space-between; align-items: center;
+        padding-top: 16px; border-top: 1px solid var(--border-ghost);
+    }
+
+    .switch-container { display: flex; flex-direction: column; gap: 4px; }
+
+    .switch-label {
+        font-size: 0.7rem; font-weight: 600;
+        color: var(--text-40);
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    /* iOS Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        width: 44px; height: 24px;
+        border-radius: 99px;
+        background-color: var(--layer-3);
+        border: 1px solid var(--border-ghost);
+        cursor: pointer;
+        transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    .toggle-switch::after {
+        content: '';
+        position: absolute; top: 2px; left: 2px;
+        width: 18px; height: 18px;
+        background-color: var(--text-40);
+        border-radius: 50%;
+        transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .toggle-input { display: none; }
+    .toggle-input:checked + .toggle-switch {
+        background-color: var(--hot);
+        border-color: var(--hot);
+    }
+    .toggle-input:checked + .toggle-switch::after {
+        transform: translateX(20px);
+        background-color: #fff;
+    }
+
+    /* Toast */
+    .toast-container {
+        position: fixed; bottom: 24px; right: 24px;
+        z-index: 1000; display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+        background: var(--layer-2);
+        border: 1px solid var(--border-ghost);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+        display: flex; align-items: center; gap: 12px;
+        box-shadow: var(--shadow-lg);
+        transform: translateX(0);
+        transition: transform 0.3s var(--ease);
+        font-size: 0.85rem; color: var(--text-100);
+    }
+    .toast.success { border-left: 3px solid var(--hot); }
+    .toast.error   { border-left: 3px solid var(--dead); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo" style="background: transparent; box-shadow: none;">
+        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Inteligência Comercial</div>
+      </div>
+    </div>
+
+    <div class="client-info">
+      <div class="client-avatar">..</div>
+      <div>
+        <div class="client-name">...</div>
+        <div class="client-plan">...</div>
+      </div>
+      <div class="client-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+        Dashboard
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 13.5C2 11.015 4.686 9 8 9s6 2.015 6 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Pipeline CRM <span class="nav-badge hot">4</span>
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M3 4h10M3 12h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Leads <span class="nav-badge">127</span>
+      </a>
+
+      <div class="nav-label">Rastreamento</div>
+      <a href="links.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8.5C2 5.462 4.462 3 7.5 3 10.538 3 13 5.462 13 8.5c0 1.38-.503 2.64-1.33 3.607" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7.5 6.5V9l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="13" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
+        Smart Links
+      </a>
+      <a href="forms.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 4V3M11 4V3M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Formulários
+      </a>
+
+      <div class="nav-label">Inteligência</div>
+      <a href="creatives.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/></svg>
+        Criativos
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Analytics
+      </a>
+
+      <div class="nav-label">Conta</div>
+      <a href="integrations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1112 0A6 6 0 012 8z" stroke="currentColor" stroke-width="1.3"/><path d="M6 8a2 2 0 104 0 2 2 0 00-4 0z" stroke="currentColor" stroke-width="1.3"/></svg>
+        Integrações
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/><path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div>
+          <div class="plan-name">...</div>
+          <div class="plan-detail">247 créditos restantes</div>
+        </div>
+        <button class="btn-upgrade">Upgrade</button>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="breadcrumb">
+        <span>Funila</span>
+        <span class="breadcrumb-sep">/</span>
+        <strong>Formulário</strong>
+      </div>
+      <div class="topbar-search">
+        <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <input placeholder="Buscar configurações...">
+      </div>
+      <div class="topbar-actions">
+        <div class="user-avatar" id="btn-profile">..</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+        <div class="page-header anim-1">
+            <div class="page-title-block">
+                <div class="page-title">Configurar Formulário</div>
+                <div class="page-subtitle">Personalize a experiência de captura de leads</div>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="saveConfig()" id="save-btn">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 11l8-8M3 11l-2 2M3 11l2-2M11 3l2 2M11 3l-2-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Salvar alterações
+                </button>
+            </div>
+        </div>
+
+        <!-- Anti-Burrice Banner -->
+        <div class="conversion-tip-banner anim-2">
+            <div class="tip-badge"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Dica de Ouro</div>
+            <div class="tip-text">
+                <strong>Formulários curtos convertem até 40% mais.</strong><br>
+                Torne obrigatório apenas o que for vital (como WhatsApp) e deixe campos como CPF opcionais se possível.
+            </div>
+        </div>
+
+        <!-- Drag & Drop Container -->
+        <div id="fields-container" class="fields-grid anim-3" style="display:flex;flex-direction:column;gap:12px;max-width:600px">
+            <div class="empty-state" style="text-align:center; padding: 40px; color:var(--text-40)">
+                <p>Carregando configurações...</p>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<script src="js/auth.js"></script>
+<script>
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+
+    let configData = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        const session = await Auth.checkAuth();
+        if (session) loadConfig();
+    });
+
+    async function loadConfig() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const container = document.getElementById("fields-container");
+
+        try {
+            // Load Fields
+            const resFields = await fetch(`${Auth.API_URL}/admin/forms/`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+
+            if (resFields.status === 400) {
+                // Master sem impersonação ativa
+                container.innerHTML = `<div class="empty-state" style="text-align:center;padding:40px;color:var(--text-40)">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" style="margin-bottom:12px;opacity:.4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <p style="font-size:.9rem;color:var(--text-60);margin-bottom:8px">Acesso de Master</p>
+                    <small>Para editar formulários, entre no painel de um cliente via <a href="master.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
+                </div>`;
+                return;
+            }
+
+            if (!resFields.ok) throw new Error("Erro ao carregar campos (HTTP " + resFields.status + ")");
+            configData = await resFields.json();
+
+            renderConfig();
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div class="empty-state" style="text-align:center;padding:40px;color:var(--text-40)">
+                <p>Erro ao carregar configurações.</p><small>${e.message}</small>
+            </div>`;
+            showToast("Erro ao carregar configurações", "error");
+        }
+    }
+
+    function renderConfig() {
+        const container = document.getElementById("fields-container");
+        if(configData.length === 0) {
+             container.innerHTML = `<div class="empty-state" style="text-align:center; padding: 40px; color:var(--text-40)"><p>Nenhum campo configurável encontrado.</p></div>`;
+             return;
+        }
+
+        // Sort by order
+        configData.sort((a,b) => (a.order || 0) - (b.order || 0));
+
+        container.innerHTML = configData.map((field, i) => `
+            <div class="field-card" data-id="${field.field_id}">
+                <div class="field-header" style="cursor:grab">
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-40)" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        <span class="field-key-badge">${field.field_key}</span>
+                    </div>
+                </div>
+
+                <div class="field-input-wrapper">
+                    <span class="field-input-label">Texto exibido ao cliente</span>
+                    <input type="text"
+                        class="field-label-input"
+                        value="${field.label_custom || field.label_default}"
+                        oninput="updateFieldLabel('${field.field_id}', this.value)"
+                        placeholder="Ex: Seu melhor e-mail">
+                </div>
+
+                <div class="field-actions">
+                    <div class="switch-container">
+                        <span class="switch-label">Exibir</span>
+                        <label>
+                            <input type="checkbox" class="toggle-input" ${field.active ? "checked" : ""}
+                                onchange="updateFieldState('${field.field_id}', 'active', this.checked)">
+                            <div class="toggle-switch"></div>
+                        </label>
+                    </div>
+
+                    <div class="switch-container">
+                        <span class="switch-label">Obrigatório</span>
+                        <label>
+                            <input type="checkbox" class="toggle-input" ${field.required ? "checked" : ""}
+                                onchange="updateFieldState('${field.field_id}', 'required', this.checked)">
+                            <div class="toggle-switch"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `).join("");
+
+        // Init Sortable
+        new Sortable(container, {
+            animation: 150,
+            handle: '.field-header',
+            ghostClass: 'kanban-ghost',
+            onEnd: function (evt) {
+                // Update order in configData based on DOM
+                const newOrder = [];
+                container.querySelectorAll('.field-card').forEach((el, idx) => {
+                    const id = el.dataset.id;
+                    const item = configData.find(f => f.field_id === id);
+                    if(item) {
+                        item.order = idx;
+                        newOrder.push(item);
+                    }
+                });
+                configData = newOrder; // Reassign sorted
+            }
+        });
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function updateFieldLabel(id, val) {
+        const item = configData.find(f => f.field_id === id);
+        if(item) item.label_custom = val;
+    }
+
+    function updateFieldState(id, key, val) {
+        const item = configData.find(f => f.field_id === id);
+        if(item) item[key] = val;
+    }
+
+    async function saveConfig() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const btn = document.getElementById("save-btn");
+        const originalContent = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = `Salvando...`;
+
+        const payload = configData.map((field, idx) => ({
+            field_id:     field.field_id,
+            label_custom: field.label_custom,
+            required:     field.required,
+            active:       field.active,
+            order:        idx
+        }));
+
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/forms/`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                showToast("Configurações salvas com sucesso!", "success");
+            } else {
+                showToast("Erro ao salvar configurações.", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Erro de conexão.", "error");
+        } finally {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }, 500);
+        }
+    }
+</script>
+</body>
+</html>

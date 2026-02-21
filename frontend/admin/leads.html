@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funila — Leads CRM</title>
+<link rel="icon" href="/frontend/assets/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="kanban.css">
+<!-- Iconografia -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo" style="background: transparent; box-shadow: none;">
+        <img src="/frontend/assets/logo-icon.png" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">FUNILA</div>
+        <div class="brand-tagline">Inteligência Comercial</div>
+      </div>
+    </div>
+
+    <div class="client-info">
+      <div class="client-avatar">..</div>
+      <div>
+        <div class="client-name">...</div>
+        <div class="client-plan">...</div>
+      </div>
+      <div class="client-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-label">Principal</div>
+      <a href="dashboard.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="leads.html" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M2 13.5C2 11.015 4.686 9 8 9s6 2.015 6 4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Pipeline CRM
+        <span class="nav-badge hot">4</span>
+      </a>
+      <a href="leads.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8h10M3 4h10M3 12h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Leads
+        <span class="nav-badge">127</span>
+      </a>
+
+      <div class="nav-label">Rastreamento</div>
+      <a href="links.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8.5C2 5.462 4.462 3 7.5 3 10.538 3 13 5.462 13 8.5c0 1.38-.503 2.64-1.33 3.607" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M7.5 6.5V9l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="13" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Smart Links
+      </a>
+      <a href="forms.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="4" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M5 4V3M11 4V3M2 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Formulários
+      </a>
+
+      <div class="nav-label">Inteligência</div>
+      <a href="creatives.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M2 12L5.5 8 8.5 10 12 5.5 14 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="1 3" opacity="0.3"/>
+        </svg>
+        Criativos
+      </a>
+      <a href="analytics.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Analytics
+      </a>
+
+      <div class="nav-label">Conta</div>
+      <a href="integrations.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M2 8a6 6 0 1112 0A6 6 0 012 8z" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M6 8a2 2 0 104 0 2 2 0 00-4 0z" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Integrações
+      </a>
+      <a href="settings.html" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2a2 2 0 100 4 2 2 0 000-4zM4.5 9.5C4.5 7.567 6.067 6 8 6s3.5 1.567 3.5 3.5V11H4.5V9.5z" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M2 14h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="plan-badge">
+        <div>
+          <div class="plan-name">...</div>
+          <div class="plan-detail">247 créditos restantes</div>
+        </div>
+        <button class="btn-upgrade">Upgrade</button>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M5.5 7H12M9.5 4.5L12 7l-2.5 2.5M7 1.5H3a1 1 0 00-1 1v9a1 1 0 001 1h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Sair da conta
+      </button>
+    </div>
+  </aside>
+
+  <!-- ════════════════════════════════════
+       MAIN WRAPPER
+  ════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="mobile-menu-btn" onclick="openSidebar()" style="margin-right: 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="breadcrumb">
+        <span>Funila</span>
+        <span class="breadcrumb-sep">/</span>
+        <strong>CRM Pipeline</strong>
+      </div>
+
+      <div class="topbar-search">
+        <svg class="topbar-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M9 9l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input type="search" id="filter-search" placeholder="Buscar nome, telefone..." oninput="debounceSearch()">
+      </div>
+
+      <div class="topbar-actions">
+        <button class="topbar-btn" onclick="exportLeads()" title="Exportar CSV">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <button class="topbar-btn" onclick="loadLeads()" title="Atualizar">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 7a6 6 0 106-6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M4 4l-3 3 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <div class="user-avatar" id="btn-profile">..</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content" style="overflow-x:hidden;height:calc(100vh - 56px);display:flex;flex-direction:column;padding-bottom:0">
+
+        <div id="kanban-board" class="kanban-board anim-1">
+            <!-- Kanban loaded by JS -->
+            <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--text-40)">Carregando...</div>
+        </div>
+
+        <div class="pagination" id="pagination-controls" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:10px;margin-bottom:20px">
+        </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="lead-drawer">
+    <div class="drawer-head">
+        <!-- Avatar and Name populated by JS -->
+        <div class="drawer-lead-avatar" id="d-avatar">JS</div>
+        <div>
+            <div class="drawer-lead-name" id="d-name">Carregando...</div>
+            <div class="drawer-lead-phone" id="d-phone">...</div>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M13 1L1 13M1 1l12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+    </div>
+    <div class="drawer-body" id="drawer-content">
+        <!-- Details populated by JS -->
+    </div>
+    <div class="drawer-footer" id="drawer-footer">
+        <!-- Buttons populated by JS -->
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<script src="js/auth.js"></script>
+<script src="kanban.js"></script>
+<script>
+    function openSidebar() {
+        document.getElementById("sidebar").classList.add("open");
+        document.getElementById("sidebar-overlay").classList.add("open");
+    }
+    function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("open");
+    }
+
+    let currentPage = 1;
+    let limit = 100;
+    let searchTimer = null;
+
+    // Inicialização de Ícones
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const session = await Auth.checkAuth();
+        if (session) loadLeads();
+    });
+
+    function debounceSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadLeads(1), 500);
+    }
+
+    async function loadLeads(page = 1) {
+        currentPage = page;
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        const searchFilter = document.getElementById("filter-search").value;
+        let url = `${Auth.API_URL}/leads?page=${page}&limit=${limit}`;
+        if (searchFilter) url += `&search=${searchFilter}`;
+
+        try {
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            if (res.status === 400) {
+                document.getElementById("kanban-board").innerHTML =
+                    `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:200px;color:var(--dead);flex-direction:column;gap:8px">
+                        <span>Acesso de Master</span>
+                        <small style="font-size:.8rem;opacity:.6">Para ver leads, entre no painel de um cliente via <a href="master.html" style="color:var(--blue)">Gestão de Clientes</a>.</small>
+                    </div>`;
+                return;
+            }
+            if (!res.ok) throw new Error("Erro ao buscar leads (HTTP " + res.status + ")");
+            const json = await res.json();
+
+            if (typeof renderKanbanBoard === 'function') {
+                renderKanbanBoard(json.data);
+            } else {
+                console.error("renderKanbanBoard not found");
+            }
+
+            renderPagination(json.total, json.page, json.limit);
+        } catch (err) {
+            console.error(err);
+            document.getElementById("kanban-board").innerHTML =
+                `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--dead)">Erro ao carregar leads.</div>`;
+        }
+    }
+
+    function renderPagination(total, page, limit) {
+        const totalPages = Math.ceil(total / limit);
+        const container = document.getElementById("pagination-controls");
+
+        if (totalPages <= 1) {
+            container.innerHTML = "";
+            return;
+        }
+
+        container.innerHTML = `
+            <button class="btn btn-ghost" ${page <= 1 ? "disabled" : ""} onclick="loadLeads(${page - 1})">Anterior</button>
+            <span class="text-muted" style="font-size:.85rem;color:var(--text-40)">Página ${page} de ${totalPages}</span>
+            <button class="btn btn-ghost" ${page >= totalPages ? "disabled" : ""} onclick="loadLeads(${page + 1})">Próxima</button>
+        `;
+    }
+
+    async function exportLeads() {
+        const session = await Auth.checkAuth();
+        if (!session) return;
+        const searchFilter = document.getElementById("filter-search").value;
+        let url = `${Auth.API_URL}/leads/export?`;
+        if (searchFilter) url += `&search=${searchFilter}`;
+
+        try {
+            const res = await fetch(url, { headers: { "Authorization": `Bearer ${session.access_token}` } });
+            if (!res.ok) throw new Error("Erro");
+            const blob = await res.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = "leads.csv";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast("Exportação concluída", "success");
+        } catch(e) {
+            showToast("Erro ao exportar leads", "error");
+        }
+    }
+
+    async function openLeadDetails(leadId) {
+        const overlay = document.getElementById("drawer-overlay");
+        const drawer = document.getElementById("lead-drawer");
+        const content = document.getElementById("drawer-content");
+        const footer = document.getElementById("drawer-footer");
+        const dName = document.getElementById("d-name");
+        const dPhone = document.getElementById("d-phone");
+        const dAvatar = document.getElementById("d-avatar");
+
+        overlay.classList.add("open");
+        drawer.classList.add("open");
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-40)">Carregando detalhes...</div>';
+
+        const session = await Auth.checkAuth();
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${Auth.API_URL}/leads/${leadId}`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+            if (!res.ok) throw new Error("Erro");
+            const data = await res.json();
+            renderLeadDetails(data, content, footer, dName, dPhone, dAvatar);
+        } catch (e) {
+            console.error(e);
+            content.innerHTML = '<div style="color:var(--dead);text-align:center">Erro ao carregar detalhes.</div>';
+        }
+    }
+
+    function closeDrawer() {
+        document.getElementById("drawer-overlay").classList.remove("open");
+        document.getElementById("lead-drawer").classList.remove("open");
+    }
+
+    function renderLeadDetails(data, container, footer, dName, dPhone, dAvatar) {
+        const l = data.lead;
+        const responses = data.responses || [];
+        const timeline = data.timeline || [];
+        const score = (l.internal_score || 0) + (l.external_score || 0);
+
+        // Header Updates
+        dName.textContent = l.name || "Sem Nome";
+        dPhone.textContent = l.phone || "Sem Telefone";
+        if (l.name) {
+            const parts = l.name.split(' ');
+            dAvatar.textContent = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        } else {
+            dAvatar.textContent = "??";
+        }
+
+        const phoneClean = l.phone ? l.phone.replace(/\D/g, "") : "";
+
+        // Body Content
+        let html = `
+            <div class="drawer-section">
+                <div class="drawer-section-title">Score de Qualificação</div>
+                <div class="score-display">
+                    <div class="score-box">
+                        <div class="score-box-val" style="color:var(--hot)">${score}</div>
+                        <div class="score-box-label">Funila Score</div>
+                    </div>
+                    ${l.serasa_score ? `
+                    <div class="score-box">
+                        <div class="score-box-val" style="color:var(--purple)">${l.serasa_score}</div>
+                        <div class="score-box-label">Serasa Score</div>
+                    </div>` : ''}
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title">Atribuição de Origem</div>
+                <div class="creative-origin">
+                    <div class="creative-origin-thumb">
+                        ${l.creative_thumbnail
+                            ? `<img src="${l.creative_thumbnail}" style="width:100%;height:100%;object-fit:cover">`
+                            : `<div class="thumb-placeholder thumb-1">ADS</div>`
+                        }
+                    </div>
+                    <div class="creative-origin-info">
+                        <div class="creative-origin-name">${l.creative_name || l.utm_source || "Direto"}</div>
+                        <div class="creative-origin-camp">${l.utm_campaign || "Sem campanha"}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title">Respostas do Formulário</div>
+                <div class="info-grid-2">
+                ${responses.map(r => `
+                    <div class="info-box">
+                        <div class="info-box-label">${r.form_fields ? r.form_fields.label : "Campo"}</div>
+                        <div class="info-box-val">${r.response_value}</div>
+                    </div>
+                `).join("")}
+                </div>
+                ${!responses.length ? '<div class="text-muted" style="font-size:.85rem;color:var(--text-40)">Nenhuma resposta.</div>' : ''}
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title">Timeline de Eventos</div>
+                <div class="timeline">
+                    ${timeline.map(t => {
+                        const date = new Date(t.created_at).toLocaleString("pt-BR", { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+                        let dotClass = "active"; // Default
+                        if(t.event_type === 'form_submit' || t.event_type === 'converted') dotClass = "done";
+
+                        return `
+                        <div class="timeline-item">
+                            <div class="timeline-dot ${dotClass}"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">${t.event_type}</div>
+                                <div class="timeline-ts">${date}</div>
+                                ${t.metadata ? `<div style="font-size:0.6rem;color:var(--text-40);margin-top:2px;font-family:monospace">${JSON.stringify(t.metadata).slice(0, 50)}...</div>` : ''}
+                            </div>
+                        </div>`;
+                    }).join("")}
+                    ${!timeline.length ? '<div class="text-muted" style="font-size:.85rem;color:var(--text-40)">Nenhum evento.</div>' : ''}
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+        // Footer Actions
+        footer.innerHTML = `
+            <button class="btn-whatsapp" onclick="window.open('https://wa.me/55${phoneClean}', '_blank')">WhatsApp</button>
+            <button class="btn-converted" onclick="markConverted('${l.id}')">✅ Ganho</button>
+            <button class="btn-delete" onclick="deleteLead('${l.id}')">🗑</button>
+        `;
+
+        lucide.createIcons();
+    }
+
+    // Placeholder functions for buttons (should be in kanban.js or leads.js)
+    async function markConverted(id) {
+        if(confirm("Marcar como ganho?")) {
+            try {
+                await updateLeadStatus(id, 'converted');
+                closeDrawer();
+                loadLeads(currentPage);
+                showToast("Lead marcado como ganho!", "success");
+                fireConfetti();
+            } catch (e) {
+                showToast("Erro ao atualizar status", "error");
+            }
+        }
+    }
+
+    async function deleteLead(id) {
+        if(confirm("Tem certeza que deseja excluir?")) {
+            try {
+                // Assuming DELETE endpoint exists or using PATCH to trash
+                // Ideally: await fetch(`${Auth.API_URL}/leads/${id}`, { method: 'DELETE', ... })
+                // For now, let's move to trash using updateLeadStatus if delete not implemented
+                await updateLeadStatus(id, 'trash');
+                closeDrawer();
+                loadLeads(currentPage);
+                showToast("Lead movido para lixeira", "success");
+            } catch (e) {
+                showToast("Erro ao excluir lead", "error");
+            }
+        }
+    }
+</script>
+</body>
+</html>

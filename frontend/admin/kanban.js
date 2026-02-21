@@ -81,6 +81,9 @@ function renderKanbanBoard(leads) {
     // Inicializa SortableJS
     KANBAN_COLUMNS.forEach(status => {
         const el = document.getElementById(`col-${status}`);
+        // Check if element exists before init Sortable
+        if (!el) return;
+
         new Sortable(el, {
             group: 'kanban',
             animation: 150,
@@ -101,13 +104,13 @@ function renderKanbanBoard(leads) {
 
                 try {
                     await updateLeadStatus(leadId, newStatus);
-                    showToast(`Movido para ${COLUMN_LABELS[newStatus]}`, "success");
+                    if (window.showToast) window.showToast(`Movido para ${COLUMN_LABELS[newStatus]}`, "success");
 
                     if (newStatus === 'converted') {
                         fireConfetti();
                     }
                 } catch (error) {
-                    showToast("Erro ao mover lead", "error");
+                    if (window.showToast) window.showToast("Erro ao mover lead", "error");
                     evt.from.appendChild(itemEl); // Reverter
                     updateCount(oldStatus, 1);
                     updateCount(newStatus, -1);
@@ -199,42 +202,6 @@ async function updateLeadStatus(leadId, newStatus) {
 
     if (!res.ok) throw new Error("API Error");
     return await res.json();
-}
-
-function showToast(msg, type="success") {
-    const container = document.getElementById("toast-container");
-    if (!container) return;
-
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-    // Estilo Apple para toast
-    toast.style.background = "var(--layer-2)";
-    toast.style.border = "1px solid var(--border-ghost)";
-    toast.style.borderRadius = "8px";
-    toast.style.padding = "12px 16px";
-    toast.style.boxShadow = "var(--shadow-md)";
-    toast.style.color = "var(--text-100)";
-    toast.style.display = "flex";
-    toast.style.alignItems = "center";
-    toast.style.gap = "10px";
-    toast.style.marginBottom = "10px";
-    toast.style.fontSize = "0.85rem";
-
-    const iconColor = type === 'success' ? 'var(--hot)' : 'var(--dead)';
-
-    toast.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            ${type === 'success' ? '<polyline points="20 6 9 17 4 12"></polyline>' : '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'}
-        </svg>
-        <span>${msg}</span>
-    `;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transition = "opacity 0.3s";
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
 }
 
 function fireConfetti() {

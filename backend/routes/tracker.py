@@ -1,7 +1,8 @@
 import hashlib
+import json
 import os
 import uuid
-import httpx
+from urllib.parse import urlencode
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from pydantic import BaseModel
@@ -44,21 +45,21 @@ def _parse_device(ua_string: str) -> tuple[str, str]:
 
 
 def _build_params(link: dict, extra: dict = {}) -> str:
-    parts = [
-        f"l={link['id']}",
-        f"c={link['client_id']}",
-    ]
+    params = {
+        "l": link["id"],
+        "c": link["client_id"],
+    }
     if link.get("utm_source"):
-        parts.append(f"utm_source={link['utm_source']}")
+        params["utm_source"] = link["utm_source"]
     if link.get("utm_campaign"):
-        parts.append(f"utm_campaign={link['utm_campaign']}")
+        params["utm_campaign"] = link["utm_campaign"]
     if link.get("utm_medium"):
-        parts.append(f"utm_medium={link['utm_medium']}")
+        params["utm_medium"] = link["utm_medium"]
     if link.get("utm_content"):
-        parts.append(f"utm_content={link['utm_content']}")
-    for k, v in extra.items():
-        parts.append(f"{k}={v}")
-    return "&".join(parts)
+        params["utm_content"] = link["utm_content"]
+
+    params.update(extra)
+    return urlencode(params)
 
 
 # ─── Rota principal do tracker ─────────────────────────────────────────────────
@@ -205,9 +206,9 @@ async def proxy_capture_page(slug: str, request: Request):
 <script>
 (function() {{
     var _fln = {{
-        linkId:    "{link_id}",
-        clientId:  "{client_id}",
-        sessionId: "{session_id}",
+        linkId:    {json.dumps(link_id)},
+        clientId:  {json.dumps(client_id)},
+        sessionId: {json.dumps(session_id)},
         apiUrl:    "https://funila-app.onrender.com",
         startTime: Date.now(),
     }};

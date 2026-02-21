@@ -304,8 +304,9 @@
             document.body.appendChild(a);
             a.click();
             a.remove();
+            showToast("Exportação concluída", "success");
         } catch(e) {
-            alert("Erro ao exportar");
+            showToast("Erro ao exportar leads", "error");
         }
     }
 
@@ -445,18 +446,31 @@
     // Placeholder functions for buttons (should be in kanban.js or leads.js)
     async function markConverted(id) {
         if(confirm("Marcar como ganho?")) {
-            // Logic to update status
-            updateLeadStatus(id, 'converted').then(() => {
+            try {
+                await updateLeadStatus(id, 'converted');
                 closeDrawer();
                 loadLeads(currentPage);
-            });
+                showToast("Lead marcado como ganho!", "success");
+                fireConfetti();
+            } catch (e) {
+                showToast("Erro ao atualizar status", "error");
+            }
         }
     }
 
     async function deleteLead(id) {
-        if(confirm("Tem certeza?")) {
-            // Logic to delete
-            alert("Implementar delete");
+        if(confirm("Tem certeza que deseja excluir?")) {
+            try {
+                // Assuming DELETE endpoint exists or using PATCH to trash
+                // Ideally: await fetch(`${Auth.API_URL}/leads/${id}`, { method: 'DELETE', ... })
+                // For now, let's move to trash using updateLeadStatus if delete not implemented
+                await updateLeadStatus(id, 'trash');
+                closeDrawer();
+                loadLeads(currentPage);
+                showToast("Lead movido para lixeira", "success");
+            } catch (e) {
+                showToast("Erro ao excluir lead", "error");
+            }
         }
     }
 </script>

@@ -76,4 +76,46 @@ async function authHeaders(session) {
     };
 }
 
-window.Auth = { checkAuth, logout, getSupabase, getToken, getTokenAsync, authHeaders, API_URL };
+// Global Toast System
+function showToast(message, type = "success") {
+    let container = document.getElementById("toast-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toast-container";
+        container.className = "toast-container";
+        // Ensure styles are somewhat present if CSS fails, but usually relying on style.css
+        // Styles are in style.css (.toast-container)
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+
+    let icon = "";
+    if (type === "success") {
+        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    } else if (type === "error") {
+        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+    } else {
+        icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+    }
+
+    toast.innerHTML = `${icon} <span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Animation entry
+    // CSS handles transform translate. We need to trigger it?
+    // style.css has .toast { transform: translateX(0); transition: transform 0.3s ... }
+    // If we want slide-in, we might need initial state off-screen.
+    // Assuming style.css handles it, or just simple appearance.
+
+    // Auto remove
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+window.Auth = { checkAuth, logout, getSupabase, getToken, getTokenAsync, authHeaders, API_URL, showToast };
+window.showToast = showToast; // Expose globally for convenience

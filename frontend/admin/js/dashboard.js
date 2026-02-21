@@ -24,7 +24,10 @@ async function loadDashboard() {
         renderChart(data.chart_data);
         renderBreakdown(data.breakdown);
     })
-    .catch(console.error);
+    .catch(err => {
+        console.error(err);
+        if(window.showToast) window.showToast("Erro ao carregar métricas", "error");
+    });
 
     // 2. Carrega Funil Detalhado
     fetch(`${Auth.API_URL}/funnel?period=${period}`, { headers })
@@ -33,7 +36,10 @@ async function loadDashboard() {
         return r.json();
     })
     .then(renderFunnel)
-    .catch(console.error);
+    .catch(err => {
+        console.error(err);
+        if(window.showToast) window.showToast("Erro ao carregar funil", "error");
+    });
 
     // 3. Carrega Abandono (Novo Card)
     fetch(`${Auth.API_URL}/metrics/abandonment`, { headers })

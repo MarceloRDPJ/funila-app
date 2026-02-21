@@ -244,7 +244,20 @@
     <script>
         const SUPABASE_URL     = "https://qitbyswmidyakadrzatz.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpdGJ5c3dtaWR5YWthZHJ6YXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MDQ3NzAsImV4cCI6MjA4NzA4MDc3MH0.FHUD9EuHNOnxv7UALkHNlLiEZv5Q7yYvT9GIz3QeSl0";
-        const API_URL          = window.location.origin;
+
+        // Determina a URL da API backend dinamicamente
+        let API_URL = window.location.origin;
+
+        // Se estiver rodando no GitHub Pages ou outro domínio frontend,
+        // a API deve apontar para o backend no Render.
+        if (window.location.hostname === "app.funila.com.br" || window.location.hostname.includes("github.io")) {
+            API_URL = "https://funila-app.onrender.com";
+        }
+
+        // Local dev setup
+        if (window.location.hostname === "localhost" && window.location.port === "5500") {
+            API_URL = "http://localhost:8000";
+        }
 
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

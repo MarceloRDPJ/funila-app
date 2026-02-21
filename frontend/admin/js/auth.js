@@ -1,6 +1,20 @@
 const SUPABASE_URL     = "https://qitbyswmidyakadrzatz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpdGJ5c3dtaWR5YWthZHJ6YXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MDQ3NzAsImV4cCI6MjA4NzA4MDc3MH0.FHUD9EuHNOnxv7UALkHNlLiEZv5Q7yYvT9GIz3QeSl0";
-const API_URL = window.location.origin;
+
+// Determina a URL da API backend dinamicamente
+let API_URL = window.location.origin;
+
+// Se estiver rodando no GitHub Pages ou outro domínio frontend,
+// a API deve apontar para o backend no Render.
+if (window.location.hostname === "app.funila.com.br" || window.location.hostname.includes("github.io")) {
+    API_URL = "https://funila-app.onrender.com";
+}
+
+// Se estiver rodando localmente (frontend separado), ajuste conforme necessário
+if (window.location.hostname === "localhost" && window.location.port === "5500") {
+    // Assumindo que o backend roda na porta 8000
+    API_URL = "http://localhost:8000";
+}
 
 let supabaseClient = null;
 
@@ -21,7 +35,12 @@ async function checkAuth() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) {
         if (!window.location.pathname.includes("/login/")) {
-            window.location.href = "/frontend/login/index.html";
+            // Ajuste o caminho de redirecionamento se necessário
+            const loginPath = "/frontend/login/index.html";
+            // Se já estivermos tentando ir para login, não redireciona em loop
+            if (!window.location.pathname.endsWith("login/index.html")) {
+                 window.location.href = loginPath;
+            }
         }
         return null;
     }
@@ -34,23 +53,13 @@ async function logout() {
     window.location.href = "/frontend/login/index.html";
 }
 
-// getToken(session?) — se receber session, retorna token direto (síncrono).
-// Se não receber, busca da sessão atual (assíncrono).
-// Suporta token de impersonação via sessionStorage.
 function getToken(session) {
-    // Impersonation override
     const custom = sessionStorage.getItem('custom_access_token');
     if (custom) return custom;
-
-    // Se recebeu session como parâmetro, usa direto — síncrono, sem await
     if (session && session.access_token) return session.access_token;
-
-    // Fallback síncrono — retorna null se não tem cache
-    // (use checkAuth() antes para garantir que a sessão existe)
     return null;
 }
 
-// getTokenAsync() — garante o token mesmo sem session no parâmetro
 async function getTokenAsync() {
     const custom = sessionStorage.getItem('custom_access_token');
     if (custom) return custom;

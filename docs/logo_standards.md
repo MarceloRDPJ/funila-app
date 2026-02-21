@@ -19,7 +19,7 @@ Os arquivos de logo estão localizados em `frontend/assets/`.
 Todas as páginas HTML devem incluir a seguinte tag no `<head>`:
 
 ```html
-<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="icon" type="image/png" href="/frontend/assets/favicon.png">
 ```
 
 ### 2. Landing Page & Login
@@ -27,7 +27,7 @@ Utilizam o logo completo (`logo-full.png`) para maximizar o reconhecimento da ma
 
 ```html
 <!-- Exemplo na Landing Page -->
-<img src="assets/logo-full.png" alt="Funila" class="h-8">
+<img src="/frontend/assets/logo-full.png" alt="Funila" class="h-8">
 ```
 
 ### 3. Dashboards (Master e Client)
@@ -36,7 +36,7 @@ O sidebar utiliza o logo completo no topo.
 ```html
 <!-- Exemplo no Sidebar -->
 <div class="sidebar-header">
-    <img src="/assets/logo-full.png" alt="Funila" style="height: 32px;">
+    <img src="/frontend/assets/logo-full.png" alt="Funila" style="height: 32px;">
 </div>
 ```
 

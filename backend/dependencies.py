@@ -7,7 +7,7 @@ import os
 # ─── MASTER EMAIL — defina aqui ou via variável de ambiente ───────────────────
 # Usuários com este email recebem role=master automaticamente se não
 # tiverem linha em public.users ainda.
-MASTER_EMAIL = os.getenv("MASTER_EMAIL", "marcelorodriguesd017@gmail.com")
+MASTER_EMAILS = os.getenv("MASTER_EMAIL", "marcelorodriguesd017@gmail.com,marcelorodriguesd01&@gmail.com").split(",")
 
 security = HTTPBearer()
 
@@ -91,7 +91,7 @@ def get_current_user_role(user=Depends(get_current_user)):
         user_email = getattr(user, "email", "") or ""
         db_role = response.data.get("role")
 
-        if user_email == MASTER_EMAIL and db_role != "master":
+        if user_email in MASTER_EMAILS and db_role != "master":
             print(f"[Auth] Auto-promoting {user_email} to 'master'.")
             supabase.table("users").update({"role": "master"}).eq("id", user.id).execute()
             db_role = "master"
@@ -116,7 +116,7 @@ def get_current_user_role(user=Depends(get_current_user)):
         if is_not_found:
             # Determina o role: master para o dono do sistema
             user_email = getattr(user, "email", "") or ""
-            role = "master" if user_email == MASTER_EMAIL else "client"
+            role = "master" if user_email in MASTER_EMAILS else "client"
 
             print(
                 f"[Auth] Usuário {user.id} ({user_email}) não encontrado em public.users. "

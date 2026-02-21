@@ -264,18 +264,42 @@
         const session = await Auth.checkAuth();
         if (!session) return;
 
-        const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
-            headers: { "Authorization": `Bearer ${session.access_token}` }
-        });
-        allClients = await res.json();
-        renderClients(allClients);
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/clients`, {
+                headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                console.error("Erro ao buscar clientes:", err);
+                if (res.status === 403) {
+                    showToast("Acesso negado: Você não tem permissão de Master.", "error");
+                } else {
+                    showToast("Erro ao carregar lista de clientes.", "error");
+                }
+                renderClients([]); // Render empty state
+                return;
+            }
+
+            allClients = await res.json();
+            if (!Array.isArray(allClients)) {
+                console.error("Formato inválido de resposta:", allClients);
+                allClients = [];
+            }
+            renderClients(allClients);
+        } catch (e) {
+            console.error("Erro de conexão:", e);
+            showToast("Erro de conexão ao buscar clientes.", "error");
+            renderClients([]);
+        }
     }
 
     function renderClients(clients) {
         const tbody = document.getElementById("clients-body");
-        document.getElementById("total-clients-count").textContent = `${clients.length} registros`;
+        const countEl = document.getElementById("total-clients-count");
+        if(countEl) countEl.textContent = `${clients ? clients.length : 0} registros`;
 
-        if (!clients.length) {
+        if (!clients || !clients.length) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-40)">Nenhum cliente encontrado.</td></tr>`;
             return;
         }
@@ -378,21 +402,30 @@
 
         // Salva token master para poder voltar depois (opcional)
         // sessionStorage.setItem('master_token_backup', session.access_token);
-        // A lógica de "exitImpersonation" pode ser implementada depois
 
-        const res = await fetch(`${Auth.API_URL}/admin/master/impersonate/${clientId}`, {
-             method: "POST",
-             headers: { "Authorization": `Bearer ${session.access_token}` }
-        });
+        try {
+            const res = await fetch(`${Auth.API_URL}/admin/master/impersonate/${clientId}`, {
+                 method: "POST",
+                 headers: { "Authorization": `Bearer ${session.access_token}` }
+            });
 
-        if(res.ok) {
-            const data = await res.json();
-            // Salva token de impersonação
-            sessionStorage.setItem('custom_access_token', data.access_token);
-            // Redireciona para o dashboard do cliente
-            window.location.href = "../admin/dashboard.html";
-        } else {
-            showToast("Erro ao acessar conta do cliente.", "error");
+            if(res.ok) {
+                const data = await res.json();
+                if (data.access_token) {
+                    // Salva token de impersonação
+                    sessionStorage.setItem('custom_access_token', data.access_token);
+                    // Redireciona para o dashboard do cliente
+                    window.location.href = "../admin/dashboard.html";
+                } else {
+                    showToast("Erro: Token de acesso não recebido.", "error");
+                }
+            } else {
+                const err = await res.json().catch(() => ({}));
+                showToast(err.detail || "Erro ao acessar conta do cliente.", "error");
+            }
+        } catch (e) {
+            console.error("Erro impersonate:", e);
+            showToast("Erro de conexão ao tentar acessar conta.", "error");
         }
     }
 

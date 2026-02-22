@@ -43,8 +43,11 @@ async def sync_all_accounts():
 
 @app.on_event('startup')
 async def startup_event():
-    scheduler.add_job(sync_all_accounts, 'interval', hours=4)
-    scheduler.start()
+    try:
+        scheduler.add_job(sync_all_accounts, 'interval', hours=4)
+        scheduler.start()
+    except Exception as e:
+        print(f"Scheduler startup error: {e}")
 
 # CORS Configuration
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://funila-app.onrender.com,http://localhost:3000").split(",")
@@ -61,7 +64,27 @@ app.add_middleware(
 def health():
     return {"status": "ok", "environment": os.getenv("ENVIRONMENT", "production")}
 
-# Mount frontend directories for direct access
+# ------------------------------------------------------------------------------
+# API ROUTERS (Must be included BEFORE StaticFiles to avoid shadowing)
+# ------------------------------------------------------------------------------
+app.include_router(tracker.router)
+app.include_router(public_forms.router)
+app.include_router(admin_forms.router)
+app.include_router(leads.router)
+app.include_router(dashboard.router)
+app.include_router(links.router)
+app.include_router(master.router)
+app.include_router(auth.router)
+app.include_router(scanner.router)
+app.include_router(analytics.router)
+app.include_router(oauth.router)
+app.include_router(creatives.router)
+app.include_router(billing.router)
+app.include_router(logs.router)
+
+# ------------------------------------------------------------------------------
+# STATIC FILES (Frontend)
+# ------------------------------------------------------------------------------
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
 
 if os.path.exists(frontend_dir):
@@ -95,19 +118,3 @@ async def read_root():
     if os.path.exists(frontend_index):
          return FileResponse(frontend_index)
     return RedirectResponse(url="/login")
-
-
-app.include_router(tracker.router)
-app.include_router(public_forms.router)
-app.include_router(admin_forms.router)
-app.include_router(leads.router)
-app.include_router(dashboard.router)
-app.include_router(links.router)
-app.include_router(master.router)
-app.include_router(auth.router)
-app.include_router(scanner.router)
-app.include_router(analytics.router)
-app.include_router(oauth.router)
-app.include_router(creatives.router)
-app.include_router(billing.router)
-app.include_router(logs.router)

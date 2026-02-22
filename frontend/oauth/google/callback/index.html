@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connecting...</title>
+    <script src="../../../admin/js/auth.js"></script>
+</head>
+<body>
+    <p>Connecting to Google Ads...</p>
+    <script>
+        // auth.js determines API_URL (local vs production)
+        const backend = Auth.API_URL;
+        const search = window.location.search;
+        window.location.href = `${backend}/oauth/google/callback${search}`;
+    </script>
+</body>
+</html>

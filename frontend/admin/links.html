@@ -473,7 +473,21 @@ async function loadLinks() {
         const links = await res.json();
 
         if (!links.length) {
-            if(window.renderEmptyState) window.renderEmptyState('links-list', '🔗', 'Nenhum link criado', 'Clique em "+ Novo Link" para rastrear seu primeiro anúncio');
+            document.getElementById('links-list').innerHTML = `
+                <div style='display:flex;flex-direction:column;align-items:center;
+                            padding:80px 24px;text-align:center;gap:16px'>
+                <div style='font-size:3rem'>🔗</div>
+                <h3 style='color:var(--text-100);font-size:1.1rem'>Nenhum link criado ainda</h3>
+                <p style='color:var(--text-40);max-width:360px;font-size:0.85rem'>
+                    Crie seu primeiro Smart Link e use-o no seu anúncio do Meta ou Google
+                    para começar a rastrear cliques e qualificar leads.</p>
+                <button onclick='openCreateModal()'
+                        style='background:var(--blue);color:#fff;border:none;
+                                padding:12px 24px;border-radius:10px;font-weight:600;
+                                cursor:pointer;font-size:0.9rem'>
+                    + Criar meu primeiro link
+                </button>
+                </div>`
             return;
         }
 

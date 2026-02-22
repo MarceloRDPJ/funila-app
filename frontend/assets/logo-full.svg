@@ -1,0 +1,7 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 40' fill='none'>
+  <rect x='2' y='2' width='36' height='36' rx='9' fill='#2563EB'/>
+  <path d='M13 10 L29 10 L26 18 L22 18 L22 30 L18 30 L18 18 L15 18 Z'
+        fill='white'/>
+  <text x='46' y='27' font-family='Arial' font-weight='800'
+        font-size='22' fill='#F0F4FF'>FUNILA</text>
+</svg>

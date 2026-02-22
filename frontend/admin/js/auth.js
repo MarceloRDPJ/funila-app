@@ -1,20 +1,16 @@
 const SUPABASE_URL     = "https://qitbyswmidyakadrzatz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpdGJ5c3dtaWR5YWthZHJ6YXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MDQ3NzAsImV4cCI6MjA4NzA4MDc3MH0.FHUD9EuHNOnxv7UALkHNlLiEZv5Q7yYvT9GIz3QeSl0";
 
-// Determina a URL da API backend dinamicamente
-let API_URL = window.location.origin;
-
-// Se estiver rodando no GitHub Pages ou outro domínio frontend,
-// a API deve apontar para o backend no Render.
-if (window.location.hostname === "app.funila.com.br" || window.location.hostname.includes("github.io")) {
-    API_URL = "https://funila-app.onrender.com";
+// ✅ Detecção de ambiente robusta (Fix Bug #4)
+function resolveApiUrl() {
+  const h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') return 'http://localhost:8000';
+  if (h === 'app.funila.com.br')             return 'https://funila-app.onrender.com';
+  if (h.includes('github.io'))               return 'https://funila-app.onrender.com';
+  // Fallback: mesmo host (Render servindo frontend junto)
+  return window.location.origin;
 }
-
-// Se estiver rodando localmente (frontend separado), ajuste conforme necessário
-if (window.location.hostname === "localhost" && window.location.port === "5500") {
-    // Assumindo que o backend roda na porta 8000
-    API_URL = "http://localhost:8000";
-}
+const API_URL = resolveApiUrl();
 
 let supabaseClient = null;
 
@@ -35,12 +31,7 @@ async function checkAuth() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) {
         if (!window.location.pathname.includes("/login/")) {
-            // Ajuste o caminho de redirecionamento se necessário
-            const loginPath = "/frontend/login/index.html";
-            // Se já estivermos tentando ir para login, não redireciona em loop
-            if (!window.location.pathname.endsWith("login/index.html")) {
-                 window.location.href = loginPath;
-            }
+            logout(); // Usa a função logout corrigida
         }
         return null;
     }
@@ -51,29 +42,61 @@ async function checkAuth() {
     return session;
 }
 
+// ✅ Fix UX: Master não tem client_id, então tratamos o erro visual
 async function updateUserProfile(session) {
     try {
         const token = getToken(session);
         const res = await fetch(`${API_URL}/auth/me`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
-        if (!res.ok) return;
-        const user = await res.json();
+
+        // Se for master sem impersonation, o backend pode retornar erro ou dados parciais.
+        // Vamos tentar parsear mesmo com erro para ver se vem role='master'
+        let user = {};
+        if (res.ok) {
+            user = await res.json();
+        } else {
+             // Fallback simples se falhar
+             console.warn("Auth/me failed, assuming default state");
+        }
+
+        // Se o token indica master (podemos decodificar JWT, mas aqui confiamos no backend ou defaults)
+        // O backend geralmente retorna role='master' no /auth/me se tiver autenticado.
 
         // Update DOM elements
         document.querySelectorAll(".client-name").forEach(el => el.textContent = user.name || "Usuário");
-        document.querySelectorAll(".client-plan, .plan-name").forEach(el => el.textContent = user.plan || "Free");
+        document.querySelectorAll(".client-plan, .plan-name").forEach(el => el.textContent = user.plan || "Solo");
         document.querySelectorAll(".client-avatar, .user-avatar").forEach(el => el.textContent = user.avatar_initials || "US");
+
+        // ✅ Esconder créditos/upgrade para master (Fix UX)
+        if (user.role === 'master') {
+            document.querySelectorAll('.credits-footer, .btn-upgrade, .upgrade-btn').forEach(
+                el => el.style.display = 'none');
+            // Forçar nome se vier vazio
+            document.querySelectorAll(".client-name").forEach(el => {
+                if(el.textContent === "Usuário") el.textContent = "Administrador";
+            });
+        }
 
     } catch (e) {
         console.error("Error updating user profile", e);
     }
 }
 
+// ✅ Logout com redirect correto (Fix Bug #4)
 async function logout() {
     const sb = getSupabase();
     await sb.auth.signOut();
-    window.location.href = "/frontend/login/index.html";
+    sessionStorage.clear();
+
+    // Path correto dependendo de onde o frontend está
+    // Se estiver no GitHub Pages (path prefix /funila-app/), ajusta.
+    // Se estiver em produção (root), usa /login/
+
+    const isGithub = window.location.hostname.includes('github.io');
+    const loginUrl = isGithub ? '/funila-app/frontend/login/index.html' : '/login/';
+
+    window.location.href = loginUrl;
 }
 
 function getToken(session) {
@@ -180,6 +203,7 @@ function setupUI() {
     }
 }
 
+// ✅ Standard Empty State Renderer (Fix UX)
 function renderEmptyState(containerId, icon, title, subtitle) {
     const el = document.getElementById(containerId);
     if (!el) return;

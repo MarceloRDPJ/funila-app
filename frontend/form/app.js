@@ -71,6 +71,8 @@ function saveProgress(stepName) {
                 utm_source:   queryParams.utm_source,
                 utm_medium:   queryParams.utm_medium,
                 utm_campaign: queryParams.utm_campaign,
+                utm_content:  queryParams.utm_content,
+                utm_term:     queryParams.utm_term,
             }
         };
 

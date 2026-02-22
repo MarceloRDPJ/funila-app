@@ -13,7 +13,8 @@ router = APIRouter(tags=["OAuth"])
 
 META_APP_ID = os.getenv("META_APP_ID")
 META_APP_SECRET = os.getenv("META_APP_SECRET")
-META_REDIRECT_URI = os.getenv("META_REDIRECT_URI", "https://api.funila.com.br/oauth/meta/callback")
+# Updated to match user's frontend configuration
+META_REDIRECT_URI = os.getenv("META_REDIRECT_URI", "https://app.funila.com.br/oauth/meta/callback")
 SECRET = os.getenv("ENCRYPTION_KEY") # Using Encryption Key as secret for state signing
 
 @router.get('/oauth/meta/connect')
@@ -117,7 +118,8 @@ async def meta_callback(code: str, state: str, background_tasks: BackgroundTasks
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "https://api.funila.com.br/oauth/google/callback")
+# Updated to match user's frontend configuration
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "https://app.funila.com.br/oauth/google/callback")
 
 @router.get('/oauth/google/connect')
 def google_connect(request: Request, user=Depends(require_client)):
